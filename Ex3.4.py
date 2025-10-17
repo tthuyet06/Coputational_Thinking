@@ -9,3 +9,7 @@ except FileNotFoundError:
     print(f"Lỗi: File '{filename}' không tồn tại.")
 except Exception as e:
     print(f"Đã xảy ra lỗi: {e}")
+
+print("hello")
+print("world")
+print("hi")
