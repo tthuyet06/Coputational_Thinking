@@ -1,3 +1,4 @@
+# Exercise 3.6
 # Chuỗi văn bản cần ghi
 text = "Hôm nay trời đẹp."
 
