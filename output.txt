@@ -1,4 +1,0 @@
-I’m a student.
-1.70000
-Tổng của hai số là: 5
-Lỗi: File 't.txt' không tồn tại.
