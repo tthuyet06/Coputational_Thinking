@@ -1,4 +1,4 @@
-# Coputational_Thinking
+```
 frontend/
 │
 ├── public/
@@ -65,3 +65,4 @@ frontend/
 ├── index.html                   # Template HTML chính của ứng dụng
 ├── package.json                 # Thông tin dự án & dependencies (React, Axios, Tailwind,...)
 └── vite.config.js               # Cấu hình Vite (plugin, alias, server port,...)
+```
