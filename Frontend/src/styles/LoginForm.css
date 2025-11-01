@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 /* Khung form chính */
 .login-wrapper {
   width: 380px;
@@ -38,19 +39,70 @@
   font-size: 14px;
   outline: none;
   margin-bottom: 20px;
+=======
+/* ===== Khung form chính ===== */
+.login-wrapper {
+  width: 520px;
+  margin: 120px auto;
+  padding: 56px 48px;
+  border-radius: 16px;
+  background-color: #fff;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
+  font-family: "Poppins", sans-serif;
+  text-align: center;
+  transition: all 0.3s ease;
+}
+
+/* ===== Tiêu đề ===== */
+.login-title {
+  font-size: 34px; 
+  font-weight: 800;
+  color: #111;
+  margin-bottom: 40px;
+  text-align: center;
+}
+
+/* ===== Label ===== */
+.input-label {
+  display: block;
+  text-align: left;
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 8px;
+}
+
+/* ===== Input field ===== */
+.input-field {
+  width: 100%;
+  padding: 16px 18px;
+  border: 2px solid #ff5f6d;
+  border-radius: 10px;
+  font-size: 16px; 
+  outline: none;
+  margin-bottom: 28px;
+>>>>>>> Gman
   transition: all 0.2s ease;
 }
 
 .input-field:focus {
   border-color: #ff7b6b;
+<<<<<<< HEAD
   box-shadow: 0 0 4px rgba(255, 95, 109, 0.3);
 }
 
 /* Nút Continue */
+=======
+  box-shadow: 0 0 6px rgba(255, 95, 109, 0.35);
+}
+
+/* ===== Nút Continue ===== */
+>>>>>>> Gman
 .btn-continue {
   width: 100%;
   background: #111;
   color: #fff;
+<<<<<<< HEAD
   font-weight: 600;
   font-size: 15px;
   border: none;
@@ -58,6 +110,15 @@
   padding: 12px;
   cursor: pointer;
   margin-top: 16px;
+=======
+  font-weight: 700;
+  font-size: 18px; 
+  border: none;
+  border-radius: 10px;
+  padding: 16px;
+  cursor: pointer;
+  margin-top: 20px;
+>>>>>>> Gman
   transition: background 0.2s ease;
 }
 
@@ -65,20 +126,58 @@
   background: #333;
 }
 
+<<<<<<< HEAD
 /* Text signup */
 .signup-text {
   font-size: 13px;
   color: #555;
   margin-top: 10px;
   margin-bottom: 0;
+=======
+/* ===== Text signup ===== */
+.signup-text {
+  font-size: 15px;
+  color: #555;
+  margin-top: 16px;
+  margin-bottom: 5px;
+>>>>>>> Gman
 }
 
 .signup-link {
   color: #ff5f6d;
   text-decoration: none;
+<<<<<<< HEAD
   font-weight: 500;
+=======
+  font-weight: 600;
+>>>>>>> Gman
 }
 
 .signup-link:hover {
   text-decoration: underline;
 }
+<<<<<<< HEAD
+=======
+
+/* ===== Responsive ===== */
+@media (max-width: 600px) {
+  .login-wrapper {
+    width: 90%;
+    padding: 40px 28px;
+  }
+
+  .login-title {
+    font-size: 28px;
+    margin-bottom: 32px;
+  }
+
+  .input-field {
+    font-size: 15px;
+  }
+
+  .btn-continue {
+    font-size: 16px;
+    padding: 14px;
+  }
+}
+>>>>>>> Gman

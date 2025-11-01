@@ -5,4 +5,8 @@ export default {
      extend: {},
    },
    plugins: [],
+<<<<<<< HEAD
  }
+=======
+ }
+>>>>>>> Gman
