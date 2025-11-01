@@ -1,16 +1,3 @@
-<<<<<<< HEAD
-// src/pages/LoginPage.jsx
-import React from "react";
-import LoginForm from "../components/common/LoginForm.jsx";
-import "../styles/LoginForm.css";
-
-
-export default function LoginPage() {
-  return (
-    <div>
-      <LoginForm />
-    </div>
-=======
 import React from "react";
 import Navbar from "../components/layouts/Navbar";
 import { Link, useNavigate } from "react-router-dom"; // ✅ thêm useNavigate
@@ -64,6 +51,5 @@ export default function LoginForm() {
         </form>
       </div>
     </>
->>>>>>> Gman
   );
 }

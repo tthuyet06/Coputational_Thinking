@@ -6,7 +6,11 @@ export default {
    },
    plugins: [],
 <<<<<<< HEAD
+<<<<<<< HEAD
  }
+=======
+ }
+>>>>>>> Gman
 =======
  }
 >>>>>>> Gman

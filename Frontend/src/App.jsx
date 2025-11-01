@@ -1,15 +1,3 @@
-<<<<<<< HEAD
-import React from "react";
-import Home from "./pages/Home";
-
-export default function App() {
-  return (
-    <div className="min-h-screen flex items-center justify-center">
-      <Home />
-    </div>
-  );
-}
-=======
 import React from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import Login from "./pages/Login.jsx";
@@ -35,4 +23,4 @@ export default function App() {
     </Routes>
   );
 }
->>>>>>> Gman
+

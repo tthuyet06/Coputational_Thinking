@@ -1,4 +1,5 @@
 <<<<<<< HEAD
+<<<<<<< HEAD
 /* Khung form chính */
 .login-wrapper {
   width: 380px;
@@ -40,6 +41,8 @@
   outline: none;
   margin-bottom: 20px;
 =======
+=======
+>>>>>>> Gman
 /* ===== Khung form chính ===== */
 .login-wrapper {
   width: 520px;
@@ -81,6 +84,9 @@
   font-size: 16px; 
   outline: none;
   margin-bottom: 28px;
+<<<<<<< HEAD
+>>>>>>> Gman
+=======
 >>>>>>> Gman
   transition: all 0.2s ease;
 }
@@ -88,20 +94,27 @@
 .input-field:focus {
   border-color: #ff7b6b;
 <<<<<<< HEAD
+<<<<<<< HEAD
   box-shadow: 0 0 4px rgba(255, 95, 109, 0.3);
 }
 
 /* Nút Continue */
 =======
+=======
+>>>>>>> Gman
   box-shadow: 0 0 6px rgba(255, 95, 109, 0.35);
 }
 
 /* ===== Nút Continue ===== */
+<<<<<<< HEAD
+>>>>>>> Gman
+=======
 >>>>>>> Gman
 .btn-continue {
   width: 100%;
   background: #111;
   color: #fff;
+<<<<<<< HEAD
 <<<<<<< HEAD
   font-weight: 600;
   font-size: 15px;
@@ -111,6 +124,8 @@
   cursor: pointer;
   margin-top: 16px;
 =======
+=======
+>>>>>>> Gman
   font-weight: 700;
   font-size: 18px; 
   border: none;
@@ -118,6 +133,9 @@
   padding: 16px;
   cursor: pointer;
   margin-top: 20px;
+<<<<<<< HEAD
+>>>>>>> Gman
+=======
 >>>>>>> Gman
   transition: background 0.2s ease;
 }
@@ -127,6 +145,7 @@
 }
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 /* Text signup */
 .signup-text {
   font-size: 13px;
@@ -134,12 +153,17 @@
   margin-top: 10px;
   margin-bottom: 0;
 =======
+=======
+>>>>>>> Gman
 /* ===== Text signup ===== */
 .signup-text {
   font-size: 15px;
   color: #555;
   margin-top: 16px;
   margin-bottom: 5px;
+<<<<<<< HEAD
+>>>>>>> Gman
+=======
 >>>>>>> Gman
 }
 
@@ -147,7 +171,11 @@
   color: #ff5f6d;
   text-decoration: none;
 <<<<<<< HEAD
+<<<<<<< HEAD
   font-weight: 500;
+=======
+  font-weight: 600;
+>>>>>>> Gman
 =======
   font-weight: 600;
 >>>>>>> Gman
@@ -157,7 +185,10 @@
   text-decoration: underline;
 }
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
+=======
+>>>>>>> Gman
 
 /* ===== Responsive ===== */
 @media (max-width: 600px) {
@@ -180,4 +211,7 @@
     padding: 14px;
   }
 }
+<<<<<<< HEAD
+>>>>>>> Gman
+=======
 >>>>>>> Gman
