@@ -2,15 +2,3 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Optional - reset cơ bản */
-html, body, #root {
-  height: 100%;
-  margin: 0;
-  padding: 0;
-  font-family: 'Inter', sans-serif;
-  background-color:rgb(255, 255, 255); /* nền mặc định nhạt */
-}
-
-body {
-  font-family: 'Poppins', sans-serif;
-}
