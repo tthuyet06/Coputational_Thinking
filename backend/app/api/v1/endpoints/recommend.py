@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Header
 from typing import Optional
-from app.schemas.location import (
+from backend.app.schemas.location import (
     RecommendationRequest,
     RecommendationResponse,
     RecommendationErrorResponse
