@@ -1,8 +1,7 @@
 
-from typing import Optional, Dict, Any  # -> type hints rõ ràng, giúp IDE/phân tích tĩnh
-from fastapi import APIRouter, Depends, Header, HTTPException  # -> tạo route, DI, đọc header, ném HTTP lỗi
+from typing import Optional, Dict, Any
+from fastapi import APIRouter, Depends, Header, HTTPException
 
-# Schema vào/ra theo hợp đồng API
 
 from backend.app.schemas.schemas import (
     UserResponse,
