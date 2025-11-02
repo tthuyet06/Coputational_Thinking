@@ -1,5 +1,4 @@
-<<<<<<< HEAD
-<<<<<<< HEAD
+
 .signup-wrapper {
   width: 380px;
   margin: 100px auto;
@@ -9,9 +8,7 @@
   box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.1);
   font-family: "Poppins", sans-serif;
   text-align: center;
-=======
-=======
->>>>>>> Gman
+}
 /* Khung form chính */
 .signup-wrapper {
   width: 520px;                
@@ -23,62 +20,38 @@
   font-family: "Poppins", sans-serif;
   text-align: center;
   transition: all 0.3s ease;
-<<<<<<< HEAD
->>>>>>> Gman
-=======
->>>>>>> Gman
 }
 
 /* Tiêu đề */
 .signup-title {
-<<<<<<< HEAD
-<<<<<<< HEAD
   font-size: 26px;
   font-weight: 700;
   color: #111;
   margin-bottom: 32px;
-=======
-=======
->>>>>>> Gman
   font-size: 34px;            
   font-weight: 800;
   color: #111;
   margin-bottom: 40px;
   text-align: center;
-<<<<<<< HEAD
->>>>>>> Gman
-=======
->>>>>>> Gman
 }
 
 /* Label */
 .input-label {
   display: block;
   text-align: left;
-<<<<<<< HEAD
-<<<<<<< HEAD
   font-size: 14px;
   font-weight: 600;
   color: #333;
   margin-bottom: 6px;
-=======
-=======
->>>>>>> Gman
   font-size: 16px;          
   font-weight: 600;
   color: #333;
   margin-bottom: 8px;
-<<<<<<< HEAD
->>>>>>> Gman
-=======
->>>>>>> Gman
 }
 
 /* Input */
 .input-field {
   width: 100%;
-<<<<<<< HEAD
-<<<<<<< HEAD
   padding: 12px 14px;
   border: 2px solid #ff5f6d;
   border-radius: 8px;
@@ -91,9 +64,6 @@
 .input-field:focus {
   border-color: #ff7b6b;
   box-shadow: 0 0 4px rgba(255, 95, 109, 0.3);
-=======
-=======
->>>>>>> Gman
   padding: 16px 18px;         
   border: 2px solid #ff5f6d;
   border-radius: 10px;
@@ -125,10 +95,6 @@
 }
 .login-link:hover { 
   text-decoration: underline; 
-<<<<<<< HEAD
->>>>>>> Gman
-=======
->>>>>>> Gman
 }
 
 /* Nút Continue */
@@ -136,8 +102,6 @@
   width: 100%;
   background: #111;
   color: #fff;
-<<<<<<< HEAD
-<<<<<<< HEAD
   font-weight: 600;
   font-size: 15px;
   border: none;
@@ -168,9 +132,6 @@
 
 .login-link:hover {
   text-decoration: underline;
-=======
-=======
->>>>>>> Gman
   font-weight: 700;
   font-size: 18px;            
   border: none;
@@ -194,8 +155,4 @@
   .signup-title { font-size: 28px; margin-bottom: 32px; }
   .input-field  { font-size: 15px; padding: 14px 16px; }
   .btn-continue { font-size: 16px; padding: 14px; }
-<<<<<<< HEAD
->>>>>>> Gman
-=======
->>>>>>> Gman
 }
