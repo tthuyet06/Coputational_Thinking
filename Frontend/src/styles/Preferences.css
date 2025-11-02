@@ -1,0 +1,47 @@
+.pref-wrap {
+  max-width: 980px;
+  margin: 48px auto 80px;
+  padding: 0 20px;
+  font-family: "Poppins", sans-serif;
+  text-align: center;
+}
+
+.pref-title {
+  font-size: clamp(32px, 6vw, 64px);
+  font-weight: 900;
+  margin: 0 0 8px;
+  color: #111;
+}
+
+.pref-sub {
+  margin: 0 0 22px;
+  color: #7b7b7b;
+  font-size: 18px;
+}
+
+.pref-next {
+  width: 100%;
+  max-width: 320px;
+  display: block;
+  margin: 28px auto 0;
+  padding: 14px 0;
+  background: #111;
+  color: #fff;
+  border: none;
+  border-radius: 16px;
+  font-weight: 700;
+  font-size: 18px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+.pref-next:hover {
+  background: #333;
+}
+.pref-next:active {
+  transform: translateY(1px);
+}
+.pref-next:disabled {
+  background: #cfcfcf;
+  color: #f7f7f7;
+  cursor: not-allowed;
+}
