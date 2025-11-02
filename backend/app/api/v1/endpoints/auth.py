@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 from starlette import status
-from models import (RegisterRequest, LoginRequest, UserResponse,
+from backend.app.schemas.schemas import (RegisterRequest, LoginRequest, UserResponse,
                     LoginResponse, RefreshRequest, RefreshResponse)
 from backend.app.services.auth_service import AuthService
 
