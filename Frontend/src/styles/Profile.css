@@ -226,3 +226,67 @@ body { margin: 0; }
 .profile-page .edit-btn {
   margin-top: 36px;
 }
+
+.vibes-section {
+  text-align: center;
+  padding: 20px;
+}
+
+.vibes-sub {
+  margin-bottom: 16px;
+  color: #666;
+  font-size: 17px;
+}
+
+.vibes-section {
+  text-align: center;
+  padding: 24px;
+}
+
+.vibes-sub {
+  color: #666;
+  margin-bottom: 18px;
+  font-size: 17px;
+}
+
+.button-group {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.edit-btn,
+.cancel-btn,
+.save-btn {
+  padding: 10px 24px;
+  border-radius: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: 0.2s ease;
+}
+
+.edit-btn {
+  background: #111;
+  color: #fff;
+}
+.edit-btn:hover {
+  background: #333;
+}
+
+.save-btn {
+  background: linear-gradient(135deg, #ff5a7a 0%, #ff9b52 100%);
+  color: white;
+}
+.save-btn:hover {
+  opacity: 0.9;
+}
+
+.cancel-btn {
+  background: #eee;
+  color: #444;
+}
+.cancel-btn:hover {
+  background: #ddd;
+}

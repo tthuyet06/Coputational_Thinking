@@ -1,13 +1,8 @@
-import React, { useState, useEffect } from "react";
-import "./TagSelector.css";
+import React, { useState } from "react";
+import "../../styles/TagSelector.css";
 
-export default function TagSelector({ tags = [], defaultSelected = [], onChange }) {
-  const [selectedTags, setSelectedTags] = useState(defaultSelected);
-
-  // Khi defaultSelected thay đổi (VD: reset), đồng bộ lại state
-  useEffect(() => {
-    setSelectedTags(defaultSelected);
-  }, [defaultSelected]);
+export default function TagSelector({ tags = [], onChange }) {
+  const [selectedTags, setSelectedTags] = useState([]);
 
   const toggleTag = (tag) => {
     const updated = selectedTags.includes(tag)
@@ -24,7 +19,9 @@ export default function TagSelector({ tags = [], defaultSelected = [], onChange 
           {tags.map((tag, i) => (
             <div
               key={i}
-              className={`tag-pill ${selectedTags.includes(tag) ? "is-active" : ""}`}
+              className={`tag-pill ${
+                selectedTags.includes(tag) ? "is-active" : ""
+              }`}
               onClick={() => toggleTag(tag)}
             >
               {tag}
