@@ -1,0 +1,228 @@
+/* layout tổng */
+.profile-page {
+  display: flex;
+  min-height: 100vh;
+  padding-top: var(--navbar-h);
+  background: #fff;
+  font-family: "Poppins", sans-serif;
+  box-sizing: border-box;
+}
+
+html, body, #root { height: 100%; }
+body { margin: 0; }
+
+/* sidebar */
+.profile-page .sidebar {
+  width: 400px;
+  flex: 0 0 360px;
+  height: calc(100vh - var(--navbar-h));
+  border-right: 1px solid #ddd;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 60px 20px;
+  box-sizing: border-box;
+  position: relative;
+  z-index: 5;
+}
+
+.profile-page .avatar-section { 
+  text-align: center; 
+  padding-bottom: 30px; 
+}
+.profile-page .avatar-circle {
+  width: 150px; height: 150px; 
+  background: #d9d9d9; 
+  border-radius: 50%;
+  margin: 0 auto 12px;
+}
+.profile-page .username { 
+  font-size: 20px; font-weight: 600; color: #222; margin: 0; }
+
+/* menu trái – scope trong profile */
+.profile-page .menu { list-style: none; padding: 0; margin: 16px 0; width: 100%; }
+.profile-page .menu-item {
+  padding: 0 16px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 44px 14px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: .2s;
+  color: #222;
+  background: #fff;
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.profile-page .menu-item:hover,
+.profile-page .menu-item.active {
+  background: #ff3366;
+  color: #fff;
+  box-shadow: 0 6px 18px rgba(255,51,102,.2);
+}
+
+.profile-page .logout-btn {
+  margin-top: 95px;
+  padding: 10px 30px;
+  border: 1px solid #2a2a2a;
+  border-radius: 8px;
+  background: #fff;
+  font-weight: 700;
+  cursor: pointer;
+  transition: .2s;
+}
+.profile-page .logout-btn:hover { background:#2a2a2a; color:#fff; }
+
+/* main */
+.profile-page .profile-form-section {
+  flex: 1;
+  min-height: calc(100vh - var(--navbar-h));
+  padding: 80px 80px 100px;
+  overflow-y: auto;
+  background: #fff;
+  box-sizing: border-box;
+  position: relative;
+  z-index: 1;
+  animation: fadeIn .4s ease;
+}
+.profile-page .profile-container { max-width: 1100px; margin: 0 auto; }
+
+.profile-page .form-title {
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: .3px;
+  text-transform: uppercase;
+  margin: 0 0 28px;
+  border-bottom: 1px solid #e5e5e5;
+  padding-bottom: 12px;
+  color: #111;
+}
+
+/* form fields */
+.profile-page .profile-form { 
+  display: flex; 
+  flex-direction: column; 
+}
+.profile-page .profile-form label {
+  margin-top: 18px; margin-bottom: 6px; font-weight: 700; color: #333; font-size: 16px;
+}
+.profile-page .profile-form input {
+  width: 100%; height: 60px; padding: 14px 16px; border-radius: 8px;
+  border: 1px solid #e2e2e2; background: #fbfbfb; font-size: 16px; color: #222;
+  box-sizing: border-box; transition: border-color .15s, box-shadow .15s;
+}
+.profile-page .profile-form input:focus {
+  outline: none; border-color: #ff3366; box-shadow: 0 0 0 3px rgba(255,51,102,.15);
+}
+.profile-page .static-input {
+  display: flex; align-items: center; width: 100%; height: 60px; padding: 14px 16px;
+  border-radius: 8px; border: 1px solid #e2e2e2; background: #f1f1f1; color: #333;
+  box-sizing: border-box;
+}
+
+/* buttons */
+.profile-page .button-group {
+  display: flex; justify-content: center; gap: 18px; margin-top: 26px;
+}
+.profile-page .cancel-btn,
+.profile-page .save-btn {
+  padding: 12px 28px; border-radius: 8px; border: none; font-weight: 700; cursor: pointer; font-size: 15px;
+}
+.profile-page .cancel-btn { background:#d0d0d0; color:#111; }
+.profile-page .cancel-btn:hover { background:#b5b5b5; color:#fff; }
+.profile-page .save-btn { background:#ff3366; color:#fff; }
+.profile-page .save-btn:hover { background:#e02a58; }
+
+.profile-page .edit-btn {
+  display: block; width: 100%; max-width: 480px; height: 56px; margin: 32px auto 0;
+  background: #1f1f1f; color: #fff; border: none; border-radius: 10px; font-weight: 800; font-size: 18px;
+  cursor: pointer; transition: .2s;
+}
+.profile-page .edit-btn:hover { background:#ff3366; }
+
+/* favorites */
+.profile-page .favorites-list { display: flex; flex-direction: column; gap: 20px; }
+.profile-page .favorite-card {
+  display: flex; align-items: flex-start; gap: 12px;
+  border: 1px solid #e6e6e6; border-radius: 12px; padding: 12px; background: #fff;
+  box-shadow: 0 3px 8px rgba(0,0,0,.05); transition: all .3s ease; opacity: 1; transform: scale(1);
+}
+.profile-page .favorite-card.fade-out { opacity: 0; transform: scale(.96); }
+.profile-page .fav-image { width: 120px; height: 120px; object-fit: cover; border-radius: 10px; }
+.profile-page .fav-info { flex: 1; }
+.profile-page .fav-info h3 { margin: 0 0 4px; font-size: 18px; color:#222; }
+.profile-page .fav-info p { margin: 4px 0; color:#555; font-size: 14px; }
+.profile-page .fav-info .address { font-weight: 700; color:#333; }
+.profile-page .hashtags { color:#ff3366; font-weight: 600; font-size: 13px; }
+.profile-page .heart-btn {
+  width: 36px;
+  height: 36px;
+  min-width: 36px;
+  border-radius: 999px;
+  border: 1px solid #e5e7eb;
+  background: #fff;
+  display: grid;
+  place-items: center;
+  color: #9ca3af;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  transition: transform 0.15s ease, color 0.2s ease, background 0.2s ease;
+}
+.profile-page .heart-btn:hover {
+  transform: scale(1.08);
+}
+.profile-page .heart-btn.liked {
+  color: #ef4444;
+  border-color: #f3b4b4;
+  background: #fff5f5;
+  animation: heartPop 0.35s ease;
+}
+.profile-page .empty-fav {
+  padding-top: 180px; display: flex; font-size: 20px; text-align: center;
+  justify-content: center; color: #777; margin-top: 20px; font-style: italic;
+}
+
+/* anim */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ===== Spacing tweaks for the right column ===== */
+
+/* tiêu đề cách nội dung phía dưới hơn */
+.profile-page .form-title {
+  margin-bottom: 36px;
+}
+
+/* label thoáng hơn một chút */
+.profile-page .profile-form label {
+  margin-top: 18px;
+  margin-bottom: 8px;
+}
+
+/* input khi xem/chỉnh sửa: thêm khoảng cách phía dưới */
+.profile-page .profile-form input {
+  margin-top: 6px;
+  margin-bottom: 22px;
+}
+
+/* ô hiển thị tĩnh cũng cách ra tương tự */
+.profile-page .static-input {
+  margin-top: 6px;
+  margin-bottom: 22px;
+}
+
+/* nhóm nút Save/Cancel thoáng hơn */
+.profile-page .button-group {
+  gap: 24px;
+  margin-top: 28px;
+}
+
+/* nút Edit phía dưới form: đẩy xuống thêm để thoáng */
+.profile-page .edit-btn {
+  margin-top: 36px;
+}
