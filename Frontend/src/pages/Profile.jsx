@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "../styles/Profile.css";
 import Navbar from "../components/layouts/Navbar";
+import TagSelector from "../components/common/TagSelector.jsx"
 
 export default function ProfilePage() {
   const navigate = useNavigate();
@@ -9,6 +10,20 @@ export default function ProfilePage() {
   const [isEditing, setIsEditing] = useState(false);
   const [activeMenu, setActiveMenu] = useState("Profile");
   const [fadingIds, setFadingIds] = useState([]); // id đang fade-out
+  const allVibeTags = [
+  "Creative", "Chill", "Productive", "Romantic", "Adventurous",
+  "Cozy", "Minimalist", "Retro", "Nature", "Luxury"
+];
+
+// tag được chọn của user (giả lập dữ liệu cũ)
+const [userVibes, setUserVibes] = useState(["Chill", "Creative", "Nature"]);
+
+// tag đang edit tạm (chưa lưu)
+const [editingVibes, setEditingVibes] = useState(userVibes);
+
+// bật/tắt chế độ edit vibes
+const [isEditingVibes, setIsEditingVibes] = useState(false);
+
 
   // dữ liệu demo
   const [userData, setUserData] = useState({
@@ -261,11 +276,65 @@ export default function ProfilePage() {
         </div>
 
           {activeMenu === "Vibes" && (
-            <>
-              <h2 className="form-title">VIBES</h2>
-              <p>Đang cập nhật vibe của bạn…</p>
-            </>
-          )}
+  <div className="vibes-section">
+    <h2 className="form-title">YOUR VIBES</h2>
+    <p className="vibes-sub">
+      {isEditingVibes ? "Edit your current vibe tags ✨" : "These are your current vibes"}
+    </p>
+
+    {!isEditingVibes ? (
+      <>
+        <TagSelector
+          tags={allVibeTags}
+          defaultSelected={userVibes}
+          onChange={() => {}}
+        />
+
+        <button
+          className="edit-btn"
+          style={{ marginTop: "20px" }}
+          onClick={() => {
+            setEditingVibes(userVibes);
+            setIsEditingVibes(true);
+          }}
+        >
+          Edit Vibes
+        </button>
+      </>
+    ) : (
+      <>
+        <TagSelector
+          tags={allVibeTags}
+          defaultSelected={editingVibes}
+          onChange={(selected) => setEditingVibes(selected)}
+        />
+
+        <div className="button-group">
+          <button
+            className="cancel-btn"
+            onClick={() => {
+              setEditingVibes(userVibes); // revert
+              setIsEditingVibes(false);
+            }}
+          >
+            Cancel
+          </button>
+          <button
+            className="save-btn"
+            onClick={() => {
+              setUserVibes(editingVibes);
+              setIsEditingVibes(false);
+              alert("Your vibes have been updated!");
+            }}
+          >
+            Save
+          </button>
+        </div>
+      </>
+    )}
+  </div>
+)}
+
 
           {activeMenu === "Favorites" && (
             <>
