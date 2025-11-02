@@ -7,14 +7,12 @@ export default function ProfilePage() {
 
   const [isEditing, setIsEditing] = useState(false);
   const [activeMenu, setActiveMenu] = useState("Profile");
-  const [fadingIds, setFadingIds] = useState([]); // ✅ id của thẻ đang ẩn dần
-
+  const [fadingIds, setFadingIds] = useState([]);
   const [userData, setUserData] = useState({
     username: "LizzardMeoMeo",
     email: "lizzard@example.com",
     password: "********",
   });
-
   const [editData, setEditData] = useState({ ...userData });
 
   const [favorites, setFavorites] = useState([
@@ -47,31 +45,23 @@ export default function ProfilePage() {
     },
   ]);
 
-
   const handleEditClick = () => {
     setEditData({ ...userData });
     setIsEditing(true);
   };
-
   const handleCancel = () => setIsEditing(false);
-
   const handleSave = (e) => {
     e.preventDefault();
     setUserData(editData);
     setIsEditing(false);
     alert("Thông tin đã được lưu!");
   };
-
   const handleChange = (e) => {
     const { name, value } = e.target;
     setEditData((prev) => ({ ...prev, [name]: value }));
   };
+  const handleLogout = () => navigate("/login");
 
-  const handleLogout = () => {
-    navigate("/login");
-  };
-
-  // ✅ Khi nhấn ❤️: bỏ thích => fade out => xóa thẻ
   const toggleFavorite = (id) => {
     const fav = favorites.find((f) => f.id === id);
     if (fav.liked) {
@@ -79,12 +69,12 @@ export default function ProfilePage() {
       setTimeout(() => {
         setFavorites((prev) => prev.filter((f) => f.id !== id));
         setFadingIds((prev) => prev.filter((fid) => fid !== id));
-      }, 300); // khớp thời gian CSS transition
+      }, 300);
     }
   };
 
   return (
-    <>
+    <div className="app-container">
       {/* Sidebar */}
       <div className="sidebar">
         <div className="avatar-section">
@@ -160,10 +150,7 @@ export default function ProfilePage() {
                 />
 
                 <label>Current Password:</label>
-                <input
-                  type="password"
-                  placeholder="Enter your current password"
-                />
+                <input type="password" placeholder="Enter your current password" />
 
                 <label>New Password:</label>
                 <input
@@ -174,10 +161,7 @@ export default function ProfilePage() {
                 />
 
                 <label>Confirm New Password:</label>
-                <input
-                  type="password"
-                  placeholder="Confirm your new password"
-                />
+                <input type="password" placeholder="Confirm your new password" />
 
                 <div className="button-group">
                   <button
@@ -229,6 +213,6 @@ export default function ProfilePage() {
           </>
         )}
       </div>
-    </>
+    </div>
   );
 }
