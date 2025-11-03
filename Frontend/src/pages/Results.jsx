@@ -5,12 +5,25 @@ import LoadingScreen from "./LoadingScreen";
 import EmptyState from "./EmptyState";
 import "../styles/Results.css";
 
-/* ----- Card ----- */
-function ResultCard({ item, onToggleFav }) {
+/* ----------------- Helper: tạo link chỉ đường ----------------- */
+function buildDirectionsUrl(place) {
+  const base = "https://www.google.com/maps/dir/?api=1";
+  const dest = place.coords
+    ? `${place.coords.lat},${place.coords.lng}`
+    : encodeURIComponent(place.address || place.title);
+  // origin dùng "Current Location" để Maps tự lấy vị trí người dùng
+  return `${base}&origin=Current+Location&destination=${dest}`;
+}
+
+/* ----------------- Card ----------------- */
+function ResultCard({ item, onToggleFav, origin }) {
   const navigate = useNavigate();
 
-  const goToDetail = () => {
-    navigate(`/details/${item.id}`);
+  const goToDetail = () => navigate(`/details/${item.id}`);
+
+  const openDirections = (e) => {
+    e.stopPropagation();
+    window.open(buildDirectionsUrl(item), "_blank", "noopener,noreferrer");
   };
 
   return (
@@ -19,27 +32,61 @@ function ResultCard({ item, onToggleFav }) {
       <div className="result-body">
         <header className="result-header">
           <h3 className="result-title">{item.title}</h3>
-          <button
-            className={`fav-btn ${item.fav ? "is-fav" : ""}`}
-            aria-label={item.fav ? "Unfavorite" : "Favorite"}
-            onClick={(e) => {
-              e.stopPropagation();
-              onToggleFav(item.id);
-            }}
-          >
-            <svg width="22" height="22" viewBox="0 0 24 24">
-              <path d="M12 21s-6.7-4.1-9.6-7.6A6.1 6.1 0 0 1 12 5.3a6.1 6.1 0 0 1 9.6 8.1C18.7 16.9 12 21 12 21z" />
-            </svg>
-          </button>
+          <div className="result-actions">
+            <button
+              className="icon-btn dir-btn"
+              onClick={openDirections}
+              aria-label={`Chỉ đường đến ${item.title}`}
+              title="Chỉ đường"
+              onMouseDown={(e) => e.preventDefault()} // tránh outline khi giữ chuột
+            >
+              {/* Nền diamond trắng + mũi tên rẽ phải đen */}
+              <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true">
+                {/* Diamond (square xoay 45°) */}
+                <rect x="3" y="3" width="18" height="18" rx="3"
+                      fill="#ffffff" transform="rotate(45 12 12)"/>
+                {/* Arrow turn right (đơn giản, rõ nét) */}
+                <path
+                  d="M9 16V12a3 3 0 0 1 3-3h3"
+                  fill="none"
+                  stroke="#111111"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+                <path
+                  d="M14 7l4 4-4 4"
+                  fill="none"
+                  stroke="#111111"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </button>
+
+            {/* ❤️ Nút yêu thích */}
+            <button
+              className={`fav-btn ${item.fav ? "is-fav" : ""}`}
+              aria-label={item.fav ? "Unfavorite" : "Favorite"}
+              onClick={(e) => {
+                e.stopPropagation();
+                onToggleFav(item.id);
+              }}
+              title={item.fav ? "Bỏ yêu thích" : "Thêm vào yêu thích"}
+            >
+              <svg width="22" height="22" viewBox="0 0 24 24">
+                <path d="M12 21s-6.7-4.1-9.6-7.6A6.1 6.1 0 0 1 12 5.3a6.1 6.1 0 0 1 9.6 8.1C18.7 16.9 12 21 12 21z" />
+              </svg>
+            </button>
+          </div>
         </header>
 
         <p className="result-desc">{item.description}</p>
-
         <p className="result-addr">
           <span className="pin">📍</span>
           {item.address}
         </p>
-
         <p className="result-tags">
           {item.hashtags.map((t) => (
             <span key={t}>#{t} </span>
@@ -68,6 +115,19 @@ export default function Results() {
     }
   }, [location.state, navigate]);
 
+  const [origin, setOrigin] = useState(null);
+
+  useEffect(() => {
+    if (!("geolocation" in navigator)) return;
+    navigator.geolocation.getCurrentPosition(
+      ({ coords }) => setOrigin(`${coords.latitude},${coords.longitude}`),
+      () => setOrigin(null), // fallback: không có origin
+      { enableHighAccuracy: true, timeout: 8000, maximumAge: 60000 }
+    );
+  }, []);
+
+
+
   async function fetchResults(delayMs = 0) {
     if (delayMs > 0) {
       await new Promise((r) => setTimeout(r, delayMs));
@@ -81,6 +141,7 @@ export default function Results() {
         description:
           "Arcade với bowling, mini basketball, racing simulators ngay tại Saigon Centre. Lý tưởng cho nhóm bạn muốn xả năng lượng.",
         address: "5th Floor, Saigon Centre, 65 Le Loi, District 1",
+        coords: { lat: 10.773337253342001, lng: 106.70103165732922},
         hashtags: [
           "PlayAndLaugh",
           "EnergeticMood",
@@ -94,10 +155,11 @@ export default function Results() {
         id: "running-bean",
         title: "The Running Bean Coffee",
         image:
-          "https://lh3.googleusercontent.com/p/AF1QipPILOdqXwo32DD2oYO_iG0Klqw9GOMeS9AcpaaV=s1360-w1360-h1020-rw",
+          "https://hatiencorp.vn/wp-content/uploads/2020/08/bep-nha-hang-the-running-bean.jpg",
         description:
           "Quán cà phê hiện đại, tone trắng – gỗ, không gian mở, hợp chill/creative, có bàn dài làm việc nhóm.",
         address: "33 Mac Thi Buoi Street, District 1",
+        coords: {lat: 10.775348279405895, lng: 106.7048851469228},
         hashtags: [
           "CreativeVibe",
           "ChillMood",
@@ -160,7 +222,7 @@ export default function Results() {
 
           <section className="results-list">
             {items.map((it) => (
-              <ResultCard key={it.id} item={it} onToggleFav={toggleFav} />
+              <ResultCard item={it} onToggleFav={toggleFav} origin={origin} />
             ))}
           </section>
         </div>

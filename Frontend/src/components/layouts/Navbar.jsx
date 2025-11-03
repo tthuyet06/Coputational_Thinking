@@ -24,10 +24,10 @@ export default function Navbar() {
       <div className="navbar-inner">
         {isAuthPage ? (
           // Khi ở login/signup: chỉ là chữ, không bấm được
-          <span className="navbar-logo disabled">MOODITRIP</span>
+          <span className="navbar-logo disabled">MOODYTRIP</span>
         ) : (
           <Link to="/home" className="navbar-logo">
-            MOODITRIP
+            MOODYTRIP
           </Link>
         )}
 
