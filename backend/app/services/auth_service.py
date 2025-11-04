@@ -2,7 +2,6 @@ from fastapi import HTTPException
 from starlette import status
 from pydantic import EmailStr
 
-
 mock_database = [
     {
         "id": 1,
@@ -85,4 +84,3 @@ class AuthService:
         return {
             "access_token": new_access_token
         }
-

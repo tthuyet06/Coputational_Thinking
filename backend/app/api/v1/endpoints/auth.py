@@ -7,6 +7,7 @@ from backend.app.services.auth_service import AuthService
 router = APIRouter()
 auth_service = AuthService()
 
+
 @router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
 async def register(user: RegisterRequest):
     new_user = auth_service.register_user(
