@@ -1,6 +1,8 @@
-
 from typing import Optional, Dict, Any
-from fastapi import APIRouter, Depends, Header, HTTPException
+from fastapi.security import APIKeyHeader
+from fastapi import APIRouter, Depends, HTTPException, Security, Header
+from starlette import status
+
 
 
 from backend.app.schemas.schemas import (
@@ -22,6 +24,7 @@ from backend.app.services.user_service import (
 
 router = APIRouter(prefix="/api/v1/users", tags=["users"])
 
+authorization_header = APIKeyHeader(name="Authorization", auto_error=False)
 # ====== MOCK DỮ LIỆU (tạm thời thay DB/thư viện token) ======
 _fake_users_db = [
     {"id": 1, "email": "user@gmail.com", "full_name": "Nguyen Van A", "hobbies": ["#cafe", "#an_vat"]},
