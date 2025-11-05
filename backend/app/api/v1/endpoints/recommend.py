@@ -5,9 +5,15 @@ from backend.app.schemas.location import (
     RecommendationResponse,
     RecommendationErrorResponse
 )
+from app.services.recommend_engine import get_current_user
 import random
 
 router = APIRouter(prefix="/api", tags=["recommend"])
+
+
+from typing import Optional
+from fastapi import APIRouter, Depends, HTTPException, Header, status
+
 
 # Mock dữ liệu người dùng và hàm xác thực
 mock_database = [
@@ -32,10 +38,6 @@ mock_access_tokens = {
 
 
 def get_current_user(Authorization: Optional[str] = Header(None)):
-    """
-    Xác thực người dùng bằng header:
-        Authorization: Bearer access_for_user1@example.com
-    """
     if not Authorization:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -67,10 +69,8 @@ def get_current_user(Authorization: Optional[str] = Header(None)):
 
     return user
 
+
 def get_recommendations(latitude: float, longitude: float, duration_tag: str, user: dict):
-    """
-    Hàm mô phỏng việc sinh gợi ý địa điểm dựa trên vị trí và thời gian.
-    """
     mock_places = [
         {
             "id": 101,
@@ -109,9 +109,7 @@ async def recommend_places(
     payload: RecommendationRequest,
     current_user: dict = Depends(get_current_user)
 ):
-    """
-    API chính: Gợi ý địa điểm dựa trên vị trí, thời gian và sở thích user.
-    """
+
     results = get_recommendations(
         latitude=payload.latitude,
         longitude=payload.longitude,
