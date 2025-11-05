@@ -1,12 +1,11 @@
 from fastapi import APIRouter
 from starlette import status
-from models import (RegisterRequest, LoginRequest, UserResponse,
+from backend.app.schemas.schemas import (RegisterRequest, LoginRequest, UserResponse,
                     LoginResponse, RefreshRequest, RefreshResponse)
 from backend.app.services.auth_service import AuthService
 
-router = APIRouter()
+router = APIRouter(prefix="/auth", tags=["auth"])
 auth_service = AuthService()
-
 
 @router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
 async def register(user: RegisterRequest):

@@ -1,4 +1,3 @@
-
 from typing import Optional, Dict, Any
 from fastapi import APIRouter, Depends, Header, HTTPException
 
@@ -9,7 +8,7 @@ from backend.app.schemas.schemas import (
 
 from backend.app.services.user_service import update_hobbies
 
-router = APIRouter(prefix="/api/v1/users", tags=["users"])
+router = APIRouter(prefix="/users", tags=["users"])
 
 # ====== MOCK DỮ LIỆU (tạm thời) ======
 _fake_users_db = [

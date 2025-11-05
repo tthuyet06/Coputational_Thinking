@@ -1,6 +1,6 @@
-from typing import List, Optional, Dict
-from fastapi import FastAPI, HTTPException, Header, Depends
-from pydantic import BaseModel, EmailStr, Field
+from typing import List, Optional
+from fastapi import FastAPI
+from pydantic import BaseModel, EmailStr
 
 app = FastAPI(title="User Registration & Login API")
 

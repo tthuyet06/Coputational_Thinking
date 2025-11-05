@@ -8,7 +8,7 @@ from backend.app.services.user_service import (
     list_duration_tags,
 )
 
-router = APIRouter(prefix="/api/v1/tags", tags=["tags"])
+router = APIRouter(prefix="/tags", tags=["tags"])
 
 @router.get("/hobbies", response_model=HobbyTagsResponse, summary="Danh sách tất cả sở thích có thể chọn")
 def get_hobby_tags():

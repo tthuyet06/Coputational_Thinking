@@ -1,26 +1,23 @@
 from fastapi import HTTPException
 from starlette import status
 from pydantic import EmailStr
+from passlib.context import CryptContext
 
-mock_database = [
-    {
-        "id": 1,
-        "email": "user1@example.com",
-        "full_name": "User Mot",
-        "password": "password123"
-    },
-    {
-        "id": 2,
-        "email": "user2@example.com",
-        "full_name": "User Hai",
-        "password": "password456"
-    }
-]
+pwd_context = CryptContext(schemes=["argon2"], deprecated="auto")
 
+mock_database = []
 mock_access_tokens = {}
 mock_refresh_tokens = {}
 
 class AuthService:
+
+    @staticmethod
+    def get_password_hash(password: str) -> str:
+        return pwd_context.hash(password)
+
+    @staticmethod
+    def verify_password(plain_password: str, hashed_password: str) -> bool:
+        return pwd_context.verify(plain_password, hashed_password)
 
     @staticmethod
     def register_user(email: EmailStr, full_name: str, password: str) -> dict:
@@ -38,11 +35,13 @@ class AuthService:
                 raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
                                     detail={"email": ["Địa chỉ email này đã tồn tại."]})
 
+        hashed_password = AuthService.get_password_hash(password)
+
         new_user = {
             "id": len(mock_database) + 1,
             "email": email,
             "full_name": full_name,
-            "password": password,
+            "password": hashed_password,
         }
         mock_database.append(new_user)
         return new_user
@@ -51,11 +50,11 @@ class AuthService:
     def login_user(email: EmailStr, password: str) -> dict:
         user = None
         for existing_user in mock_database:
-            if existing_user['email'] == email and existing_user['password'] == password:
+            if existing_user['email'] == email:
                 user = existing_user
                 break
-        if not user or user["password"] != password:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
+        if not user or not AuthService.verify_password(password, user["password"]):
+            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
                                 detail="Không tìm thấy tài khoản này với thông tin đăng nhập này.")
 
         access_token = f"access_for_{email}"
@@ -71,7 +70,7 @@ class AuthService:
     def refresh_access_token(refresh_token: str) -> dict:
         if refresh_token not in mock_refresh_tokens:
             raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
                 detail="Refresh token không hợp lệ, vui lòng đăng nhập lại."
             )
 

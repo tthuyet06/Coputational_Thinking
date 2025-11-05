@@ -20,7 +20,7 @@ from backend.app.services.user_service import (
     toggle_favorite
 )
 
-router = APIRouter(prefix="/api/v1/users", tags=["users"])
+router = APIRouter(prefix="/users", tags=["users"])
 
 # ====== MOCK DỮ LIỆU (tạm thời thay DB/thư viện token) ======
 _fake_users_db = [
