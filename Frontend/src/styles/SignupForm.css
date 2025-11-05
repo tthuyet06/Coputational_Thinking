@@ -62,9 +62,8 @@
   text-decoration: none;
   font-weight: 600;
 }
-.login-link:hover { 
-  text-decoration: underline; 
-}
+.login-link:hover {
+  text-decoration: underline;
 
 /* Nút Continue */
 .btn-continue {
