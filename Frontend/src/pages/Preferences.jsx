@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import Navbar from "../components/layouts/Navbar";
+import TagSelector from "../components/common/TagSelector";
 import "../styles/Preferences.css";
 
 export default function Preferences() {
@@ -13,17 +14,10 @@ export default function Preferences() {
     "Mellow", "Tranquil", "Wild", "Focused",
   ];
 
-  const [selected, setSelected] = useState(new Set());
-
-  const toggle = (v) => {
-    const next = new Set(selected);
-    next.has(v) ? next.delete(v) : next.add(v);
-    setSelected(next);
-  };
+  const [selectedVibes, setSelectedVibes] = useState([]);
 
   const handleNext = () => {
-    console.log("Selected vibes:", Array.from(selected));
-    // tạm thời: chuyển sang trang results
+    console.log("Selected vibes:", selectedVibes);
     window.location.href = "/home";
   };
 
@@ -34,26 +28,12 @@ export default function Preferences() {
         <h1 className="pref-title">CHOOSE YOUR VIBE</h1>
         <p className="pref-sub">Share with us your thought</p>
 
-        <div className="vibe-panel">
-          <div className="vibe-scroll">
-            <div className="vibe-grid">
-              {vibes.map((v) => (
-                <button
-                  key={v}
-                  className={`tag-pill ${selected.has(v) ? "is-active" : ""}`}
-                  onClick={() => toggle(v)}
-                >
-                  {v}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
+        <TagSelector tags={vibes} onChange={setSelectedVibes} />
 
         <button
           className="pref-next"
           onClick={handleNext}
-          disabled={selected.size === 0}
+          disabled={selectedVibes.length === 0}
         >
           Next
         </button>

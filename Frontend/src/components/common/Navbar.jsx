@@ -22,27 +22,20 @@ export default function Navbar() {
   return (
     <header className="navbar">
       <div className="navbar-inner">
-        {isAuthPage ? (
-          // Khi ở login/signup: chỉ là chữ, không bấm được
-          <span className="navbar-logo disabled">MOODYTRIP</span>
-        ) : (
-          <Link to="/home" className="navbar-logo">
-            MOODYTRIP
-          </Link>
-        )}
+        <Link to="/home" className="navbar-logo">MOODITRIP</Link>
 
         {!isAuthPage && (
           <div className="navbar-actions" ref={ref}>
             {isProfilePage ? (
               <Link to="/home" className="home-pill" aria-label="Go Home">
-              <svg width="30" height="30" viewBox="0 0 24 24">
-                <path
-                  d="M4 10.5 12 4l8 6.5V20a1 1 0 0 1-1 1h-5v-6H10v6H5a1 1 0 0 1-1-1z"
-                  fill="#ff5a7a"
-                />
-              </svg>
-              <span>Home</span>
-            </Link>
+                <svg width="20" height="20" viewBox="0 0 24 24">
+                  <path
+                    d="M4 10.5 12 4l8 6.5V20a1 1 0 0 1-1 1h-5v-6H10v6H5a1 1 0 0 1-1-1z"
+                    fill="currentColor"
+                  />
+                </svg>
+                <span>Home</span>
+              </Link>
             ) : (
               <>
                 <button
@@ -51,7 +44,7 @@ export default function Navbar() {
                   aria-haspopup="menu"
                   aria-expanded={open}
                 >
-                  <svg width="20" height="20" viewBox="0 0 24 24">
+                  <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true">
                     <path
                       d="M3 6h18M3 12h18M3 18h18"
                       stroke="currentColor"
@@ -60,7 +53,7 @@ export default function Navbar() {
                     />
                   </svg>
                   <div className="avatar">
-                    <svg width="20" height="20" viewBox="0 0 24 24">
+                    <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true">
                       <path
                         d="M12 12a5 5 0 1 0-5-5 5 5 0 0 0 5 5Zm0 2c-5 0-9 2.5-9 5.5A1.5 1.5 0 0 0 4.5 21h15A1.5 1.5 0 0 0 21 19.5C21 16.5 17 14 12 14Z"
                         fill="currentColor"
