@@ -35,18 +35,21 @@ _fake_tokens_db = {
 }
 # ============================================================
 
-def get_current_user_from_token(Authorization: Optional[str] = Header(None)) -> Dict[str, Any]:
+def get_current_user_from_token(token: str) -> Dict[str, Any]:
     """
     Dependency: lấy user hiện tại từ header Authorization.
     - Format: 'Bearer <token>'
     - Từ token -> email -> tìm user trong _fake_users_db
     """
-    if not Authorization or not Authorization.startswith("Bearer "):
+    if not token or not token.startswith("Bearer "):
         raise HTTPException(status_code=401, detail="Thiếu hoặc sai định dạng Authorization header.")
-    token = Authorization.replace("Bearer ", "")
-    if token not in _fake_tokens_db:
+
+    actual_token = token.replace("Bearer ", "")
+
+    if actual_token not in _fake_tokens_db:
         raise HTTPException(status_code=401, detail="Access token không hợp lệ hoặc đã hết hạn.")
-    email = _fake_tokens_db[token]
+
+    email = _fake_tokens_db[actual_token]
     user = next((u for u in _fake_users_db if u["email"] == email), None)
     if not user:
         raise HTTPException(status_code=404, detail="Không tìm thấy người dùng.")
