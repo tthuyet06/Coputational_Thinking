@@ -20,11 +20,11 @@ class AuthService:
         return pwd_context.verify(plain_password, hashed_password)
 
     @staticmethod
-    def register_user(email: EmailStr, full_name: str, password: str) -> dict:
+    def register_user(email: EmailStr, username: str, password: str) -> dict:
         if not email:
             raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
                                 detail={"email": ["Email không được để trống."]})
-        if not full_name or not full_name.strip():
+        if not username or not username.strip():
             raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
                                 detail={"full_name": ["Tên không được để trống"]})
         if not password or not password.strip():
@@ -40,7 +40,7 @@ class AuthService:
         new_user = {
             "id": len(mock_database) + 1,
             "email": email,
-            "full_name": full_name,
+            "username": username,
             "password": hashed_password,
         }
         mock_database.append(new_user)

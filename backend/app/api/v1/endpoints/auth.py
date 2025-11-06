@@ -12,14 +12,14 @@ auth_service = AuthService()
 async def register(user: RegisterRequest):
     new_user = auth_service.register_user(
         email=user.email,
-        full_name=user.full_name,
+        username=user.username,
         password=user.password
     )
 
     return UserResponse(
         id=new_user['id'],
         email=new_user['email'],
-        full_name=new_user['full_name']
+        username=new_user['username']
     )
 
 

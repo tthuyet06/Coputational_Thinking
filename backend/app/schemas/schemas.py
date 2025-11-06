@@ -8,14 +8,14 @@ app = FastAPI(title="User Registration & Login API")
 class RegisterRequest(BaseModel):
     email: EmailStr
     password: str
-    full_name: str
+    username: str
     hobbies: Optional[List[str]] = []
 
 
 class UserResponse(BaseModel):
     id: int
     email: EmailStr
-    full_name: str
+    username: str
     hobbies: Optional[List[str]] = []
 
 
@@ -82,7 +82,7 @@ class FavoriteRequest(BaseModel):
 
 
 class UpdateUserRequest(BaseModel):
-    full_name: str
+    username: str
 
 
 database = []
