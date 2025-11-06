@@ -1,6 +1,7 @@
 from typing import List, Optional
 from fastapi import FastAPI
 from pydantic import BaseModel, EmailStr
+from uuid import UUID
 
 app = FastAPI(title="User Registration & Login API")
 
@@ -13,14 +14,14 @@ class RegisterRequest(BaseModel):
 
 
 class UserResponse(BaseModel):
-    id: int
+    id: UUID
     email: EmailStr
     username: str
     hobbies: Optional[List[str]] = []
 
 
 class LoginRequest(BaseModel):
-    email: EmailStr
+    username: str
     password: str
 
 
@@ -85,8 +86,4 @@ class UpdateUserRequest(BaseModel):
     username: str
 
 
-database = []
-places = []
-access_tokens = {}
-tokens = {}
 
