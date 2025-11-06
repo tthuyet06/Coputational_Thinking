@@ -5,25 +5,9 @@ from backend.app.schemas.location import (
     RecommendationResponse,
     RecommendationErrorResponse
 )
-import random
+from ....services.recommend_engine import get_current_user, get_recommendations
 
-# IMPORT DEPENDENCY CHUNG
-from backend.app.core.dependencies import get_current_user
-
-# IMPORT DB CHUNG (chỉ để lấy mock places)
-from backend.app.db.mock_db import MOCK_PLACES_DB
-
-# Thay đổi prefix
 router = APIRouter(prefix="/recommend", tags=["recommend"])
-
-# Service mock này bây giờ sẽ dùng DB chung
-def get_recommendations(latitude: float, longitude: float, duration_tag: str, user: dict):
-    # Dùng MOCK_PLACES_DB
-    mock_places = MOCK_PLACES_DB
-
-    # (Bạn có thể thêm logic filter dựa trên user.hobbies ở đây)
-
-    return random.sample(mock_places, k=min(len(mock_places), 2))
 
 
 @router.post("/",  # Bỏ /recommend vì prefix router đã xử lý

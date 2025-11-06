@@ -1,12 +1,21 @@
 from typing import List
 
+
+class Hobbies:
+    def __init__(self, hobbies: List[str] = None):
+        self.hobbies = hobbies or []
+
+    def set_hobbies(self, new_hobbies: List[str]):
+        self.hobbies = new_hobbies
+
+
 class User:
-    def __init__(self, id: int | None, email: str, full_name: str, password_hash: str, hobbies: List[str] | None = None):
+    def __init__(self, id: int | None, email: str, full_name: str, password_hash: str, hobbies: Hobbies | None = None):
         self.id = id
         self.email = email
         self.full_name = full_name
         self.password = password_hash
-        self.hobbies = hobbies or []
+        self.hobbies = hobbies or Hobbies()
 
     
     def update_name(self, new_name: str):
