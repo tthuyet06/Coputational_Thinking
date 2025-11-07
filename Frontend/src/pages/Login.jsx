@@ -1,43 +1,29 @@
-// pages/Login.jsx
-import React, { useState } from "react";
+import React, { useState, useContext } from "react";
 import Navbar from "../components/layouts/Navbar";
 import { Link, useNavigate } from "react-router-dom";
+import { AuthContext } from "../context/AuthContext";
+import ErrorMessage from "../components/common/ErrorMessage";
 import "../styles/LoginForm.css";
 import { useAuthContext } from "../context/AuthContext";
 
-export default function Login() {
+export default function LoginForm() {
   const navigate = useNavigate();
-  const { login, authError } = useAuthContext();
+  const { login, loading, error } = useContext(AuthContext);
 
-  const [form, setForm] = useState({ username: "", password: "" });
-  const [error, setError] = useState("");
-
-  const onChange = (e) =>
-    setForm((f) => ({ ...f, [e.target.name]: e.target.value }));
-
-  const validate = () => {
-    if (!form.username.trim()) return "Please enter your username.";
-    if (!form.password || form.password.length < 8)
-      return "Password must be at least 8 characters long.";
-    return "";
-  };
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
 
-    const v = validate();
-    if (v) {
-      setError(v);
-      return;
-    }
-    const res = await login(form.username.trim(), form.password);
-    if (!res.ok) {
-      setError(res.error);
-      return;
-    }
+    await login(username, password);
 
-    navigate("/preferences");
+    // Nếu login thành công (user tồn tại trong context)
+    const token = localStorage.getItem("token"); // AuthContext lưu token
+    if (token) {
+      navigate("/preferences");
+    }
   };
 
   return (
@@ -45,28 +31,25 @@ export default function Login() {
       <Navbar />
       <div className="login-wrapper">
         <h2 className="login-title">Login Account</h2>
-
-        <form className="login-form" onSubmit={handleSubmit} noValidate>
+        <form className="login-form" onSubmit={handleSubmit}>
           <label className="input-label">Username</label>
           <input
             name="username"
             type="text"
-            placeholder="Enter your username"
-            className={`input-field ${error || authError ? "error" : ""}`}
-            value={form.username}
-            onChange={onChange}
-            autoComplete="username"
+            placeholder="Enter Your Username"
+            className="input-field"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
           />
 
           <label className="input-label">Password</label>
           <input
             name="password"
             type="password"
-            placeholder="Enter your password"
-            className={`input-field ${error || authError ? "error" : ""}`}
-            value={form.password}
-            onChange={onChange}
-            autoComplete="current-password"
+            placeholder="Enter Your Password"
+            className="input-field"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
           />
 
           {(error || authError) && (
@@ -80,7 +63,12 @@ export default function Login() {
             </Link>
           </p>
 
-          <button type="submit" className="btn-continue">Continue</button>
+          <button type="submit" className="btn-continue" disabled={loading}>
+            {loading ? "Logging in..." : "Continue"}
+          </button>
+
+          {/* Hiển thị lỗi nếu có */}
+          <ErrorMessage message={error} />
         </form>
       </div>
     </>

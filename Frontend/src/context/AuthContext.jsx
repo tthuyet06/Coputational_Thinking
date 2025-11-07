@@ -1,88 +1,80 @@
-import React, { createContext, useContext, useEffect, useState } from "react";
-import { authAPI } from "../services/authAPI";
-import { api } from "../services/apiClient";
-import toErrorMessage from "../utils/toErrorMessage";
+import { createContext, useState, useEffect } from "react";
+import authService from "../services/authService";
 
-const AuthContext = createContext(null);
-export const useAuthContext = () => useContext(AuthContext);
+export const AuthContext = createContext();
 
-export default function AuthProvider({ children }) {
+export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
-  const [initializing, setInitializing] = useState(true);
-  const [authError, setAuthError] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
+  // Tự load profile nếu token có sẵn
   useEffect(() => {
-    const init = async () => {
+    const loadUser = async () => {
+      const token = localStorage.getItem("token");
+      if (!token) return;
+      setLoading(true);
       try {
-        const t = localStorage.getItem("accessToken");
-        if (t) api.defaults.headers.common.Authorization = `Bearer ${t}`;
-        const { data } = await authAPI.me();
-        setUser(data);
-      } catch {
-        localStorage.removeItem("accessToken");
-        localStorage.removeItem("refreshToken");
+        const data = await authService.getProfile();
+        setUser(data.user);
+      } catch (err) {
+        localStorage.removeItem("token");
       } finally {
-        setInitializing(false);
+        setLoading(false);
       }
     };
-    init();
+    loadUser();
   }, []);
 
   const login = async (username, password) => {
-    setAuthError(null);
-    try {
-      const { data } = await authAPI.login(username, password);
-      const access = data?.access_token;
-      const refresh = data?.refresh_token;
-  
-      if (access) {
-        localStorage.setItem("accessToken", access);
-        api.defaults.headers.common.Authorization = `Bearer ${access}`;
-      }
-      if (refresh) localStorage.setItem("refreshToken", refresh);
-  
-      const me = await authAPI.me().catch(() => null);
-      setUser(me?.data || null);
-      return { ok: true };
-    } catch (e) {
-      const msg = toErrorMessage(e);
-      setAuthError(msg);           
-      return { ok: false, error: msg };
-    }
-  };
+  setLoading(true);
+  setError(null);
+  try {
+    const data = await authService.login(username, password);
+    localStorage.setItem("token", data.access_token);
+    setUser(data.user);
+  } catch (err) {
+    // Xử lý detail có thể là string hoặc array
+    const message = err.response?.data?.detail;
+    setError(
+      Array.isArray(message)
+        ? message.map(e => e.msg).join(", ") // nối tất cả message
+        : message || "Login failed"
+    );
+  } finally {
+    setLoading(false);
+  }
+};
+
+const signup = async (username, email, password) => {
+  setLoading(true);
+  setError(null);
+  try {
+    const data = await authService.signup(email, password, username, []);
+    localStorage.setItem("token", data.access_token);
+    setUser(data.user);
+  } catch (err) {
+    const message = err.response?.data?.detail;
+    setError(
+      Array.isArray(message)
+        ? message.map(e => e.msg).join(", ")
+        : message || "Signup failed"
+    );
+  } finally {
+    setLoading(false);
+  }
+};
+
+
 
   const logout = () => {
-    localStorage.removeItem("accessToken");
-    localStorage.removeItem("refreshToken");
-    delete api.defaults.headers.common.Authorization;
+    localStorage.removeItem("token");
     setUser(null);
   };
 
   return (
-    <AuthContext.Provider value={{ user, initializing, authError, login, logout }}>
+    <AuthContext.Provider value={{ user, login, signup, logout, loading, error }}>
       {children}
     </AuthContext.Provider>
   );
-}
-
-/** 🔎 Gom mọi kiểu lỗi FastAPI về string */
-function normalizeError(data) {
-  if (!data) return "";
-  if (typeof data === "string") return data;
-
-  // Kiểu FastAPI validation: { detail: [ { msg, loc, type }, ... ] }
-  if (data.detail) {
-    if (Array.isArray(data.detail)) {
-      return data.detail.map(d => d.msg || JSON.stringify(d)).join(", ");
-    }
-    return typeof data.detail === "string" ? data.detail : JSON.stringify(data.detail);
-  }
-
-  // Kiểu tùy chỉnh: { email: ["..."], username: ["..."] }
-  if (typeof data === "object") {
-    return Object.entries(data)
-      .map(([k, v]) => `${k}: ${Array.isArray(v) ? v.join(", ") : String(v)}`)
-      .join("; ");
-  }
-  return String(data);
-}
+};

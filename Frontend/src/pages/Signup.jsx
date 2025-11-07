@@ -1,45 +1,33 @@
-import React, { useState } from "react";
+import React, { useState, useContext } from "react";
 import Navbar from "../components/layouts/Navbar";
 import { Link, useNavigate } from "react-router-dom";
+import { AuthContext } from "../context/AuthContext";
+import ErrorMessage from "../components/common/ErrorMessage";
 import "../styles/SignupForm.css";
-import { authAPI } from "../services/authAPI";
 
-export default function Signup() {
+export default function SignupForm() {
   const navigate = useNavigate();
-  const [form, setForm] = useState({ username: "", email: "", password: "" });
-  const [error, setError] = useState("");
+  const { signup, loading, error } = useContext(AuthContext);
 
-  const onChange = (e) =>
-    setForm((f) => ({ ...f, [e.target.name]: e.target.value }));
-
-  const validate = () => {
-    if (!form.username.trim()) return "Please enter your username.";
-    const okEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email);
-    if (!okEmail) return "Please enter a valid email address.";
-    if (!form.password || form.password.length < 8)
-      return "Password must be at least 8 characters long.";
-    return "";
-  };
+  const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError("");
 
-    const v = validate();
-    if (v) { setError(v); return; }
+    try {
+      await signup(username, email, password);
 
-    const res = await authAPI.register(
-      form.username.trim(),
-      form.email.trim(),
-      form.password
-    );
-
-    if (!res.ok) {
-      setError(res.error);   // <- luôn là string (nhờ toErrorMessage)
-      return;
+      // Nếu signup thành công (token tồn tại trong localStorage)
+      const token = localStorage.getItem("token");
+      if (token) {
+        navigate("/login");
+      }
+    } catch (err) {
+      // error đã được set trong AuthContext, chỉ cần render
+      console.log("Signup error:", err);
     }
-
-    navigate("/login");
   };
 
   return (
@@ -48,15 +36,15 @@ export default function Signup() {
       <div className="signup-wrapper">
         <h2 className="signup-title">Sign Up</h2>
 
-        <form className="signup-form" onSubmit={handleSubmit} noValidate>
+        <form className="signup-form" onSubmit={handleSubmit}>
           <label className="input-label">Username</label>
           <input
             name="username"
             type="text"
-            placeholder="Enter your username"
-            className={`input-field ${error ? "error" : ""}`}
-            value={form.username}
-            onChange={onChange}
+            placeholder="Enter Your Username"
+            className="input-field"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
             required
             autoComplete="username"
           />
@@ -65,10 +53,10 @@ export default function Signup() {
           <input
             name="email"
             type="email"
-            placeholder="Enter your email"
-            className={`input-field ${error ? "error" : ""}`}
-            value={form.email}
-            onChange={onChange}
+            placeholder="Enter Your Email"
+            className="input-field"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
             required
             autoComplete="email"
           />
@@ -77,23 +65,27 @@ export default function Signup() {
           <input
             name="password"
             type="password"
-            placeholder="Enter your password"
-            className={`input-field ${error ? "error" : ""}`}
-            value={form.password}
-            onChange={onChange}
-            minLength={8}
+            placeholder="Enter Your Password"
+            className="input-field"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
             required
-            autoComplete="new-password"
+            autoComplete="current-password"
           />
 
-          {error && <p className="error-text">{error}</p>}
+          {/* Hiển thị lỗi nếu có */}
+          {error && <ErrorMessage message={error} />}
 
           <p className="login-text">
-            Already have an account?{" "}
-            <Link to="/login" className="login-link">Login here.</Link>
+            If you already have an account.{" "}
+            <Link to="/login" className="login-link">
+              Login here.
+            </Link>
           </p>
 
-          <button type="submit" className="btn-continue">Continue</button>
+          <button type="submit" className="btn-continue" disabled={loading}>
+            {loading ? "Signing up..." : "Continue"}
+          </button>
         </form>
       </div>
     </>
