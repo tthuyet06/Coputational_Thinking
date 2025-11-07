@@ -1,7 +1,9 @@
 from typing import List, Optional, Dict, Any
 from fastapi import HTTPException
 
-from backend.app.db.mock_db import MOCK_PLACES_DB
+from sqlalchemy.orm import Session
+
+from backend.app.db import models
 
 # ============================================================
 # KHO TAG SỞ THÍCH & TAG THỜI LƯỢNG (Giữ nguyên)
@@ -32,12 +34,14 @@ def _validate_hobbies(hobbies: List[str]) -> None:
     valid = set(list_hobby_tags())
     bad = [h for h in hobbies if h not in valid]
     if bad:
-        raise HTTPException(status_code=400, detail=f"Tag không hợp lệ: {', '.join(bad)}")
+        raise HTTPException(status_code=400, detail=f"Invalid tag(s): {', '.join(bad)}")
 
 
-def _ensure_place_exists(place_id: int, places_source: List[Dict[str, Any]]) -> None:
-    if not any(p.get("id") == place_id for p in places_source):
-        raise HTTPException(status_code=404, detail="Địa điểm không tồn tại.")
+def _ensure_place_exists(db: Session, place_id: int) -> models.Place:
+    place = db.query(models.Place).filter(models.Place.id == place_id).first()
+    if not place:
+        raise HTTPException(status_code=404, detail="Place does not exist.")
+    return place
 
 
 # ============================================================
@@ -48,55 +52,71 @@ def _ensure_place_exists(place_id: int, places_source: List[Dict[str, Any]]) -> 
 # ============================================================
 
 # ---- Profile ----
-def get_profile(user: Dict[str, Any]) -> Dict[str, Any]:
-    # 'user' này là user lấy từ dependency chung
+def get_profile(user: models.User) -> Dict[str, Any]:
+    # 'user' này là từ dependency get_current_user
+
+    # ✅ Chuyển đổi hobbies từ Text (chuỗi) sang list
+    hobbies_list = user.hobbies.split(',') if user.hobbies else []
+
     return {
-        "id": user["id"],
-        "email": user["email"],
-        "username": user["username"],  # Đổi full_name thành username cho khớp
-        "hobbies": user.get("hobbies", []),
+        "id": user.id,
+        "email": user.email,
+        "username": user.username,
+        "hobbies": hobbies_list,
     }
 
 
-def update_name(user: Dict[str, Any], full_name: str) -> Dict[str, Any]:
+def update_name(db: Session, user: models.User, full_name: str) -> models.User: # << THAY ĐỔI
     name = (full_name or "").strip()
     if not name:
-        raise HTTPException(status_code=400, detail="full_name không được rỗng.")
+        raise HTTPException(status_code=400, detail="username cannot be empty.")
 
-    # Cập nhật trực tiếp vào object user (lấy từ DB chung)
-    user["username"] = name
-    return get_profile(user)
+    # ✅ Cập nhật object SQLAlchemy và commit
+    user.username = name
+    db.commit()
+    db.refresh(user)
+    return user
 
 
 # ---- Hobbies ----
-def update_hobbies(user: Dict[str, Any], hobbies: List[str]) -> List[str]:
+def update_hobbies(db: Session, user: models.User, hobbies: List[str]) -> List[str]: # << THAY ĐỔI
     clean = _dedup_keep_order(hobbies or [])
     _validate_hobbies(clean)
 
-    # Cập nhật trực tiếp
-    user["hobbies"] = clean
+    # ✅ Cập nhật object SQLAlchemy và commit
+    # ❗️ Giả định: Lưu hobbies dưới dạng chuỗi ngăn cách bởi dấu phẩy
+    user.hobbies = ",".join(clean)
+    db.commit()
     return clean
 
 
 # ---- Favorites ----
-def list_favorites(user: Dict[str, Any]) -> List[Dict[str, Any]]:
-    # Dùng MOCK_PLACES_DB làm nguồn
-    source = MOCK_PLACES_DB
-    fav_ids = set(user.get("favorites", []))
-    return [p for p in source if p.get("id") in fav_ids]
+def list_favorites(user: models.User) -> List[models.Place]: # << THAY ĐỔI
+    # ✅ Dùng relationship "favorites" của User
+    # user.favorites là list các object Favorite
+    # fav.place là object Place tương ứng
+    return [fav.place for fav in user.favorites]
 
 
-def toggle_favorite(user: Dict[str, Any], place_id: int) -> Dict[str, str]:
-    # Dùng MOCK_PLACES_DB làm nguồn
-    source = MOCK_PLACES_DB
-    _ensure_place_exists(place_id, source)
+def toggle_favorite(db: Session, user: models.User, place_id: int) -> Dict[str, str]:  # << THAY ĐỔI
 
-    # setdefault đảm bảo 'favorites' tồn tại
-    favorites: List[int] = user.setdefault("favorites", [])
+    # ✅ Kiểm tra địa điểm tồn tại bằng DB
+    place = _ensure_place_exists(db, place_id)
 
-    if place_id in favorites:
-        favorites.remove(place_id)
-        return {"message": "Đã bỏ lưu"}
+    # ✅ Kiểm tra favorite tồn tại bằng DB
+    existing_fav = db.query(models.Favorite).filter(
+        models.Favorite.user_id == user.id,
+        models.Favorite.place_id == place.id
+    ).first()
+
+    if existing_fav:
+        # ✅ Xóa
+        db.delete(existing_fav)
+        db.commit()
+        return {"message": "Removed from favorites"}
     else:
-        favorites.append(place_id)
-        return {"message": "Đã lưu vào yêu thích"}
+        # ✅ Thêm
+        new_fav = models.Favorite(user_id=user.id, place_id=place.id)
+        db.add(new_fav)
+        db.commit()
+        return {"message": "Saved to favorites"}
