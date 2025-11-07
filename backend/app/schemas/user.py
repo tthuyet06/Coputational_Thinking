@@ -5,7 +5,7 @@ from pydantic import BaseModel, EmailStr
 class UserRegisterRequest(BaseModel):
     email: EmailStr
     password: str
-    full_name: str
+    username: str
 
 class UserLoginRequest(BaseModel):
     email: EmailStr
@@ -15,7 +15,7 @@ class RefreshTokenRequest(BaseModel):
     refresh_token: str
 
 class UpdateUserRequest(BaseModel):
-    full_name: Optional[str]
+    username: Optional[str]
 
 class UpdateHobbiesRequest(BaseModel):
     hobbies: List[str]
@@ -24,7 +24,7 @@ class UpdateHobbiesRequest(BaseModel):
 class UserResponse(BaseModel):
     id: int
     email: EmailStr
-    full_name: str
+    username: str
 
 class TokenResponse(BaseModel):
     access_token: str

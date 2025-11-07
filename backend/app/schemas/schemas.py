@@ -1,6 +1,7 @@
-from typing import List, Optional, Dict
-from fastapi import FastAPI, HTTPException, Header, Depends
-from pydantic import BaseModel, EmailStr, Field
+from typing import List, Optional
+from fastapi import FastAPI
+from pydantic import BaseModel, EmailStr
+from uuid import UUID
 
 app = FastAPI(title="User Registration & Login API")
 
@@ -8,19 +9,19 @@ app = FastAPI(title="User Registration & Login API")
 class RegisterRequest(BaseModel):
     email: EmailStr
     password: str
-    full_name: str
+    username: str
     hobbies: Optional[List[str]] = []
 
 
 class UserResponse(BaseModel):
-    id: int
+    id: UUID
     email: EmailStr
-    full_name: str
+    username: str
     hobbies: Optional[List[str]] = []
 
 
 class LoginRequest(BaseModel):
-    email: EmailStr
+    username: str
     password: str
 
 
@@ -82,11 +83,7 @@ class FavoriteRequest(BaseModel):
 
 
 class UpdateUserRequest(BaseModel):
-    full_name: str
+    username: str
 
 
-database = []
-places = []
-access_tokens = {}
-tokens = {}
 
