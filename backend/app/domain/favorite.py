@@ -1,6 +1,6 @@
 from typing import List
-from app.domain.place import Place
-from app.domain.user import User
+from .place import Place
+from .user import User
 
 class FavoriteManager:
     def __init__(self, favorite_repo):

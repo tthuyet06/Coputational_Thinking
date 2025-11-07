@@ -10,6 +10,8 @@ api_router = APIRouter(prefix="/api/v1")
 api_router.include_router(auth_router)
 api_router.include_router(users_router)   # /api/v1/users/*
 api_router.include_router(hobbies_router) # /api/v1/hobbies/*
+api_router.include_router(recommend_router) # /api/v1/recommend/*
 api_router.include_router(tags_router)    # /api/v1/tags/*
+api_router.include_router(auth_router)
 api_router.include_router(recommend_router)
 
