@@ -12,8 +12,10 @@ def run():
             db.add(u)
         if not db.query(Place).first():
             db.add_all([
-                Place(name="Cafe Yên", address="Q1", rating=4.5, lat=10.77, lon=106.70),
-                Place(name="Bún bò", address="Q3", rating=4.2, lat=10.78, lon=106.68),
+                Place(name="Cafe Yên", address="Q1", rating=4.5, lat=10.77, lon=106.70,
+                      tags="#cafe,#yen_tinh,#vai_tieng"),
+                Place(name="Bún bò", address="Q3", rating=4.2, lat=10.78, lon=106.68,
+                      tags="#an_chinh,#choc_lat"),
             ])
         db.commit()
         print("✅ Seed OK")
