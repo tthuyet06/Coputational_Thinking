@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import List
-from app.domain.place import Place
-from app.domain.user import User
+from backend.app.domain.place import Place
+from backend.app.domain.user import User
 
 class IRecommendationService(ABC):
     """Interface cho logic gợi ý"""
