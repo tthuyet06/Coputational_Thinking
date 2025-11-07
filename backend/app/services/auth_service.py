@@ -1,98 +1,101 @@
-import uuid
 from fastapi import HTTPException
 from starlette import status
 from pydantic import EmailStr
-import jwt # Vẫn cần jwt để bắt các Exception như ExpiredSignatureError/InvalidTokenError
+from jose import ExpiredSignatureError, JWTError
+from sqlalchemy.orm import Session
+from datetime import datetime, timedelta, UTC
+from backend.app.db import models
+
 
 # ✅ Import các hàm và config từ security.py
 from backend.app.core.security import (
     get_password_hash,
     verify_password,
     create_jwt_token,
-    decode_jwt_token
+    decode_jwt_token,
+    REFRESH_TOKEN_EXPIRE_DAYS
 )
-from backend.app.db.mock_db import (
-    MOCK_USERS_DB,
-    MOCK_ACCESS_TOKENS,
-    MOCK_REFRESH_TOKENS
-)
-
 
 class AuthService:
-
-    @staticmethod
-    def get_password_hash(password: str) -> str:
-        return get_password_hash(password)
-
-    @staticmethod
-    def verify_password(plain_password: str, hashed_password: str) -> bool:
-        return verify_password(plain_password, hashed_password)
 
     # ==========================
     # 🧍 REGISTER USER
     # ==========================
     @staticmethod
-    def register_user(email: EmailStr, username: str, password: str) -> dict:
-        # ... (Kiểm tra validation/trùng lặp giữ nguyên) ...
+    def register_user(db : Session, email: EmailStr, username: str, password: str) -> models.User:
         if not email:
             raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-                                detail={"email": ["Email không được để trống."]})
+                                detail={"email": ["Email cannot be empty"]})
         if not username or not username.strip():
             raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-                                detail={"username": ["Tên không được để trống"]})
+                                detail={"username": ["Username cannot be empty"]})
         if not password or not password.strip():
             raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-                                detail={"password": ["Mật khẩu không được để trống"]})
+                                detail={"password": ["Password cannot be empty"]})
         if len(password) < 8:
             raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-                                detail={"password": ["Mật khẩu phải có ít nhất 8 ký tự"]})
+                                detail={"password": ["Password must be at least 8 characters long"]})
         if len(password) > 32:
             raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-                                detail={"password": ["Mật khẩu không được vượt quá 32 ký tự"]})
+                                detail={"password": ["Password cannot exceed 32 characters"]})
 
         # Kiểm tra trùng email/username
-        for existing_user in MOCK_USERS_DB:
-            if existing_user['email'] == email:
-                raise HTTPException(status_code=422, detail={"email": ["Email này đã tồn tại."]})
-            if existing_user['username'] == username:
-                raise HTTPException(status_code=422, detail={"username": ["Tên đăng nhập đã tồn tại."]})
+        existing_user = db.query(models.User).filter(
+            (models.User.email == email) | (models.User.username == username)
+        ).first()
+
+        if existing_user:
+            if existing_user.email == email:
+                raise HTTPException(status_code=422, detail={"email": ["This email already exists."]})
+            if existing_user.username == username:
+                raise HTTPException(status_code=422, detail={"username": ["This username already exists."]})
 
         # ✅ Dùng hàm import từ security.py
         hashed_password = get_password_hash(password)
 
-        new_user = {
-            "id": str(uuid.uuid4()),
-            "email": email,
-            "username": username,
-            "password": hashed_password,
-            "hobbies": [],
-            "favorites": []
-        }
+        new_user = models.User(
+            email=email,
+            username=username,
+            password_hash=hashed_password,
+            hobbies=""
+        )
 
-        MOCK_USERS_DB.append(new_user)
-        user_copy = new_user.copy()
-        del user_copy["password"]
-        return user_copy
+        db.add(new_user)
+        db.commit()
+        db.refresh(new_user) # Lấy ID và các giá trị default
 
-    # 🔐 LOGIN USER BẰNG USERNAME
-    # ==========================
+        return new_user
+
     @staticmethod
-    def login_user(username: str, password: str) -> dict:
-        user = next((u for u in MOCK_USERS_DB if u["username"] == username), None)
+    def login_user(db: Session, username: str, password: str) -> dict:  # << THAY ĐỔI: Nhận db
 
-        # ✅ Dùng hàm verify import từ security.py
-        if not user or not verify_password(password, user["password"]):
+        # ✅ Truy vấn user từ DB
+        user = db.query(models.User).filter(models.User.username == username).first()
+
+        if not user or not verify_password(password, user.password_hash):
             raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-                                detail="Sai tên đăng nhập hoặc mật khẩu.")
+                                detail="Incorrect username or password.")
 
-        user_id = str(user["id"])
+        user_id = str(user.id)
 
-        # ✅ Dùng hàm create_jwt_token import từ security.py
         access_token = create_jwt_token(user_id, token_type="access")
         refresh_token = create_jwt_token(user_id, token_type="refresh")
 
-        MOCK_ACCESS_TOKENS[access_token] = user_id
-        MOCK_REFRESH_TOKENS[refresh_token] = user_id
+        # ✅ Lưu refresh token vào DB
+        # 1. Lấy giờ UTC "aware"
+        aware_now = datetime.now(UTC)
+        # 2. Bỏ timezone đi để thành "naive"
+        naive_now = aware_now.replace(tzinfo=None)
+
+        expires_at = naive_now + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
+
+        db_token = models.RefreshToken(
+            token=refresh_token,
+            user_id=user.id,
+            expired_at=expires_at
+        )
+        db.add(db_token)
+        db.commit()
 
         return {
             "access_token": access_token,
@@ -103,24 +106,35 @@ class AuthService:
     # 🔁 REFRESH ACCESS TOKEN
     # ==========================
     @staticmethod
-    def refresh_access_token(refresh_token: str) -> dict:
+    def refresh_access_token(db: Session, refresh_token: str) -> dict:  # << THAY ĐỔI: Nhận db
         try:
-            # ✅ Dùng hàm decode_jwt_token import từ security.py
             payload = decode_jwt_token(refresh_token)
             if payload.get("type") != "refresh":
-                raise HTTPException(status_code=401, detail="Token không phải là refresh token.")
-        except jwt.ExpiredSignatureError:
-            raise HTTPException(status_code=401, detail="Refresh token đã hết hạn.")
-        except jwt.InvalidTokenError:
-            raise HTTPException(status_code=401, detail="Refresh token không hợp lệ.")
+                raise HTTPException(status_code=401, detail="Token is not a refresh token.")
+        except ExpiredSignatureError:
+            raise HTTPException(status_code=401, detail="Refresh token has expired.")
+        except JWTError:
+            raise HTTPException(status_code=401, detail="Invalid refresh token.")
 
         user_id = str(payload.get("sub"))
-        user = next((u for u in MOCK_USERS_DB if str(u["id"]) == user_id), None)
-        if not user:
-            raise HTTPException(status_code=404, detail="Không tìm thấy người dùng tương ứng với token.")
 
-        # ✅ Dùng hàm create_jwt_token import từ security.py
+        # ✅ Kiểm tra refresh token trong DB
+        db_token = db.query(models.RefreshToken).filter(
+            models.RefreshToken.token == refresh_token
+        ).first()
+
+        if not db_token:
+            raise HTTPException(status_code=401, detail="Invalid refresh token (not found).")
+
+        # Lấy giờ UTC "naive" (bằng cách bỏ timezone)
+        current_time_naive_utc = datetime.now(UTC).replace(tzinfo=None)
+        if db_token.expired_at < current_time_naive_utc:
+            raise HTTPException(status_code=401, detail="Refresh token has expired (in DB).")
+
+        if str(db_token.user_id) != user_id:
+            raise HTTPException(status_code=401, detail="Token does not match the user.")
+
+        # ✅ Tạo access token mới
         new_access_token = create_jwt_token(user_id, token_type="access")
-        MOCK_ACCESS_TOKENS[new_access_token] = user_id
 
         return {"access_token": new_access_token}

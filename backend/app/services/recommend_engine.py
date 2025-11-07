@@ -2,100 +2,54 @@ from typing import List
 from ..domain.recommendation import IRecommendationService
 from ..domain.place import Place
 from ..domain.user import User
-from typing import Optional
-from fastapi import HTTPException, Header, status
 import random
+from ..db import models
+from ..db.models import User as UserModel
+from sqlalchemy.orm import Session
+from sqlalchemy import or_
+def get_recommendations(
+        db: Session,
+        latitude: float,
+        longitude: float,
+        duration_tag: str,
+        user: UserModel
+):
+    # ✅ Bước 1: Lấy sở thích của user
+    # Chuyển chuỗi "cafe,yen_tinh" thành list ["#cafe", "#yen_tinh"]
+    user_hobbies = []
+    if user.hobbies:
+        user_hobbies = [f"#{tag.strip()}" for tag in user.hobbies.split(',') if tag.strip()]
 
+    # ✅ Bước 2: Lọc địa điểm
+    # Chúng ta sẽ lọc các địa điểm có tag thời lượng khớp VÀ
+    # có ÍT NHẤT MỘT tag sở thích khớp
 
-# Mock dữ liệu người dùng và hàm xác thực
-mock_database = [
-    {
-        "id": 1,
-        "email": "user1@example.com",
-        "full_name": "User Mot",
-        "password": "password123"
-    },
-    {
-        "id": 2,
-        "email": "user2@example.com",
-        "full_name": "User Hai",
-        "password": "password456"
-    }
-]
+    query = db.query(models.Place)
 
-mock_access_tokens = {
-    "access_for_user1@example.com": "user1@example.com",
-    "access_for_user2@example.com": "user2@example.com"
-}
+    # 2a. Lọc theo duration_tag (BẮT BUỘC)
+    # Dùng .like() để tìm kiếm trong chuỗi tags (ví dụ: "#cafe,#yen_tinh,#vai_tieng")
+    query = query.filter(models.Place.tags.like(f"%{duration_tag}%"))
 
+    # 2b. Lọc theo sở thích (TÙY CHỌN)
+    if user_hobbies:
+        # Xây dựng list các điều kiện LIKE
+        # (Place.tags LIKE "%#cafe%" OR Place.tags LIKE "%#yen_tinh%")
+        hobby_filters = [models.Place.tags.like(f"%{hobby}%") for hobby in user_hobbies]
 
-def get_current_user(Authorization: Optional[str] = Header(None)):
-    if not Authorization:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Thiếu Authorization header."
-        )
+        # Áp dụng các điều kiện bằng 'or_'
+        query = query.filter(or_(*hobby_filters))
 
-    try:
-        scheme, token = Authorization.split()
-    except ValueError:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Authorization header không hợp lệ (thiếu Bearer)."
-        )
+    # ✅ Bước 3: (Tương lai) Sắp xếp theo khoảng cách (latitude, longitude)
+    # (Logic tính khoảng cách khá phức tạp, tạm thời lấy tất cả kết quả)
 
-    if scheme.lower() != "bearer" or token not in mock_access_tokens:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Access token không hợp lệ hoặc đã hết hạn."
-        )
+    filtered_places = query.all()
 
-    email = mock_access_tokens[token]
-    user = next((u for u in mock_database if u["email"] == email), None)
+    if not filtered_places:
+        return []
 
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Người dùng không tồn tại."
-        )
-
-    return user
-
-
-MOCK_PLACES_DB =  [
-        {
-            "id": 101,
-            "name": "Bảo tàng Chứng tích Chiến tranh",
-            "address": "28 Võ Văn Tần, Quận 3",
-            "image_url": "https://link-to-image.png",
-            "description": "Nơi lưu giữ tư liệu lịch sử, phù hợp cho buổi chiều tìm hiểu văn hóa.",
-            "tags": ["#vai_tieng", "#van_hoa", "#trong_nha"]
-        },
-        {
-            "id": 102,
-            "name": "Cà phê Sách XYZ",
-            "address": "456 Đường ABC, Quận 1",
-            "image_url": "https://link-to-image2.png",
-            "description": "Quán cà phê yên tĩnh với decor cổ điển, lý tưởng để đọc sách.",
-            "tags": ["#vai_tieng", "#cafe", "#yen_tinh"]
-        },
-        {
-            "id": 103,
-            "name": "Phố đi bộ Nguyễn Huệ",
-            "address": "Nguyễn Huệ, Quận 1",
-            "image_url": "https://link-to-image3.png",
-            "description": "Địa điểm vui chơi sôi động, phù hợp dạo phố buổi tối.",
-            "tags": ["#toi", "#soi_dong", "#ngoai_troi"]
-        }
-    ]
-
-def get_recommendations(latitude: float, longitude: float, duration_tag: str, user: dict):
-    mock_places = MOCK_PLACES_DB
-
-    # (Bạn có thể thêm logic filter dựa trên user.hobbies ở đây)
-
-    return random.sample(mock_places, k=min(len(mock_places), 2))
-
+    # ✅ Bước 4: Trả về kết quả (có thể giới hạn số lượng)
+    # Lấy ngẫu nhiên 3 địa điểm trong danh sách đã lọc
+    return random.sample(filtered_places, k=min(len(filtered_places), 3))
 
 class RecommendEngine(IRecommendationService):
     def __init__(self, weather_service, time_service, place_repo):
