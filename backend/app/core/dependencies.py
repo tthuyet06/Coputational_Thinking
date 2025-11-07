@@ -2,7 +2,7 @@ from typing import Dict, Any
 from fastapi import HTTPException, status, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from jose import jwt, JWTError, ExpiredSignatureError
-from backend.app.services.auth_service import SECRET_KEY, ALGORITHM
+from backend.app.core.config import SECRET_KEY, ALGORITHM
 from backend.app.db.mock_db import MOCK_USERS_DB
 
 

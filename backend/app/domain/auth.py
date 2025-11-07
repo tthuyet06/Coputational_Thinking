@@ -1,4 +1,4 @@
-from app.domain.user import User
+from .user import User
 
 class AuthTokens:
     def __init__(self, access_token: str, refresh_token: str):
