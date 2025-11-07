@@ -25,7 +25,6 @@ router = APIRouter(prefix="/users", tags=["users"])
 
 authorization_header = APIKeyHeader(name="Authorization", auto_error=False)
 
-
 @router.get("/me", response_model=UserResponse, summary="Lấy thông tin người dùng hiện tại")
 async def get_me(current_user: dict = Depends(get_current_user)):
     """

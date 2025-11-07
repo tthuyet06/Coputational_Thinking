@@ -1,9 +1,9 @@
 from typing import List
+from ..domain.recommendation import IRecommendationService
+from ..domain.place import Place
+from ..domain.user import User
 from typing import Optional
 from fastapi import HTTPException, Header, status
-from app.domain.recommendation import IRecommendationService
-from app.domain.place import Place
-from app.domain.user import User
 import random
 
 

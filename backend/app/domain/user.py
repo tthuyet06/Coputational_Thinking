@@ -22,7 +22,7 @@ class User:
         self.full_name = new_name
 
 
-    def set_hobbies(self, new_hobbies: List[str]):
+    def set_hobbies(self, new_hobbies: Hobbies):
         self.hobbies = new_hobbies
 
 
