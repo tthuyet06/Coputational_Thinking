@@ -1,3 +1,6 @@
+from sqlalchemy.orm import Session
+from backend.app.db.deps import get_db
+from backend.app.db import models
 from typing import Optional, Dict, Any
 from fastapi import APIRouter, Depends, Header, HTTPException
 
@@ -12,7 +15,11 @@ from backend.app.core.dependencies import get_current_user
 router = APIRouter(prefix="/users", tags=["users"])
 
 @router.post("/me/hobbies", response_model=UpdateHobbiesResponse, summary="Cập nhật sở thích người dùng")
-def post_me_hobbies(req: UpdateHobbiesRequest, user: Dict[str, Any] = Depends(get_current_user)):
+def post_me_hobbies(
+    req: UpdateHobbiesRequest,
+    user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
     """
     POST /api/v1/users/me/hobbies
     - Nhận danh sách tag sở thích từ body (đã validate kiểu mảng string).
@@ -23,5 +30,5 @@ def post_me_hobbies(req: UpdateHobbiesRequest, user: Dict[str, Any] = Depends(ge
         + gán lại user["hobbies"]
     - Trả về message + danh sách đã chuẩn hóa.
     """
-    normalized = update_hobbies(user, req.hobbies)
-    return {"message": "Cập nhật sở thích thành công!", "hobbies": normalized}
+    normalized = update_hobbies(db, user, req.hobbies)
+    return {"message": "Hobbies updated successfully!", "hobbies": normalized}

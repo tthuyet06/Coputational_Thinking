@@ -3,7 +3,6 @@ import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from backend.app.api.v1.routers import api_router
-from backend.app.db.init_db import create_all
 
 app = FastAPI(title="MoodyTrip API")
 
