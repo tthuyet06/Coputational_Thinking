@@ -105,3 +105,36 @@
     padding: 14px;
   }
 }
+
+/* Giữ layout ổn định */
+.login-wrapper { box-sizing: border-box; transition: box-shadow 0.2s ease; }
+.login-form    { display: flex; flex-direction: column; gap: 0; }
+
+.input-field {
+  box-sizing: border-box;
+  -webkit-appearance: none; appearance: none;
+  transform: none;
+}
+
+/* Focus không đổi kích thước */
+.input-field:focus {
+  outline: none;
+  border-color: #ff7b6b;
+  box-shadow: 0 0 6px rgba(255, 95, 109, 0.35);
+  transform: none;
+}
+
+/* Lỗi: viền đỏ nhưng không phình */
+.input-field.is-error { border-color: #e53935 !important; box-shadow: none; }
+
+/* Dòng lỗi gọn, không đẩy layout */
+.error-text { color: #e53935; font-size: 14px; margin: -12px 0 8px; }
+
+/* Chặn autofill đổi nền gây lệch */
+.input-field:-webkit-autofill,
+.input-field:-webkit-autofill:hover,
+.input-field:-webkit-autofill:focus {
+  -webkit-text-fill-color: #111;
+  -webkit-box-shadow: 0 0 0 1000px #fff inset;
+  transition: background-color 9999s ease-out 0s;
+}
