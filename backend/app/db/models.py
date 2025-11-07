@@ -35,3 +35,10 @@ class Favorite(Base):
     place = relationship("Place", back_populates="favorites")
 
     __table_args__ = (UniqueConstraint("user_id", "place_id", name="uq_user_place"),)
+
+class RefreshToken(Base):
+    __tablename__ = "refresh_tokens"
+    token = Column(String, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"))
+    created_at = Column(DateTime, server_default=func.current_timestamp())
+    expired_at = Column(DateTime)

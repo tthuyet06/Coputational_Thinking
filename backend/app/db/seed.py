@@ -1,14 +1,14 @@
 from sqlalchemy.orm import Session
 from backend.app.db.db_connection import SessionLocal
-from backend.app.domain.models import User, Place
-from backend.app.core.security import hash_password
+from backend.app.db.models import User, Place
+from backend.app.core.security import get_password_hash
 
 def run():
     db: Session = SessionLocal()
     try:
         if not db.query(User).first():
             u = User(email="alice@example.com", username="Alice Nguyen",
-                     password_hash=hash_password("alice123"))
+                     password_hash=get_password_hash("alice123"))
             db.add(u)
         if not db.query(Place).first():
             db.add_all([
