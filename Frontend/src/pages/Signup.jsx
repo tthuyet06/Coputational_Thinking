@@ -1,32 +1,32 @@
-import React, { useState } from "react";
+import React, { useState, useContext } from "react";
 import Navbar from "../components/layouts/Navbar";
 import { Link, useNavigate } from "react-router-dom";
-import authApi from "../api/authApi";
+import { AuthContext } from "../context/AuthContext";
+import ErrorMessage from "../components/common/ErrorMessage";
 import "../styles/SignupForm.css";
 
 export default function SignupForm() {
   const navigate = useNavigate();
+  const { signup, loading, error } = useContext(AuthContext);
 
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     try {
-      // Gọi API signup từ authApi
-      const response = await authApi.signup({ username, email, password });
+      await signup(username, email, password);
 
-      console.log("✅ Signup success:", response.data);
-
-      // Redirect sang login page
-      navigate("/login");
+      // Nếu signup thành công (token tồn tại trong localStorage)
+      const token = localStorage.getItem("token");
+      if (token) {
+        navigate("/login");
+      }
     } catch (err) {
-      console.error("❌ Signup failed:", err);
-      // Hiển thị thông báo lỗi từ backend hoặc mặc định
-      setError(err.response?.data?.message || "Signup failed");
+      // error đã được set trong AuthContext, chỉ cần render
+      console.log("Signup error:", err);
     }
   };
 
@@ -40,34 +40,41 @@ export default function SignupForm() {
           <label className="input-label">Username</label>
           <input
             type="text"
+            name="username"
             placeholder="Enter Your Username"
             className="input-field"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
             required
+            autoComplete="username"
           />
 
           <label className="input-label">Email</label>
           <input
             type="email"
+            name="email"
             placeholder="Enter Your Email"
             className="input-field"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
+            autoComplete="email"
           />
 
           <label className="input-label">Password</label>
           <input
             type="password"
+            name="password"
             placeholder="Enter Your Password"
             className="input-field"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
+            autoComplete="current-password"
           />
 
-          {error && <p className="error-text">{error}</p>}
+          {/* Hiển thị lỗi nếu có */}
+          {error && <ErrorMessage message={error} />}
 
           <p className="login-text">
             If you already have an account.{" "}
@@ -76,8 +83,8 @@ export default function SignupForm() {
             </Link>
           </p>
 
-          <button type="submit" className="btn-continue">
-            Continue
+          <button type="submit" className="btn-continue" disabled={loading}>
+            {loading ? "Signing up..." : "Continue"}
           </button>
         </form>
       </div>

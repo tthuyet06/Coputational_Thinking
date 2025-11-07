@@ -1,11 +1,13 @@
-import React, { useState } from "react";
+import React, { useState, useContext } from "react";
 import Navbar from "../components/layouts/Navbar";
 import { Link, useNavigate } from "react-router-dom";
-import authApi from "../api/authApi";
+import { AuthContext } from "../context/AuthContext";
+import ErrorMessage from "../components/common/ErrorMessage";
 import "../styles/LoginForm.css";
 
 export default function LoginForm() {
   const navigate = useNavigate();
+  const { login, loading, error } = useContext(AuthContext);
 
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -13,14 +15,12 @@ export default function LoginForm() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    try {
-      const response = await authApi.login({ username, password });
-      localStorage.setItem("accessToken", response.data.access_token);
-      console.log("Login success!", response.data);
+    await login(username, password);
+
+    // Nếu login thành công (user tồn tại trong context)
+    const token = localStorage.getItem("token"); // AuthContext lưu token
+    if (token) {
       navigate("/preferences");
-    } catch (error) {
-      console.error("Login failed:", error);
-      alert("Login failed! Please check your username and password.");
     }
   };
 
@@ -55,9 +55,12 @@ export default function LoginForm() {
             </Link>
           </p>
 
-          <button type="submit" className="btn-continue">
-            Continue
+          <button type="submit" className="btn-continue" disabled={loading}>
+            {loading ? "Logging in..." : "Continue"}
           </button>
+
+          {/* Hiển thị lỗi nếu có */}
+          <ErrorMessage message={error} />
         </form>
       </div>
     </>
