@@ -4,8 +4,11 @@ from backend.app.schemas.location import (
     RecommendationResponse,
     RecommendationErrorResponse
 )
-from ....services.recommend_engine import get_current_user, get_recommendations
-
+from sqlalchemy.orm import Session
+from backend.app.db.deps import get_db
+from backend.app.db import models
+from ....services.recommend_engine import get_recommendations
+from backend.app.core.dependencies import get_current_user
 router = APIRouter(prefix="/recommend", tags=["recommend"])
 
 
@@ -15,9 +18,11 @@ router = APIRouter(prefix="/recommend", tags=["recommend"])
              status_code=status.HTTP_200_OK)
 async def recommend_places(
         payload: RecommendationRequest,
-        current_user: dict = Depends(get_current_user)  # Dùng dependency chung
+        current_user: models.User = Depends(get_current_user),
+        db: Session = Depends(get_db)
 ):
     results = get_recommendations(
+        db=db,
         latitude=payload.latitude,
         longitude=payload.longitude,
         duration_tag=payload.duration_tag,
@@ -27,7 +32,7 @@ async def recommend_places(
     if not results:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Không tìm thấy gợi ý nào phù hợp với lựa chọn của bạn."
+            detail="No suitable recommendations found for your choices."
         )
 
     return RecommendationResponse(recommendations=results)
