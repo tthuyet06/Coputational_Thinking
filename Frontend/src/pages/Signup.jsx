@@ -41,6 +41,7 @@ export default function SignupForm() {
           <input
             name="username"
             type="text"
+            name="username"
             placeholder="Enter Your Username"
             className="input-field"
             value={username}
@@ -53,6 +54,7 @@ export default function SignupForm() {
           <input
             name="email"
             type="email"
+            name="email"
             placeholder="Enter Your Email"
             className="input-field"
             value={email}
@@ -65,6 +67,7 @@ export default function SignupForm() {
           <input
             name="password"
             type="password"
+            name="password"
             placeholder="Enter Your Password"
             className="input-field"
             value={password}
