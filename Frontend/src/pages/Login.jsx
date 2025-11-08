@@ -1,19 +1,27 @@
-import React from "react";
+import React, { useState, useContext } from "react";
 import Navbar from "../components/layouts/Navbar";
-import { Link, useNavigate } from "react-router-dom"; // ✅ thêm useNavigate
+import { Link, useNavigate } from "react-router-dom";
+import { AuthContext } from "../context/AuthContext";
+import ErrorMessage from "../components/common/ErrorMessage";
 import "../styles/LoginForm.css";
 
 export default function LoginForm() {
-  const navigate = useNavigate(); // ✅ khai báo hook điều hướng
+  const navigate = useNavigate();
+  const { login, loading, error } = useContext(AuthContext);
 
-  const handleSubmit = (e) => {
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // (Tạm thời giả lập login thành công)
-    console.log("✅ Login success!");
+    await login(username, password);
 
-    // ✅ điều hướng sang trang Preferences
-    navigate("/preferences");
+    // Nếu login thành công (user tồn tại trong context)
+    const token = localStorage.getItem("token"); // AuthContext lưu token
+    if (token) {
+      navigate("/preferences");
+    }
   };
 
   return (
@@ -21,14 +29,14 @@ export default function LoginForm() {
       <Navbar />
       <div className="login-wrapper">
         <h2 className="login-title">Login Account</h2>
-
-        {/* ✅ thêm onSubmit={handleSubmit} để kích hoạt điều hướng */}
         <form className="login-form" onSubmit={handleSubmit}>
           <label className="input-label">Username</label>
           <input
             type="text"
             placeholder="Enter Your Username"
             className="input-field"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
           />
 
           <label className="input-label">Password</label>
@@ -36,6 +44,8 @@ export default function LoginForm() {
             type="password"
             placeholder="Enter Your Password"
             className="input-field"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
           />
 
           <p className="signup-text">
@@ -45,9 +55,12 @@ export default function LoginForm() {
             </Link>
           </p>
 
-          <button type="submit" className="btn-continue">
-            Continue
+          <button type="submit" className="btn-continue" disabled={loading}>
+            {loading ? "Logging in..." : "Continue"}
           </button>
+
+          {/* Hiển thị lỗi nếu có */}
+          <ErrorMessage message={error} />
         </form>
       </div>
     </>
