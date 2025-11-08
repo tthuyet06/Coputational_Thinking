@@ -16,7 +16,7 @@ export const AuthProvider = ({ children }) => {
       setLoading(true);
       try {
         const data = await authService.getProfile();
-        setUser(data);
+        setUser(data.user);
       } catch (err) {
         localStorage.removeItem("token");
       } finally {
@@ -30,11 +30,9 @@ export const AuthProvider = ({ children }) => {
   setLoading(true);
   setError(null);
   try {
-    const tokenData = await authService.login(username, password);
-    localStorage.setItem("token", tokenData.access_token);
-    const userData = await authService.getProfile();
-    setUser(userData);
-    return true;
+    const data = await authService.login(username, password);
+    localStorage.setItem("token", data.access_token);
+    setUser(data.user);
   } catch (err) {
     // Xử lý detail có thể là string hoặc array
     const message = err.response?.data?.detail;
@@ -43,7 +41,6 @@ export const AuthProvider = ({ children }) => {
         ? message.map(e => e.msg).join(", ") // nối tất cả message
         : message || "Login failed"
     );
-    return false;
   } finally {
     setLoading(false);
   }
@@ -53,13 +50,9 @@ const signup = async (username, email, password) => {
   setLoading(true);
   setError(null);
   try {
-    // 1. Gọi Register, backend chỉ trả về thông tin user (chưa có token)
-      await authService.signup(email, password, username);
-
-      // 2. Tự động Login ngay sau khi đăng ký thành công
-      // (Hàm login đã được sửa ở trên để xử lý toàn bộ logic)
-      const isLoggedIn = await login(username, password);
-      return isLoggedIn; // Trả về true/false
+    const data = await authService.signup(email, password, username, []);
+    localStorage.setItem("token", data.access_token);
+    setUser(data.user);
   } catch (err) {
     const message = err.response?.data?.detail;
     setError(
@@ -67,7 +60,6 @@ const signup = async (username, email, password) => {
         ? message.map(e => e.msg).join(", ")
         : message || "Signup failed"
     );
-    return false;
   } finally {
     setLoading(false);
   }

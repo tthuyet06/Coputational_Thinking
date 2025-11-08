@@ -16,19 +16,18 @@ export default function SignupForm() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // 1. Gọi signup và nhận kết quả true/false
-    const isSignedUp = await signup(username, email, password);
+    try {
+      await signup(username, email, password);
 
-    // 2. Kiểm tra kết quả
-    if (isSignedUp) {
-      // 3. Đã đăng ký VÀ tự động đăng nhập thành công
-      //    Điều hướng vào app (giống như Login)
-      navigate("/preferences");
+      // Nếu signup thành công (token tồn tại trong localStorage)
+      const token = localStorage.getItem("token");
+      if (token) {
+        navigate("/login");
+      }
+    } catch (err) {
+      // error đã được set trong AuthContext, chỉ cần render
+      console.log("Signup error:", err);
     }
-
-    // 4. Không cần khối try...catch hoặc kiểm tra token.
-    // Nếu isSignedUp là false, AuthContext đã tự set 'error'
-    // và <ErrorMessage> sẽ hiển thị nó.
   };
 
   return (

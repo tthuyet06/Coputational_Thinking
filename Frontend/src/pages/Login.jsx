@@ -15,11 +15,11 @@ export default function LoginForm() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    const isLoggedIn = await login(username, password);
+    await login(username, password);
 
     // Nếu login thành công (user tồn tại trong context)
     const token = localStorage.getItem("token"); // AuthContext lưu token
-    if (isLoggedIn) {
+    if (token) {
       navigate("/preferences");
     }
   };

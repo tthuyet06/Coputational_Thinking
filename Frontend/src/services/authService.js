@@ -13,12 +13,13 @@ const authService = {
       email,
       password,
       username,
+      hobbies,
     });
     return response.data;
   },
 
   getProfile: async () => {
-    const response = await api.get("/api/v1/users/me");
+    const response = await api.get("/api/v1/auth/profile");
     return response.data;
   },
 };
