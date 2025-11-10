@@ -19,6 +19,7 @@ export const AuthProvider = ({ children }) => {
         setUser(data.user);
       } catch (err) {
         localStorage.removeItem("token");
+        //setUser(null);
       } finally {
         setLoading(false);
       }
@@ -41,6 +42,7 @@ export const AuthProvider = ({ children }) => {
         ? message.map(e => e.msg).join(", ") // nối tất cả message
         : message || "Login failed"
     );
+    //setUser(null);
   } finally {
     setLoading(false);
   }
@@ -55,6 +57,7 @@ const signup = async (username, email, password) => {
     setUser(data.user);
   } catch (err) {
     const message = err.response?.data?.detail;
+    //setUser(NULL);
     setError(
       Array.isArray(message)
         ? message.map(e => e.msg).join(", ")
