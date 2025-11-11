@@ -39,7 +39,6 @@ export default function SignupForm() {
         <form className="signup-form" onSubmit={handleSubmit}>
           <label className="input-label">Username</label>
           <input
-            name="username"
             type="text"
             name="username"
             placeholder="Enter Your Username"
@@ -52,7 +51,6 @@ export default function SignupForm() {
 
           <label className="input-label">Email</label>
           <input
-            name="email"
             type="email"
             name="email"
             placeholder="Enter Your Email"
@@ -65,7 +63,6 @@ export default function SignupForm() {
 
           <label className="input-label">Password</label>
           <input
-            name="password"
             type="password"
             name="password"
             placeholder="Enter Your Password"

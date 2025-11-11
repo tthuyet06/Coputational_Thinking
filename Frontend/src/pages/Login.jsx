@@ -4,7 +4,6 @@ import { Link, useNavigate } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
 import ErrorMessage from "../components/common/ErrorMessage";
 import "../styles/LoginForm.css";
-import { useAuthContext } from "../context/AuthContext";
 
 export default function LoginForm() {
   const navigate = useNavigate();
@@ -15,7 +14,6 @@ export default function LoginForm() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError("");
 
     await login(username, password);
 
@@ -34,7 +32,6 @@ export default function LoginForm() {
         <form className="login-form" onSubmit={handleSubmit}>
           <label className="input-label">Username</label>
           <input
-            name="username"
             type="text"
             placeholder="Enter Your Username"
             className="input-field"
@@ -44,7 +41,6 @@ export default function LoginForm() {
 
           <label className="input-label">Password</label>
           <input
-            name="password"
             type="password"
             placeholder="Enter Your Password"
             className="input-field"
@@ -52,12 +48,8 @@ export default function LoginForm() {
             onChange={(e) => setPassword(e.target.value)}
           />
 
-          {(error || authError) && (
-            <p className="error-text">{error || authError}</p>
-          )}
-
           <p className="signup-text">
-            Don’t have an account?{" "}
+            If you don’t have an account yet.{" "}
             <Link to="/signup" className="signup-link">
               Create one here.
             </Link>
