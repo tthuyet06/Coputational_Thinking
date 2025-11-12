@@ -7,27 +7,24 @@ import "../styles/SignupForm.css";
 
 export default function SignupForm() {
   const navigate = useNavigate();
-  const { signup, loading, error } = useContext(AuthContext);
+  const { signup, loading, error, clearError } = useContext(AuthContext);
 
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [localError, setLocalError] = useState("");
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    try {
-      await signup(username, email, password);
-
-      // Nếu signup thành công (token tồn tại trong localStorage)
-      const token = localStorage.getItem("token");
-      if (token) {
-        navigate("/login");
-      }
-    } catch (err) {
-      // error đã được set trong AuthContext, chỉ cần render
-      console.log("Signup error:", err);
+    if (password.length < 8) {
+      setLocalError("Password must be at least 8 characters long");
+      return;
     }
+    setLocalError("");
+
+    const ok = await signup(username, email, password);
+    if (ok) navigate("/login");
   };
 
   return (
@@ -44,7 +41,7 @@ export default function SignupForm() {
             placeholder="Enter Your Username"
             className="input-field"
             value={username}
-            onChange={(e) => setUsername(e.target.value)}
+            onChange={(e) => { setUsername(e.target.value); setLocalError(""); clearError?.(); }}
             required
             autoComplete="username"
           />
@@ -56,7 +53,7 @@ export default function SignupForm() {
             placeholder="Enter Your Email"
             className="input-field"
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            onChange={(e) => { setEmail(e.target.value); setLocalError(""); clearError?.(); }}
             required
             autoComplete="email"
           />
@@ -68,19 +65,18 @@ export default function SignupForm() {
             placeholder="Enter Your Password"
             className="input-field"
             value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            onChange={(e) => { setPassword(e.target.value); setLocalError(""); clearError?.(); }}
             required
-            autoComplete="current-password"
+            autoComplete="new-password"
+            aria-invalid={!!localError}
           />
 
-          {/* Hiển thị lỗi nếu có */}
+          {localError && <ErrorMessage message={localError} />}
           {error && <ErrorMessage message={error} />}
 
           <p className="login-text">
-            If you already have an account.{" "}
-            <Link to="/login" className="login-link">
-              Login here.
-            </Link>
+            Already have an account?{" "}
+            <Link to="/login" className="login-link">Login here.</Link>
           </p>
 
           <button type="submit" className="btn-continue" disabled={loading}>
