@@ -7,60 +7,58 @@ import "../styles/LoginForm.css";
 
 export default function LoginForm() {
   const navigate = useNavigate();
-  const { login, loading, error } = useContext(AuthContext);
+  const { login, loading, error, clearError } = useContext(AuthContext);
 
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
-    await login(username, password);
-
-    // Nếu login thành công (user tồn tại trong context)
-    const token = localStorage.getItem("token"); // AuthContext lưu token
-    if (token) {
-      navigate("/preferences");
-    }
+    const ok = await login(username, password);
+    if (ok) navigate("/preferences");
   };
 
   return (
     <>
       <Navbar />
       <div className="login-wrapper">
-        <h2 className="login-title">Login Account</h2>
+        <h2 className="login-title">Login</h2>
+
         <form className="login-form" onSubmit={handleSubmit}>
           <label className="input-label">Username</label>
           <input
             type="text"
+            name="username"
             placeholder="Enter Your Username"
             className="input-field"
             value={username}
-            onChange={(e) => setUsername(e.target.value)}
+            onChange={(e) => { setUsername(e.target.value); clearError?.(); }}
+            required
+            autoComplete="username"
           />
 
           <label className="input-label">Password</label>
           <input
             type="password"
+            name="password"
             placeholder="Enter Your Password"
             className="input-field"
             value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            onChange={(e) => { setPassword(e.target.value); clearError?.(); }}
+            required
+            autoComplete="current-password"
           />
 
+          {error && <ErrorMessage message={error} />}
+
           <p className="signup-text">
-            If you don’t have an account yet.{" "}
-            <Link to="/signup" className="signup-link">
-              Create one here.
-            </Link>
+            Don’t have an account?{" "}
+            <Link to="/signup" className="signup-link">Create one here.</Link>
           </p>
 
           <button type="submit" className="btn-continue" disabled={loading}>
             {loading ? "Logging in..." : "Continue"}
           </button>
-
-          {/* Hiển thị lỗi nếu có */}
-          <ErrorMessage message={error} />
         </form>
       </div>
     </>
