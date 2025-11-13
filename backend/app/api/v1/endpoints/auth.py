@@ -60,7 +60,7 @@ async def refresh_token(
         access_token=new_token["access_token"]
     )
 
-@router.post("/logout", status_code=status.HTTP_204_NO_CONTENT) # 204 No Content là chuẩn cho xóa/thành công không trả về body
+@router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
 async def logout(
     request: RefreshRequest, # Nhận refresh token từ body
     db: Session = Depends(get_db)
