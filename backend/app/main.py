@@ -13,6 +13,7 @@ app = FastAPI(title="MoodyTrip API")
 # Đây là "cửa" cho phép React (ở port 5173) được gọi vào
 origins = [
     "http://localhost:5173",  # Port mặc định của Vite/React
+    "http://127.0.0.1:5173"
 ]
 
 app.add_middleware(
@@ -29,4 +30,4 @@ app.include_router(api_router)  # Bao gồm tất cả API (/api/v1/...)
 
 # (Nếu bạn chạy file này trực tiếp)
 if __name__ == "__main__":
-    uvicorn.run(app, host="127.0.0.1", port=8888)
+    uvicorn.run(app, host="127.0.0.1", port=8000)

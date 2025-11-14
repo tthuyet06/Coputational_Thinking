@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Response
 from starlette import status
 from sqlalchemy.orm import Session
 from backend.app.db.deps import get_db
@@ -59,3 +59,18 @@ async def refresh_token(
     return RefreshResponse(
         access_token=new_token["access_token"]
     )
+
+@router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
+async def logout(
+    request: RefreshRequest, # Nhận refresh token từ body
+    db: Session = Depends(get_db)
+):
+    """
+    Vô hiệu hóa Refresh Token bằng cách xóa nó khỏi cơ sở dữ liệu.
+    """
+    auth_service.logout_user(
+        db=db,
+        refresh_token=request.refresh_token
+    )
+    # Trả về Response(status_code=204) để đảm bảo không có nội dung body
+    return Response(status_code=status.HTTP_204_NO_CONTENT)

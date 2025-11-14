@@ -1,9 +1,8 @@
 from typing import List, Optional, Dict, Any
 from fastapi import HTTPException
-
 from sqlalchemy.orm import Session
-
 from backend.app.db import models
+from backend.app.utils.tag_parser import normalize_hobby_tags
 
 # ============================================================
 # KHO TAG SỞ THÍCH & TAG THỜI LƯỢNG (Giữ nguyên)
@@ -20,15 +19,6 @@ def list_duration_tags() -> List[Dict[str, str]]:
         {"display_name": "2-3 tiếng", "tag_id": "#vai_tieng"},
         {"display_name": "Nửa ngày", "tag_id": "#nua_ngay"},
     ]
-
-def _dedup_keep_order(items: List[str]) -> List[str]:
-    seen, out = set(), []
-    for x in items:
-        if x not in seen:
-            seen.add(x)
-            out.append(x)
-    return out
-
 
 def _validate_hobbies(hobbies: List[str]) -> None:
     valid = set(list_hobby_tags())
@@ -79,12 +69,15 @@ def get_profile(user: models.User) -> Dict[str, Any]:
 
 
 # ---- Hobbies ----
-def update_hobbies(db: Session, user: models.User, hobbies: List[str]) -> List[str]: # << THAY ĐỔI
-    clean = _dedup_keep_order(hobbies or [])
+def update_hobbies(db: Session, user: models.User, hobbies: List[str]) -> List[str]:
+    # SỬ DỤNG HELPER MỚI
+    clean = normalize_hobby_tags(hobbies)
+
+    # VALIDATE DỮ LIỆU ĐÃ ĐƯỢC CHUẨN HÓA
     _validate_hobbies(clean)
 
-    # ✅ Cập nhật object SQLAlchemy và commit
-    # ❗️ Giả định: Lưu hobbies dưới dạng chuỗi ngăn cách bởi dấu phẩy
+    # CẬP NHẬT VÀO DB
+    # Lưu hobbies dưới dạng chuỗi ngăn cách bởi dấu phẩy
     user.hobbies = ",".join(clean)
     db.commit()
     return clean
