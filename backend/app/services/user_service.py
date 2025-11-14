@@ -56,16 +56,16 @@ def get_profile(user: models.User) -> Dict[str, Any]:
     }
 
 
-def update_name(db: Session, user: models.User, full_name: str) -> models.User: # << THAY ĐỔI
-    name = (full_name or "").strip()
-    if not name:
-        raise HTTPException(status_code=400, detail="username cannot be empty.")
-
-    # ✅ Cập nhật object SQLAlchemy và commit
-    user.username = name
-    db.commit()
-    db.refresh(user)
-    return user
+# def update_name(db: Session, user: models.User, full_name: str) -> models.User: # << THAY ĐỔI
+#     name = (full_name or "").strip()
+#     if not name:
+#         raise HTTPException(status_code=400, detail="username cannot be empty.")
+#
+#     # ✅ Cập nhật object SQLAlchemy và commit
+#     user.username = name
+#     db.commit()
+#     db.refresh(user)
+#     return user
 
 
 # ---- Hobbies ----
