@@ -3,7 +3,7 @@ from fastapi import FastAPI
 from pydantic import BaseModel, EmailStr
 from uuid import UUID
 
-app = FastAPI(title="User Registration & Login API")
+
 
 
 class RegisterRequest(BaseModel):

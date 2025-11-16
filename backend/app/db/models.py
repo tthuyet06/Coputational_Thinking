@@ -1,60 +1,154 @@
-import uuid
-from sqlalchemy import Column, Integer, String, DateTime, Float, ForeignKey, func, Text
+# backend/app/db/models.py
+
+from sqlalchemy import (
+    Column,
+    Integer,
+    String,
+    Text,
+    Float,
+    DateTime,
+    ForeignKey,
+    UniqueConstraint,
+    Boolean,
+    func,
+)
+from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.orm import relationship
-from sqlalchemy import UUID  # Import UUID
+import uuid
+
 from backend.app.db.db_connection import Base
 
 
+# ============================================================
+# USER
+# ============================================================
 class User(Base):
     __tablename__ = "users"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    email = Column(String, unique=True, nullable=False, index=True)
+    id = Column(
+        PG_UUID(as_uuid=True),
+        primary_key=True,
+        default=uuid.uuid4,
+        unique=True,
+        nullable=False,
+    )
+
+    email = Column(String, nullable=False, unique=True, index=True)
     username = Column(String, nullable=False)
     password_hash = Column(String, nullable=False)
-    created_at = Column(DateTime, server_default=func.current_timestamp())
+
+    # Lưu danh sách tag hobbies dạng chuỗi: "#cafe,#an_vat"
     hobbies = Column(Text, nullable=True)
 
-    favorites = relationship("Favorite", back_populates="user", cascade="all, delete-orphan")
-    refresh_tokens = relationship("RefreshToken", back_populates="user",
-                                  cascade="all, delete-orphan")
+    created_at = Column(DateTime, server_default=func.current_timestamp())
+
+    # Quan hệ
+    favorites = relationship(
+        "Favorite",
+        back_populates="user",
+        cascade="all, delete-orphan",
+    )
+
+    # ✅ THÊM QUAN HỆ NÀY ĐỂ KHỚP VỚI RefreshToken
+    refresh_tokens = relationship(
+        "RefreshToken",
+        back_populates="user",
+        cascade="all, delete-orphan",
+    )
 
 
+# ============================================================
+# PLACE
+# ============================================================
 class Place(Base):
     __tablename__ = "places"
 
     id = Column(Integer, primary_key=True, index=True)
+
     name = Column(String, nullable=False)
-    address = Column(String)
-    lat = Column(Float)
-    lon = Column(Float)
-    rating = Column(Float)
+
+    address = Column(String, nullable=True)
+    link_address = Column(String, nullable=True)
+
+    lat = Column(Float, nullable=True)
+    lon = Column(Float, nullable=True)
+
+    overview = Column(Text, nullable=True)
+    image = Column(String, nullable=True)
+
+    # tags được lưu dạng: "cafe,an_vat,van_hoa"
     tags = Column(Text, nullable=True)
 
-    favorites = relationship("Favorite", back_populates="place", cascade="all, delete-orphan")
+    created_at = Column(DateTime, server_default=func.current_timestamp())
 
 
+# ============================================================
+# HOBBY (tag sở thích lưu trong DB – optional)
+# ============================================================
+class Hobby(Base):
+    __tablename__ = "hobbies"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+
+    # ví dụ: "#cafe" hoặc "#yen_tinh"
+    code = Column(String, unique=True, index=True)
+
+    # tên hiển thị
+    label_en = Column(String, nullable=False)
+
+
+# ============================================================
+# FAVORITE (mapping N-N giữa User và Place)
+# ============================================================
 class Favorite(Base):
     __tablename__ = "favorites"
 
-    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
+    id = Column(Integer, primary_key=True, index=True)
 
-    place_id = Column(Integer, ForeignKey("places.id", ondelete="CASCADE"), primary_key=True)
+    user_id = Column(
+        PG_UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    place_id = Column(
+        Integer,
+        ForeignKey("places.id", ondelete="CASCADE"),
+        nullable=False,
+    )
 
-    added_at = Column(DateTime, server_default=func.current_timestamp())
+    created_at = Column(DateTime, server_default=func.current_timestamp())
 
+    # Quan hệ
     user = relationship("User", back_populates="favorites")
-    place = relationship("Place", back_populates="favorites")
+    place = relationship("Place")
+
+    # Đảm bảo 1 user không save 1 place hai lần
+    __table_args__ = (
+        UniqueConstraint("user_id", "place_id", name="unique_favorite"),
+    )
 
 
+# ============================================================
+# REFRESH TOKEN
+# ============================================================
 class RefreshToken(Base):
     __tablename__ = "refresh_tokens"
 
-    token = Column(String, primary_key=True)  # Dùng token làm khóa chính
+    id = Column(Integer, primary_key=True, index=True)
 
-    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    user_id = Column(
+        PG_UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+
+    token = Column(String, unique=True, index=True, nullable=False)
 
     created_at = Column(DateTime, server_default=func.current_timestamp())
-    expired_at = Column(DateTime)
+    expires_at = Column(DateTime, nullable=False)
 
+    # Đã bị thu hồi hay chưa
+    revoked = Column(Boolean, default=False)
+
+    # Quan hệ ngược về User (phải KHỚP với User.refresh_tokens)
     user = relationship("User", back_populates="refresh_tokens")
