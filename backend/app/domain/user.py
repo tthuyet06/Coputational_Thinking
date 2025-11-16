@@ -1,31 +1,31 @@
+from __future__ import annotations
+
+from dataclasses import dataclass, field
 from typing import List
+from uuid import UUID
 
-
-class Hobbies:
-    def __init__(self, hobbies: List[str] = None):
-        self.hobbies = hobbies or []
-
-    def set_hobbies(self, new_hobbies: List[str]):
-        self.hobbies = new_hobbies
-
-
+@dataclass
 class User:
-    def __init__(self, id: int | None, email: str, full_name: str, password_hash: str, hobbies: Hobbies | None = None):
-        self.id = id
-        self.email = email
-        self.full_name = full_name
-        self.password = password_hash
-        self.hobbies = hobbies or Hobbies()
+    id: UUID
+    email: str
+    username: str
+    hobbies: List[str] = field(default_factory=list)
 
-    
-    def update_name(self, new_name: str):
-        self.full_name = new_name
+    def set_hobbies(self, new_hobbies: List[str]) -> None:
+        seen = set()
+        cleaned: list[str] = []
+        for h in new_hobbies:
+            h_norm = h.strip()
+            if not h_norm or h_norm in seen:
+                continue
+            seen.add(h_norm)
+            cleaned.append(h_norm)
+        self.hobbies = cleaned
 
-
-    def set_hobbies(self, new_hobbies: Hobbies):
-        self.hobbies = new_hobbies
-
-
-    def check_password(self, plain_password: str, verify_password) -> bool:
-        # Tạm thời mềnh bỏ qua phần mã hóa password, verify_password là hàm so sánh
-        return plain_password == self.password_hash
+    def has_hobby(self, tag: str) -> bool:
+        """
+        Kiểm tra user có sở thích với tag này không
+        (so sánh dạng lowercase, bỏ khoảng trắng).
+        """
+        t = tag.strip().lower()
+        return any(h.strip().lower() == t for h in self.hobbies)
