@@ -5,7 +5,7 @@ from backend.app.schemas.location import (
     RecommendationErrorResponse
 )
 from sqlalchemy.orm import Session
-from backend.app.db.deps import get_db
+from backend.app.db.db_connection import get_db
 from backend.app.db import models
 from ....services.recommend_engine import get_recommendations
 from backend.app.core.dependencies import get_current_user
