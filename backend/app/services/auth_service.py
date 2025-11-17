@@ -138,3 +138,42 @@ class AuthService:
         new_access_token = create_jwt_token(user_id, token_type="access")
 
         return {"access_token": new_access_token}
+
+    @staticmethod
+    def logout_user(db: Session, refresh_token: str) -> bool:
+        """
+        Xóa Refresh Token khỏi DB để vô hiệu hóa nó.
+        """
+        try:
+            payload = decode_jwt_token(refresh_token)
+
+            if payload is None:
+                return True
+
+            if payload.get("type") != "refresh":
+                # Nếu không phải refresh token, token này không phải là token mà
+                # hệ thống dùng để refresh, ta vẫn coi như đã hoàn thành việc logout.
+                # Tuy nhiên, nếu bạn muốn nghiêm ngặt, có thể raise lỗi 401:
+                # raise HTTPException(status_code=401, detail="Invalid token type.")
+                pass  # Vẫn tiếp tục xóa, chỉ dựa vào token string
+
+        except ExpiredSignatureError:
+            # Token hết hạn -> đã vô hiệu hóa -> coi như đã logout thành công
+            return True
+        except JWTError:
+            # Token không hợp lệ -> đã vô hiệu hóa -> coi như đã logout thành công
+            return True
+
+        # ✅ Tìm và xóa Refresh Token khỏi DB
+        db_token = db.query(models.RefreshToken).filter(
+            models.RefreshToken.token == refresh_token
+        ).first()
+
+        if db_token:
+            db.delete(db_token)
+            db.commit()
+            return True
+
+        # Trả về True ngay cả khi không tìm thấy, vì mục tiêu là "đảm bảo token không còn hiệu lực"
+        # Nếu token không tồn tại trong DB, nó đã vô hiệu hóa (logout) rồi.
+        return True

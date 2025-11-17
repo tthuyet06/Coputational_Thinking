@@ -1,0 +1,168 @@
+openapi: 3.0.0
+info:
+  title: Hobby & Recommendation API (BE1)
+  description: API Backend phục vụ luồng Xác thực, Quản lý User, Sở thích và Đề xuất Địa điểm.
+  version: 1.0.1
+servers:
+  - url: /api/v1 # Giả định prefix chung của bạn
+    description: Development Server
+
+# --- CẤU HÌNH BẢO MẬT (JWT) ---
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    # --- Schemas (từ schemas.py) ---
+    RegisterRequest:
+      type: object
+      properties:
+        email: { type: string, format: email }
+        password: { type: string }
+        username: { type: string }
+        hobbies: { type: array, items: { type: string }, nullable: true }
+      required: [email, password, username]
+
+    UserResponse:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        email: { type: string, format: email }
+        username: { type: string }
+        hobbies: { type: array, items: { type: string }, nullable: true }
+
+    LoginRequest: { $ref: '#/components/schemas/LoginRequest' } # Đã định nghĩa trong auth.py
+    LoginResponse: { $ref: '#/components/schemas/LoginResponse' } # Đã định nghĩa trong auth.py
+    RefreshRequest: { $ref: '#/components/schemas/RefreshRequest' } # Đã định nghĩa trong auth.py
+    RefreshResponse: { $ref: '#/components/schemas/RefreshResponse' } # Đã định nghĩa trong auth.py
+
+    UpdateHobbiesRequest: { $ref: '#/components/schemas/UpdateHobbiesRequest' } # Đã định nghĩa trong hobbies.py
+    UpdateHobbiesResponse: { $ref: '#/components/schemas/UpdateHobbiesResponse' } # Đã định nghĩa trong hobbies.py
+
+    UpdateUserRequest: { $ref: '#/components/schemas/UpdateUserRequest' } # Đã định nghĩa trong users.py
+
+    HobbyTagsResponse: { $ref: '#/components/schemas/HobbyTagsResponse' } # Đã định nghĩa trong tags.py
+    DurationTagResponse: { $ref: '#/components/schemas/DurationTagResponse' } # Đã định nghĩa trong tags.py
+
+    Place:
+      type: object
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        address: { type: string }
+        image_url: { type: string }
+        description: { type: string }
+        tags: { type: array, items: { type: string } }
+
+    # SCHEMAS MỚI DỰA TRÊN CODE CẬP NHẬT CỦA BẠN
+    RecommendationPlace:
+      type: object
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        address: { type: string, nullable: true }
+        image_url: { type: string, nullable: true }
+        description: { type: string, nullable: true }
+        tags: { type: array, items: { type: string } }
+        distance: { type: number, format: float, description: "Khoảng cách (km) từ vị trí user" }
+
+    RecommendRequest: { $ref: '#/components/schemas/RecommendRequest' } # Đã định nghĩa trong recommend.py
+
+    RecommendResponse: # Cập nhật để dùng schema mới
+      type: object
+      properties:
+        recommendations:
+          type: array
+          items:
+            $ref: '#/components/schemas/RecommendationPlace'
+
+    RecommendationErrorResponse:
+      type: object
+      properties:
+        detail: { type: string }
+
+# --- ĐỊNH NGHĨA CÁC ĐƯỜNG DẪN (API) ---
+paths:
+  # --- 1. AUTH (từ auth.py) ---
+  /auth/register:
+    post:
+      tags: [auth]
+      summary: Đăng ký người dùng mới
+      requestBody: { content: { application/json: { schema: { $ref: '#/components/schemas/RegisterRequest' }}}}
+      responses:
+        '201': { description: Đăng ký thành công, content: { application/json: { schema: { $ref: '#/components/schemas/UserResponse' }}}}
+  /auth/login:
+    post:
+      tags: [auth]
+      summary: Đăng nhập
+      requestBody: { content: { application/json: { schema: { $ref: '#/components/schemas/LoginRequest' }}}}
+      responses:
+        '200': { description: Đăng nhập thành công, content: { application/json: { schema: { $ref: '#/components/schemas/LoginResponse' }}}}
+  /auth/refresh:
+    post:
+      tags: [auth]
+      summary: Làm mới Access Token
+      requestBody: { content: { application/json: { schema: { $ref: '#/components/schemas/RefreshRequest' }}}}
+      responses:
+        '200': { description: Token mới, content: { application/json: { schema: { $ref: '#/components/schemas/RefreshResponse' }}}}
+  /auth/logout:
+    post:
+      tags: [auth]
+      summary: Đăng xuất (Vô hiệu hóa Refresh Token)
+      requestBody: { content: { application/json: { schema: { $ref: '#/components/schemas/RefreshRequest' }}}}
+      responses:
+        '204': { description: Đăng xuất thành công (No Content) }
+
+  # --- 2. USERS (từ users.py và hobbies.py) ---
+  /users/me:
+    get:
+      tags: [users]
+      summary: Lấy thông tin người dùng hiện tại
+      security: [{ BearerAuth: [] }]
+      responses:
+        '200': { description: Thông tin User, content: { application/json: { schema: { $ref: '#/components/schemas/UserResponse' }}}}
+    patch:
+      tags: [users]
+      summary: Cập nhật tên hiển thị
+      security: [{ BearerAuth: [] }]
+      requestBody: { content: { application/json: { schema: { $ref: '#/components/schemas/UpdateUserRequest' }}}}
+      responses:
+        '200': { description: Cập nhật thành công, content: { application/json: { schema: { $ref: '#/components/schemas/UserResponse' }}}}
+
+  /users/me/hobbies: # (từ hobbies.py)
+    post:
+      tags: [users]
+      summary: Cập nhật sở thích người dùng
+      security: [{ BearerAuth: [] }]
+      requestBody: { content: { application/json: { schema: { $ref: '#/components/schemas/UpdateHobbiesRequest' }}}}
+      responses:
+        '200': { description: Cập nhật thành công, content: { application/json: { schema: { $ref: '#/components/schemas/UpdateHobbiesResponse' }}}}
+
+  # --- 3. TAGS (từ tags.py) - Yêu cầu API /hobbies của bạn ---
+  /tags/hobbies:
+    get:
+      tags: [tags]
+      summary: Lấy danh sách tags sở thích (Mục 1)
+      description: {API này cung cấp danh sách các tag sở thích hợp lệ (ví dụ: ["#cafe", "#an_vat"])}
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/HobbyTagsResponse' }}}}
+  /tags/durations:
+    get:
+      tags: [tags]
+      summary: Lấy danh sách tags thời lượng
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/DurationTagResponse' }}}}
+
+  # --- 4. RECOMMEND (từ recommend.py) ---
+  /recommend/:
+    post:
+      tags: [recommend]
+      summary: Đề xuất địa điểm (đã tích hợp Haversine)
+      security: [{ BearerAuth: [] }]
+      requestBody: { content: { application/json: { schema: { $ref: '#/components/schemas/RecommendRequest' }}}}
+      responses:
+        '200': { description: Đề xuất thành công, content: { application/json: { schema: { $ref: '#/components/schemas/RecommendResponse' }}}}
+        '404': { description: Không tìm thấy đề xuất, content: { application/json: { schema: { $ref: '#/components/schemas/RecommendationErrorResponse' }}}}
