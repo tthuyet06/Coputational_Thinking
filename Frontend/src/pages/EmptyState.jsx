@@ -6,7 +6,7 @@ export default function EmptyState({
   title = "We can’t find any destination that matches your vibes.",
   subtitle = "Please try again next time.",
   ctaText = "Edit your vibe",
-  ctaTo = "/editvibe",          
+  ctaTo = "/profile",          
 }) {
   return (
     <main className="empty-wrap">
