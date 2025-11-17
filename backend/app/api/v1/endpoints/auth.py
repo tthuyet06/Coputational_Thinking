@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, Response
 from starlette import status
 from sqlalchemy.orm import Session
-from backend.app.db.deps import get_db
+from backend.app.db.db_connection import get_db
 from backend.app.schemas.schemas import (
     RegisterRequest, LoginRequest, UserResponse,
     LoginResponse, RefreshRequest, RefreshResponse
@@ -60,7 +60,7 @@ async def refresh_token(
         access_token=new_token["access_token"]
     )
 
-@router.post("/logout", status_code=status.HTTP_204_NO_CONTENT) # 204 No Content là chuẩn cho xóa/thành công không trả về body
+@router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
 async def logout(
     request: RefreshRequest, # Nhận refresh token từ body
     db: Session = Depends(get_db)
