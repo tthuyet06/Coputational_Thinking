@@ -4,10 +4,12 @@ import Navbar from "../components/layouts/Navbar";
 import LoadingScreen from "./LoadingScreen";
 import EmptyState from "./EmptyState";
 import "../styles/Results.css";
-import suggestionAPI from "../services/suggestionAPI"; // 🔥 thêm dòng này
+import suggestionAPI from "../services/suggestionAPI";
+import toErrorMessage from "../utils/toErrorMessage"; // THÊM DÒNG IMPORT NÀY
 
 /* ----------------- Helper: tạo link chỉ đường ----------------- */
 function buildDirectionsUrl(place) {
+  // ... (giữ nguyên hàm)
   const base = "https://www.google.com/maps/dir/?api=1";
   const dest = place.coords
     ? `${place.coords.lat},${place.coords.lng}`
@@ -17,6 +19,7 @@ function buildDirectionsUrl(place) {
 
 /* 🔹 Chuẩn hóa dữ liệu place từ BE về format UI đang dùng */
 function normalizePlace(place, index) {
+  // ... (giữ nguyên hàm)
   // place = 1 item trong recommendations từ backend
   return {
     id: place.id ?? place.place_id ?? index,
@@ -45,6 +48,7 @@ function normalizePlace(place, index) {
 
 /* ----------------- Card ----------------- */
 function ResultCard({ item, onToggleFav }) {
+  // ... (giữ nguyên component)
   const navigate = useNavigate();
 
   const goToDetail = () => navigate(`/details/${item.id}`);
@@ -139,6 +143,11 @@ export default function Results() {
   const [loading, setLoading] = useState(showLoading);
   const [error, setError] = useState("");
 
+  // STATE CHO GEOLOCATION
+  const [gpsLocation, setGpsLocation] = useState(null); // { lat, lng }
+  const [gpsLoading, setGpsLoading] = useState(false);
+  const [gpsError, setGpsError] = useState('');
+
   // clear state location cho back/forward
   useEffect(() => {
     if (location.state) {
@@ -146,27 +155,93 @@ export default function Results() {
     }
   }, [location.state, navigate]);
 
-  // 🔥 Gọi API /recommend
+  // EFFECT 1: Lấy Vị trí GPS khi component mount
   useEffect(() => {
+    if (!navigator.geolocation) {
+        setGpsError('Geolocation is not supported by your browser.');
+        return;
+    }
+
+    setGpsLoading(true);
+
+    const handleSuccess = (position) => {
+        setGpsLocation({
+            lat: position.coords.latitude,
+            lng: position.coords.longitude,
+        });
+        setGpsLoading(false);
+    };
+
+    const handleError = (err) => {
+        setGpsLoading(false);
+        let msg = "Could not retrieve location.";
+        
+        switch (err.code) {
+            case err.PERMISSION_DENIED:
+                msg = "Lỗi: Bạn đã từ chối cấp quyền truy cập vị trí. Vui lòng cho phép để tiếp tục.";
+                break;
+            case err.POSITION_UNAVAILABLE:
+                msg = "Lỗi: Vị trí không xác định được.";
+                break;
+            case err.TIMEOUT:
+                msg = "Lỗi: Hết thời gian chờ lấy vị trí.";
+                break;
+            default:
+                msg = "Lỗi: Lỗi không xác định khi lấy vị trí.";
+                break;
+        }
+        
+        console.error("Geolocation Error (Console):", err.message, err.code); // GHI LỖI GPS RA CONSOLE
+        setGpsError(msg); 
+    };
+
+    navigator.geolocation.getCurrentPosition(handleSuccess, handleError, {
+        enableHighAccuracy: true,
+        timeout: 5000,
+        maximumAge: 0,
+    });
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); 
+
+
+  // 🔥 EFFECT 2: Gọi API /recommend, CHỈ chạy khi GPS đã hoàn thành
+  useEffect(() => {
+    if (gpsLoading) {
+        setLoading(true); 
+        return;
+    }
+
+    if (gpsError) {
+        setError(gpsError); 
+        setLoading(false);
+        setItems([]);
+        return;
+    }
+    
+    if (!gpsLocation) {
+        setLoading(false);
+        return;
+    }
+
     const loadResults = async () => {
       const delay = showLoading ? 800 : 0;
 
       try {
         setLoading(true);
-        setError("");
+        setError(""); // Clear lỗi API cũ
 
         if (delay > 0) {
           await new Promise((r) => setTimeout(r, delay));
         }
 
-        // Lấy params từ localStorage (set ở màn trước)
         const stored = JSON.parse(
           localStorage.getItem("recommendParams") || "{}"
         );
-        const latitude =
-          typeof stored.latitude === "number" ? stored.latitude : 10.77;
-        const longitude =
-          typeof stored.longitude === "number" ? stored.longitude : 106.7;
+        
+        const latitude = gpsLocation.lat;
+        const longitude = gpsLocation.lng;
+        
         const durationTag =
           stored.durationTag || stored.duration_tag || "short";
 
@@ -180,19 +255,16 @@ export default function Results() {
         const mapped = raw.map(normalizePlace);
         setItems(mapped);
       } catch (err) {
-        console.error("Load recommend error:", err);
+        // 🔥 GHI LỖI RA CONSOLE
+        console.error("Load recommend error (Console):", err); 
       
         // Nếu backend trả 404 => treat như "không có kết quả", không phải error kỹ thuật
         if (err?.response?.status === 404) {
-          setItems([]);      // để đi vào EmptyState "no destination"
-          setError("");      // không show 'status code 404'
+          setItems([]);
+          setError(""); 
         } else {
-          // Các lỗi khác: 500, network, v.v.
-          const backendDetail = err?.response?.data?.detail;
-          const msg =
-            typeof backendDetail === "string"
-              ? backendDetail
-              : err?.message || "Failed to load recommendations";
+          // 🔥 SỬ DỤNG toErrorMessage ĐỂ CHUẨN HÓA LỖI CHO UI
+          const msg = toErrorMessage(err);
           setError(msg);
           setItems([]);
         }
@@ -203,17 +275,21 @@ export default function Results() {
 
     loadResults();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // chỉ chạy khi mount
+  }, [gpsLoading, gpsLocation, gpsError]); 
 
-  if (loading) {
+  // Hiển thị Loading
+  if (loading || gpsLoading) {
     return (
       <>
         <Navbar />
-        <LoadingScreen message="Looking for the destination, please wait..." />
+        <LoadingScreen 
+          message={gpsLoading ? "Đang yêu cầu vị trí GPS của bạn..." : "Looking for the destination, please wait..."} 
+        />
       </>
     );
   }
 
+  // Hiển thị Lỗi hoặc Empty State
   if (!loading && (error || items.length === 0)) {
     return (
       <>
@@ -237,6 +313,7 @@ export default function Results() {
       prev.map((it) => (it.id === id ? { ...it, fav: !it.fav } : it))
     );
 
+  // Hiển thị Kết quả
   return (
     <>
       <Navbar />
