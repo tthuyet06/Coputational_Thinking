@@ -1,6 +1,6 @@
 from typing import List
-from .place import Place
-from .user import User
+from app.domain.place import Place
+from app.domain.user import User
 
 
 from dataclasses import dataclass

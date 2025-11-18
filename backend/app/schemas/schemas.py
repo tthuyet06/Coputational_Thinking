@@ -84,6 +84,3 @@ class FavoriteRequest(BaseModel):
 
 class UpdateUserRequest(BaseModel):
     username: str
-
-
-
