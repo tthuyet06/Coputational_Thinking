@@ -1,10 +1,7 @@
-// src/utils/toErrorMessage.js
 // Chuẩn hoá mọi kiểu lỗi về 1 chuỗi thân thiện
-//  Cập nhật: Thêm tham số 'fallback'
-export default function toErrorMessage(err, fallback = "Something went wrong.") {
+export default function toErrorMessage(err) {
     const d = err?.response?.data;
-    const statusText = err?.response?.statusText;
-
+  
     // Trường hợp backend trả {"email":["..."]} hoặc {"username":["..."]}
     if (d && typeof d === "object" && !Array.isArray(d)) {
       for (const k of ["email", "username", "password", "detail", "message", "msg"]) {
@@ -15,7 +12,7 @@ export default function toErrorMessage(err, fallback = "Something went wrong.") 
         if (typeof v === "object") return Object.values(v)[0]?.[0] || JSON.stringify(v);
       }
       // Không rơi vào các key quen thuộc → trả JSON gọn
-      try { return JSON.stringify(d); } catch {} // Loại bỏ 'Unknown error.' để tiếp tục flow
+      try { return JSON.stringify(d); } catch { return "Unknown error."; }
     }
   
     // FastAPI/Pydantic thường để message ở d.detail (string/array)
@@ -24,9 +21,9 @@ export default function toErrorMessage(err, fallback = "Something went wrong.") 
     }
     if (typeof d?.detail === "string") return d.detail;
   
-    // Axios error.message (Lỗi mạng, v.v.)
+    // Axios error.message
     if (err?.message) return err.message;
   
-    // Fallback cuối cùng: statusText hoặc tham số fallback (từ pickErrorMessage)
-    return statusText || fallback;
-}
+    return "Something went wrong.";
+  }
+  

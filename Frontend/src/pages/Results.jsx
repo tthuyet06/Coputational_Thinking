@@ -1,54 +1,18 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import Navbar from "../components/layouts/Navbar";
-import LoadingScreen from "./LoadingScreen";
-import EmptyState from "./EmptyState";
 import "../styles/Results.css";
 import suggestionAPI from "../services/suggestionAPI";
-import toErrorMessage from "../utils/toErrorMessage"; // THÊM DÒNG IMPORT NÀY
+import LoadingScreen from "./LoadingScreen";
+import EmptyState from "./EmptyState";
 
-/* ----------------- Helper: tạo link chỉ đường ----------------- */
 function buildDirectionsUrl(place) {
-  // ... (giữ nguyên hàm)
   const base = "https://www.google.com/maps/dir/?api=1";
-  const dest = place.coords
-    ? `${place.coords.lat},${place.coords.lng}`
-    : encodeURIComponent(place.address || place.title);
+  const dest = encodeURIComponent(place.address || place.name);
   return `${base}&origin=Current+Location&destination=${dest}`;
 }
 
-/* 🔹 Chuẩn hóa dữ liệu place từ BE về format UI đang dùng */
-function normalizePlace(place, index) {
-  // ... (giữ nguyên hàm)
-  // place = 1 item trong recommendations từ backend
-  return {
-    id: place.id ?? place.place_id ?? index,
-    title: place.title ?? place.name ?? "Unknown place",
-    image: place.image ?? place.image_url ?? "/placeholder.jpg",
-    description: place.description ?? "",
-    address: place.address ?? "",
-    // nếu BE có trường latitude / longitude
-    coords: place.coords
-      ? place.coords
-      : place.latitude && place.longitude
-      ? { lat: place.latitude, lng: place.longitude }
-      : null,
-    // tags có thể là array hoặc string "#cafe,#chill"
-    hashtags: Array.isArray(place.tags)
-      ? place.tags
-      : typeof place.tags === "string"
-      ? place.tags
-          .split(",")
-          .map((t) => t.replace("#", "").trim())
-          .filter(Boolean)
-      : [],
-    fav: false, // mặc định chưa favorite
-  };
-}
-
-/* ----------------- Card ----------------- */
 function ResultCard({ item, onToggleFav }) {
-  // ... (giữ nguyên component)
   const navigate = useNavigate();
 
   const goToDetail = () => navigate(`/details/${item.id}`);
@@ -68,8 +32,8 @@ function ResultCard({ item, onToggleFav }) {
             <button
               className="icon-btn dir-btn"
               onClick={openDirections}
-              aria-label={`Chỉ đường đến ${item.title}`}
-              title="Chỉ đường"
+              aria-label={`Direction to ${item.title}`}
+              title="Direction"
               onMouseDown={(e) => e.preventDefault()}
             >
               <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true">
@@ -108,7 +72,7 @@ function ResultCard({ item, onToggleFav }) {
                 e.stopPropagation();
                 onToggleFav(item.id);
               }}
-              title={item.fav ? "Bỏ yêu thích" : "Thêm vào yêu thích"}
+              title={item.fav ? "Remove from favorites" : "Add to favorites"}
             >
               <svg width="22" height="22" viewBox="0 0 24 24">
                 <path d="M12 21s-6.7-4.1-9.6-7.6A6.1 6.1 0 0 1 12 5.3a6.1 6.1 0 0 1 9.6 8.1C18.7 16.9 12 21 12 21z" />
@@ -132,7 +96,6 @@ function ResultCard({ item, onToggleFav }) {
   );
 }
 
-/* ----- Page ----- */
 export default function Results() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -143,164 +106,105 @@ export default function Results() {
   const [loading, setLoading] = useState(showLoading);
   const [error, setError] = useState("");
 
-  // STATE CHO GEOLOCATION
-  const [gpsLocation, setGpsLocation] = useState(null); // { lat, lng }
-  const [gpsLoading, setGpsLoading] = useState(false);
-  const [gpsError, setGpsError] = useState('');
-
-  // clear state location cho back/forward
+  // Clear state.history để Back không lặp lại loading
   useEffect(() => {
     if (location.state) {
       navigate(".", { replace: true, state: null });
     }
   }, [location.state, navigate]);
 
-  // EFFECT 1: Lấy Vị trí GPS khi component mount
   useEffect(() => {
-    if (!navigator.geolocation) {
-        setGpsError('Geolocation is not supported by your browser.');
-        return;
-    }
-
-    setGpsLoading(true);
-
-    const handleSuccess = (position) => {
-        setGpsLocation({
-            lat: position.coords.latitude,
-            lng: position.coords.longitude,
-        });
-        setGpsLoading(false);
-    };
-
-    const handleError = (err) => {
-        setGpsLoading(false);
-        let msg = "Could not retrieve location.";
-        
-        switch (err.code) {
-            case err.PERMISSION_DENIED:
-                msg = "Lỗi: Bạn đã từ chối cấp quyền truy cập vị trí. Vui lòng cho phép để tiếp tục.";
-                break;
-            case err.POSITION_UNAVAILABLE:
-                msg = "Lỗi: Vị trí không xác định được.";
-                break;
-            case err.TIMEOUT:
-                msg = "Lỗi: Hết thời gian chờ lấy vị trí.";
-                break;
-            default:
-                msg = "Lỗi: Lỗi không xác định khi lấy vị trí.";
-                break;
-        }
-        
-        console.error("Geolocation Error (Console):", err.message, err.code); // GHI LỖI GPS RA CONSOLE
-        setGpsError(msg); 
-    };
-
-    navigator.geolocation.getCurrentPosition(handleSuccess, handleError, {
-        enableHighAccuracy: true,
-        timeout: 5000,
-        maximumAge: 0,
-    });
-
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); 
-
-
-  // 🔥 EFFECT 2: Gọi API /recommend, CHỈ chạy khi GPS đã hoàn thành
-  useEffect(() => {
-    if (gpsLoading) {
-        setLoading(true); 
-        return;
-    }
-
-    if (gpsError) {
-        setError(gpsError); 
-        setLoading(false);
-        setItems([]);
-        return;
-    }
-    
-    if (!gpsLocation) {
-        setLoading(false);
-        return;
-    }
-
-    const loadResults = async () => {
-      const delay = showLoading ? 800 : 0;
-
+    const load = async () => {
       try {
         setLoading(true);
-        setError(""); // Clear lỗi API cũ
+        setError("");
 
-        if (delay > 0) {
-          await new Promise((r) => setTimeout(r, delay));
+        // Lấy durationTag từ localStorage
+        const stored = localStorage.getItem("durationTag");
+        const parsed = stored ? JSON.parse(stored) : null;
+        const duration_tag = parsed?.tag_id;
+
+        if (!duration_tag) {
+          setError("Missing duration selection. Please go back and choose your free time.");
+          setItems([]);
+          return;
         }
 
-        const stored = JSON.parse(
-          localStorage.getItem("recommendParams") || "{}"
-        );
-        
-        const latitude = gpsLocation.lat;
-        const longitude = gpsLocation.lng;
-        
-        const durationTag =
-          stored.durationTag || stored.duration_tag || "short";
+        // Lấy geolocation (nếu fail thì chọn toạ độ default Sài Gòn)
+        let latitude = 10.776;
+        let longitude = 106.700;
+        try {
+          const pos = await new Promise((resolve, reject) => {
+            if (!("geolocation" in navigator)) return reject(new Error("No geolocation"));
+            navigator.geolocation.getCurrentPosition(resolve, reject, {
+              enableHighAccuracy: true,
+              timeout: 8000,
+              maximumAge: 60000,
+            });
+          });
+          latitude = pos.coords.latitude;
+          longitude = pos.coords.longitude;
+        } catch {
+          // dùng default, không crash
+        }
 
-        const res = await suggestionAPI.getRecommendations({
+        const places = await suggestionAPI.getRecommendations({
           latitude,
           longitude,
-          duration_tag: durationTag,
+          duration_tag,
         });
 
-        const raw = res.recommendations || [];
-        const mapped = raw.map(normalizePlace);
-        setItems(mapped);
+        const mapped = places.map((p) => ({
+          id: p.id,
+          title: p.name,
+          image:
+            p.image_url ||
+            "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=800&q=80",
+          description: p.description || "",
+          address: p.address || "",
+          hashtags: Array.isArray(p.tags) ? p.tags : [],
+          fav: false,
+        }));
+
+        // 🔹 CHỈ GIỮ LẠI 2 ĐỊA ĐIỂM ĐẦU TIÊN
+        setItems(mapped.slice(0, 2));
       } catch (err) {
-        // 🔥 GHI LỖI RA CONSOLE
-        console.error("Load recommend error (Console):", err); 
-      
-        // Nếu backend trả 404 => treat như "không có kết quả", không phải error kỹ thuật
-        if (err?.response?.status === 404) {
-          setItems([]);
-          setError(""); 
-        } else {
-          // 🔥 SỬ DỤNG toErrorMessage ĐỂ CHUẨN HÓA LỖI CHO UI
-          const msg = toErrorMessage(err);
-          setError(msg);
-          setItems([]);
-        }
+        setError(
+          typeof err === "string"
+            ? err
+            : err?.message || "Failed to load recommendations"
+        );
+        setItems([]);
       } finally {
         setLoading(false);
       }
     };
 
-    loadResults();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [gpsLoading, gpsLocation, gpsError]); 
+    const delay = showLoading ? 800 : 0;
+    setTimeout(load, delay);
+  }, []); // only on mount
 
-  // Hiển thị Loading
-  if (loading || gpsLoading) {
+  const toggleFav = (id) =>
+    setItems((prev) =>
+      prev.map((it) => (it.id === id ? { ...it, fav: !it.fav } : it))
+    );
+
+  if (loading) {
     return (
       <>
         <Navbar />
-        <LoadingScreen 
-          message={gpsLoading ? "Đang yêu cầu vị trí GPS của bạn..." : "Looking for the destination, please wait..."} 
-        />
+        <LoadingScreen message="Looking for the destination, please wait..." />
       </>
     );
   }
 
-  // Hiển thị Lỗi hoặc Empty State
-  if (!loading && (error || items.length === 0)) {
+  if (error) {
     return (
       <>
         <Navbar />
         <EmptyState
-          title={
-            error
-              ? "We had trouble finding a destination for you."
-              : "We can’t find any destination that matches your vibes."
-          }
-          subtitle={error || "Please try again next time."}
+          title="We couldn't find any destination."
+          subtitle={error}
           ctaText="Edit your vibe"
           ctaTo="/profile"
         />
@@ -308,12 +212,20 @@ export default function Results() {
     );
   }
 
-  const toggleFav = (id) =>
-    setItems((prev) =>
-      prev.map((it) => (it.id === id ? { ...it, fav: !it.fav } : it))
+  if (!items.length) {
+    return (
+      <>
+        <Navbar />
+        <EmptyState
+          title="We can’t find any destination that matches your vibes."
+          subtitle="Please try again next time."
+          ctaText="Edit your vibe"
+          ctaTo="/profile"
+        />
+      </>
     );
+  }
 
-  // Hiển thị Kết quả
   return (
     <>
       <Navbar />
