@@ -46,8 +46,21 @@ class UpdateHobbiesResponse(BaseModel):
     message: str
     hobbies: List[str]
 
+# class HobbyTagsResponse(BaseModel):
+#     tags: List[str]
+
+
+# thêm model con để mô tả 1 hobby
+class HobbyItem(BaseModel):
+    id: int
+    name: str
+    description: str
+    category: str
+    tag: str
+
+
 class HobbyTagsResponse(BaseModel):
-    tags: List[str]
+    hobbies: List[HobbyItem]
 
 
 class DurationTag(BaseModel):
