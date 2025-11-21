@@ -92,7 +92,7 @@ class AuthService:
         db_token = models.RefreshToken(
             token=refresh_token,
             user_id=user.id,
-            expired_at=expires_at
+            expires_at=expires_at
         )
         db.add(db_token)
         db.commit()
@@ -128,7 +128,7 @@ class AuthService:
 
         # Lấy giờ UTC "naive" (bằng cách bỏ timezone)
         current_time_naive_utc = datetime.now(UTC).replace(tzinfo=None)
-        if db_token.expired_at < current_time_naive_utc:
+        if db_token.expires_at < current_time_naive_utc:
             raise HTTPException(status_code=401, detail="Refresh token has expired (in DB).")
 
         if str(db_token.user_id) != user_id:
