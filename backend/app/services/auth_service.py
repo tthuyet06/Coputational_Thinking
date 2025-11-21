@@ -92,7 +92,7 @@ class AuthService:
         db_token = models.RefreshToken(
             token=refresh_token,
             user_id=user.id,
-            expired_at=expires_at
+            expires_at=expires_at
         )
         db.add(db_token)
         db.commit()
