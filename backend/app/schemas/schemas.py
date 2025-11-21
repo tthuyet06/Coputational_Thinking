@@ -46,9 +46,16 @@ class UpdateHobbiesResponse(BaseModel):
     message: str
     hobbies: List[str]
 
-class HobbyTagsResponse(BaseModel):
-    tags: List[str]
+class HobbyItem(BaseModel):
+    id: int
+    tag: str
+    name: str
 
+    class Config:
+        from_attributes = True
+
+class HobbyTagsResponse(BaseModel):
+    hobbies: List[HobbyItem]
 
 class DurationTag(BaseModel):
     display_name: str
