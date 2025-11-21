@@ -1,50 +1,44 @@
-import React, { useState } from "react";
+// src/pages/Profile.jsx
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import "../styles/Profile.css";
 import Navbar from "../components/layouts/Navbar";
-import TagSelector from "../components/common/TagSelector.jsx"
+import TagSelector from "../components/common/TagSelector";
+import "../styles/Profile.css";
+import userAPI from "../services/userAPI";
+import preferenceAPI from "../services/preferenceAPI";
 
-export default function ProfilePage() {
+export default function Profile() {
   const navigate = useNavigate();
 
-  const [isEditing, setIsEditing] = useState(false);
+  // Menu trái
   const [activeMenu, setActiveMenu] = useState("Profile");
-  const [fadingIds, setFadingIds] = useState([]); // id đang fade-out
-  const allVibeTags = [
-  "Creative", "Chill", "Productive", "Romantic", "Adventurous",
-  "Cozy", "Minimalist", "Retro", "Nature", "Luxury"
-];
 
-// tag được chọn của user (giả lập dữ liệu cũ)
-const [userVibes, setUserVibes] = useState(["Chill", "Creative", "Nature"]);
-
-// tag đang edit tạm (chưa lưu)
-const [editingVibes, setEditingVibes] = useState(userVibes);
-
-// bật/tắt chế độ edit vibes
-const [isEditingVibes, setIsEditingVibes] = useState(false);
-
-
-  // dữ liệu demo
+  // Thông tin user
   const [userData, setUserData] = useState({
-    username: "LizzardMeoMeo",
-    email: "lizzard@example.com",
-    passwordMasked: "********", // chỉ hiển thị mask
+    username: "",
+    email: "",
+    passwordMasked: "********",
   });
 
-  // form edit cho username/email
-  const [editData, setEditData] = useState({
-    username: userData.username,
-    email: userData.email,
-  });
+  // Edit form
+  const [isEditing, setIsEditing] = useState(false);
+  const [editData, setEditData] = useState({ username: "", email: "" });
 
-  // quản lý mật khẩu tách riêng
   const [pwForm, setPwForm] = useState({
     current: "",
     next: "",
     confirm: "",
   });
 
+  // --- VIBES ---
+  const [allHobbyTags, setAllHobbyTags] = useState([]);    // tất cả tag từ /tags/hobbies
+  const [userHobbies, setUserHobbies] = useState([]);      // hobbies đã lưu trên server
+  const [editingVibes, setEditingVibes] = useState([]);    // state khi edit
+  const [isEditingVibes, setIsEditingVibes] = useState(false);
+  const [vibeLoading, setVibeLoading] = useState(true);
+  const [vibeError, setVibeError] = useState("");
+
+  // Favorites demo (giữ nguyên)
   const [favorites, setFavorites] = useState([
     {
       id: 1,
@@ -66,18 +60,55 @@ const [isEditingVibes, setIsEditingVibes] = useState(false);
         "https://images.unsplash.com/photo-1511920170033-f8396924c348?auto=format&fit=crop&w=800&q=80",
       liked: true,
     },
-    {
-      id: 3,
-      name: "Thinker & Dreamer Café",
-      desc: "Rooftop café with stunning views and artistic vibes.",
-      address: "42 Nguyen Hue, District 1",
-      hashtags: "#Rooftop #Artistic #Vibes",
-      image:
-        "https://dynamic-media-cdn.tripadvisor.com/media/photo-o/19/9b/dc/c4/quan-ca-phe-thinker-dreamer.jpg?w=1100&h=1100&s=1",
-      liked: true,
-    },
   ]);
+  const [fadingIds, setFadingIds] = useState([]);
 
+  // 🧠 Load user + hobbies + list tags khi mở trang Profile
+  useEffect(() => {
+    const loadProfile = async () => {
+      try {
+        setVibeLoading(true);
+        setVibeError("");
+
+        const [me, tags] = await Promise.all([
+          userAPI.getMe(),          // /users/me  → { username, email, hobbies }
+          preferenceAPI.getHobbyTags(), // /tags/hobbies → [ "#cafe", "#chill", ... ]
+        ]);
+
+        // user
+        setUserData({
+          username: me.username,
+          email: me.email,
+          passwordMasked: "********",
+        });
+        setEditData({ username: me.username, email: me.email });
+
+        // vibes
+        const hobbies = me.hobbies ?? [];
+        setUserHobbies(hobbies);
+        setEditingVibes(hobbies);
+        setAllHobbyTags(tags);
+      } catch (err) {
+        console.error("Load profile error:", err);
+        setVibeError(
+          err?.response?.data?.detail ||
+            err?.message ||
+            "Failed to load profile."
+        );
+      } finally {
+        setVibeLoading(false);
+      }
+    };
+
+    loadProfile();
+  }, []);
+
+  const handleLogout = () => {
+    // sau này có thể gọi logout() từ AuthContext
+    navigate("/login");
+  };
+
+  // -------- Profile tab --------
   const handleEditClick = () => {
     setEditData({ username: userData.username, email: userData.email });
     setPwForm({ current: "", next: "", confirm: "" });
@@ -87,35 +118,6 @@ const [isEditingVibes, setIsEditingVibes] = useState(false);
   const handleCancel = () => {
     setIsEditing(false);
     setPwForm({ current: "", next: "", confirm: "" });
-  };
-
-  const handleSave = (e) => {
-    e.preventDefault();
-
-    // Validate tối thiểu cho password (nếu user nhập)
-    if (pwForm.next || pwForm.confirm || pwForm.current) {
-      if (!pwForm.current) {
-        alert("Vui lòng nhập mật khẩu hiện tại.");
-        return;
-      }
-      if (pwForm.next !== pwForm.confirm) {
-        alert("Mật khẩu mới và xác nhận không khớp.");
-        return;
-      }
-      // Ở bản demo này ta không kiểm tra current thực sự.
-      // Khi gắn API, gọi endpoint đổi mật khẩu tại đây.
-    }
-
-    setUserData((prev) => ({
-      ...prev,
-      username: editData.username,
-      email: editData.email,
-      // Không lưu mật khẩu thật trong state demo. Luôn mask để hiển thị.
-      passwordMasked: "********",
-    }));
-
-    setIsEditing(false);
-    alert("Thông tin đã được lưu!");
   };
 
   const handleChange = (e) => {
@@ -128,11 +130,59 @@ const [isEditingVibes, setIsEditingVibes] = useState(false);
     setPwForm((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleLogout = () => {
-    navigate("/login");
+  const handleSave = async (e) => {
+    e.preventDefault();
+
+    const wantsChangePw =
+      pwForm.current || pwForm.next || pwForm.confirm;
+
+    if (wantsChangePw) {
+      if (!pwForm.current) {
+        alert("Vui lòng nhập mật khẩu hiện tại.");
+        return;
+      }
+      if (pwForm.next !== pwForm.confirm) {
+        alert("Mật khẩu mới và xác nhận không khớp.");
+        return;
+      }
+    }
+
+    try {
+      // 1. update username/email
+      const updatedUser = await userAPI.updateMe({
+        username: editData.username,
+        email: editData.email,
+      });
+
+      // 2. đổi password nếu có nhập
+      if (wantsChangePw) {
+        await userAPI.changePassword({
+          current_password: pwForm.current,
+          new_password: pwForm.next,
+        });
+      }
+
+      setUserData((prev) => ({
+        ...prev,
+        username: updatedUser.username,
+        email: updatedUser.email,
+        passwordMasked: "********",
+      }));
+
+      setIsEditing(false);
+      setPwForm({ current: "", next: "", confirm: "" });
+      alert("Profile updated successfully!");
+    } catch (err) {
+      console.error("Update profile error:", err);
+      const msg =
+        err?.response?.data?.detail ||
+        err?.message ||
+        "Failed to update profile.";
+      alert(msg);
+    }
   };
 
-  // Khi nhấn ❤️: bỏ thích => fade out => xóa thẻ
+  // -------- Favorites --------
   const toggleFavorite = (id) => {
     const fav = favorites.find((f) => f.id === id);
     if (fav?.liked) {
@@ -140,15 +190,13 @@ const [isEditingVibes, setIsEditingVibes] = useState(false);
       setTimeout(() => {
         setFavorites((prev) => prev.filter((f) => f.id !== id));
         setFadingIds((prev) => prev.filter((fid) => fid !== id));
-      }, 300); // khớp thời gian CSS transition
+      }, 300);
     }
   };
 
   return (
     <>
       <Navbar />
-
-      {/* Wrapper layout */}
       <div className="profile-page">
         {/* Sidebar */}
         <div className="sidebar">
@@ -189,10 +237,11 @@ const [isEditingVibes, setIsEditingVibes] = useState(false);
           </button>
         </div>
 
+        {/* Main content */}
         <div className="profile-form-section">
-          <div className="profile-container">
-            {activeMenu === "Profile" && (
-            <>
+          {/* TAB: PROFILE */}
+          {activeMenu === "Profile" && (
+            <div className="profile-container">
               <h2 className="form-title">
                 {isEditing ? "EDIT PROFILE" : "PROFILE SETTINGS"}
               </h2>
@@ -271,73 +320,94 @@ const [isEditingVibes, setIsEditingVibes] = useState(false);
                   </div>
                 </form>
               )}
-            </>
+            </div>
           )}
-        </div>
 
+          {/* TAB: VIBES */}
           {activeMenu === "Vibes" && (
-  <div className="vibes-section">
-    <h2 className="form-title">YOUR VIBES</h2>
-    <p className="vibes-sub">
-      {isEditingVibes ? "Edit your current vibe tags ✨" : "These are your current vibes"}
-    </p>
+            <div className="vibes-section">
+              <h2 className="form-title">YOUR VIBES</h2>
+              {vibeLoading && <p>Loading vibes...</p>}
+              {vibeError && (
+                <p className="text-red-500 text-sm">{vibeError}</p>
+              )}
 
-    {!isEditingVibes ? (
-      <>
-        <TagSelector
-          tags={allVibeTags}
-          defaultSelected={userVibes}
-          onChange={() => {}}
-        />
+              {!vibeLoading && !vibeError && (
+                <>
+                  <p className="vibes-sub">
+                    {isEditingVibes
+                      ? "Edit your current vibe tags ✨"
+                      : "These are your current vibes"}
+                  </p>
 
-        <button
-          className="edit-btn"
-          style={{ marginTop: "20px" }}
-          onClick={() => {
-            setEditingVibes(userVibes);
-            setIsEditingVibes(true);
-          }}
-        >
-          Edit Vibes
-        </button>
-      </>
-    ) : (
-      <>
-        <TagSelector
-          tags={allVibeTags}
-          defaultSelected={editingVibes}
-          onChange={(selected) => setEditingVibes(selected)}
-        />
+                  {!isEditingVibes ? (
+                    <>
+                      {/* ⭐ Hiển thị tất cả tag, những tag trong userHobbies sẽ được TagSelector tô màu */}
+                      <TagSelector
+                        tags={allHobbyTags}
+                        defaultSelected={userHobbies}
+                        onChange={() => {}}
+                      />
+                      <button
+                        className="edit-btn"
+                        style={{ marginTop: "20px" }}
+                        onClick={() => {
+                          setEditingVibes(userHobbies);
+                          setIsEditingVibes(true);
+                        }}
+                      >
+                        Edit Vibes
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <TagSelector
+                        tags={allHobbyTags}
+                        defaultSelected={editingVibes}
+                        onChange={(selected) => setEditingVibes(selected)}
+                      />
+                      <div className="button-group">
+                        <button
+                          className="cancel-btn"
+                          onClick={() => {
+                            setEditingVibes(userHobbies);
+                            setIsEditingVibes(false);
+                          }}
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          className="save-btn"
+                          onClick={async () => {
+                            try {
+                              const res = await preferenceAPI.updateMyHobbies(
+                                editingVibes
+                              );
+                              setUserHobbies(res.hobbies);
+                              setIsEditingVibes(false);
+                              alert("Your vibes have been updated!");
+                            } catch (err) {
+                              const msg =
+                                err?.response?.data?.detail ||
+                                err?.message ||
+                                "Failed to update vibes.";
+                              alert(msg);
+                            }
+                          }}
+                        >
+                          Save
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </>
+              )}
+            </div>
+          )}
 
-        <div className="button-group">
-          <button
-            className="cancel-btn"
-            onClick={() => {
-              setEditingVibes(userVibes); // revert
-              setIsEditingVibes(false);
-            }}
-          >
-            Cancel
-          </button>
-          <button
-            className="save-btn"
-            onClick={() => {
-              setUserVibes(editingVibes);
-              setIsEditingVibes(false);
-              alert("Your vibes have been updated!");
-            }}
-          >
-            Save
-          </button>
-        </div>
-      </>
-    )}
-  </div>
-)}
-
-
+          {/* TAB: FAVORITES (giữ nguyên) */}
           {activeMenu === "Favorites" && (
-            <>
+            <div className="favorites-section">
               <h2 className="form-title">FAVORITE PLACES</h2>
               <div className="favorites-list">
                 {favorites.map((fav) => (
@@ -357,8 +427,6 @@ const [isEditingVibes, setIsEditingVibes] = useState(false);
                     <button
                       className={`heart-btn ${fav.liked ? "liked" : ""}`}
                       onClick={() => toggleFavorite(fav.id)}
-                      aria-label="unfavorite"
-                      title="Remove from favorites"
                       type="button"
                     >
                       ❤️
@@ -371,7 +439,7 @@ const [isEditingVibes, setIsEditingVibes] = useState(false);
                   </p>
                 )}
               </div>
-            </>
+            </div>
           )}
         </div>
       </div>
