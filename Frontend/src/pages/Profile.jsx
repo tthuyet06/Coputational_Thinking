@@ -1,8 +1,8 @@
-// src/pages/Profile.jsx
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../components/layouts/Navbar";
 import TagSelector from "../components/common/TagSelector";
+import { DirectionButton, FavoriteButton } from "../components/common/ActionButtons"; // THÊM IMPORT NÀY
 import "../styles/Profile.css";
 import userAPI from "../services/userAPI";
 import preferenceAPI from "../services/preferenceAPI";
@@ -283,6 +283,7 @@ export default function Profile() {
                         tags={allHobbies}
                         defaultSelected={userHobbies}
                         onChange={() => {}}
+                        readOnly={true} // Đã sửa logic: Không cho phép chọn tag khi chưa nhấn Edit Vibes
                       />
 
                       <button
@@ -302,6 +303,7 @@ export default function Profile() {
                         tags={allHobbies}
                         defaultSelected={editingHobbies}
                         onChange={(selected) => setEditingHobbies(selected)}
+                        readOnly={false} // Đã sửa logic: Cho phép chọn tag khi đang edit Vibes
                       />
 
                       <div className="button-group">
@@ -348,13 +350,16 @@ export default function Profile() {
                       <p className="address">{fav.address}</p>
                       <p className="hashtags">{fav.hashtags}</p>
                     </div>
-                    <button
-                      className={`heart-btn ${fav.liked ? "liked" : ""}`}
-                      onClick={() => toggleFavorite(fav.id)}
-                      type="button"
-                    >
-                      ❤️
-                    </button>
+
+                    {/* THAY THẾ NÚT TIM CŨ BẰNG ACTION BUTTONS */}
+                    <div className="action-buttons-group"> 
+                        <DirectionButton place={{ name: fav.name, address: fav.address, title: fav.name }} />
+                        <FavoriteButton 
+                            isFav={fav.liked} 
+                            onToggle={() => toggleFavorite(fav.id)} 
+                        />
+                    </div>
+                    {/* END THAY THẾ */}
                   </div>
                 ))}
                 {favorites.length === 0 && (
