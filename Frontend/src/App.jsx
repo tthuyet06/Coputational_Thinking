@@ -22,13 +22,13 @@ export default function App() {
         <Route path="/signup" element={<Signup />} />
 
         {/* Private routes */}
-        <Route element={<PrivateRoute />}>
+        {/*<Route element={<PrivateRoute />}>*/}
           <Route path="/home" element={<Home />} />
           <Route path="/preferences" element={<Preferences />} />
           <Route path="/results" element={<Results />} />
           <Route path="/details/:id" element={<PlaceDetail />} />
           <Route path="/profile" element={<ProfilePage />} />
-        </Route>
+        {/*</Route>*/}
       </Routes>
     </AuthProvider>
   );

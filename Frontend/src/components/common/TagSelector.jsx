@@ -6,6 +6,7 @@ export default function TagSelector({
   tags = [],
   defaultSelected = [],
   onChange,
+  readOnly = false, // THÊM: Thêm prop readOnly với giá trị mặc định là false để toggle giữa edit và select
 }) {
   // selectedValues là list giá trị (value / tag) đã chọn
   const [selectedValues, setSelectedValues] = useState(defaultSelected || []);
@@ -37,6 +38,10 @@ export default function TagSelector({
   };
 
   const toggleTag = (item) => {
+    if (readOnly) { // SỬA: Nếu ở chế độ chỉ đọc (readOnly=true), DỪNG hàm lại.
+      return;
+    }
+
     const value = getValue(item);
     const isSelected = selectedValues.includes(value);
 
@@ -49,7 +54,7 @@ export default function TagSelector({
   };
 
   return (
-    <div className="vibe-panel">
+    <div className={`vibe-panel ${readOnly ? "is-readonly" : ""}`}> {/* SỬA: Thêm class CSS nếu readOnly */}
       <div className="vibe-scroll">
         <div className="vibe-grid">
           {tags.map((item, idx) => {
@@ -59,7 +64,7 @@ export default function TagSelector({
             return (
               <div
                 key={value || idx}
-                className={`tag-pill ${active ? "is-active" : ""}`}
+                className={`tag-pill ${active ? "is-active" : ""} ${readOnly ? "is-disabled" : ""}`} // SỬA: Thêm class để tạo hiệu ứng disabled/readOnly
                 onClick={() => toggleTag(item)}
               >
                 {label}
