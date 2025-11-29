@@ -46,22 +46,16 @@ class UpdateHobbiesResponse(BaseModel):
     message: str
     hobbies: List[str]
 
-# class HobbyTagsResponse(BaseModel):
-#     tags: List[str]
-
-
-# thêm model con để mô tả 1 hobby
 class HobbyItem(BaseModel):
     id: int
-    name: str
-    description: str
-    category: str
     tag: str
+    name: str
 
+    class Config:
+        from_attributes = True
 
 class HobbyTagsResponse(BaseModel):
     hobbies: List[HobbyItem]
-
 
 class DurationTag(BaseModel):
     display_name: str
@@ -97,6 +91,3 @@ class FavoriteRequest(BaseModel):
 
 class UpdateUserRequest(BaseModel):
     username: str
-
-
-
