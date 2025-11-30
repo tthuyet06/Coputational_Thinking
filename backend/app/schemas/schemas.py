@@ -1,9 +1,12 @@
 from typing import List, Optional
-from fastapi import FastAPI
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, field_validator
 from uuid import UUID
+from backend.app.utils.tag_parser import parse_comma_separated_string
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> main
 
 
 class RegisterRequest(BaseModel):
@@ -18,6 +21,9 @@ class UserResponse(BaseModel):
     email: EmailStr
     username: str
     hobbies: Optional[List[str]] = []
+
+    class Config:
+        from_attributes = True
 
 
 class LoginRequest(BaseModel):
@@ -76,9 +82,18 @@ class Place(BaseModel):
     id: int
     name: str
     address: str
-    image_url: str
-    description: str
-    tags: List[str]
+    image: Optional[str] = None
+    overview: Optional[str] = None
+    tags: List[str] = []
+
+    @field_validator('tags', mode='before')
+    @classmethod
+    def convert_tags(cls, v):
+        # Gọi hàm xử lý từ file tag_parser.py
+        return parse_comma_separated_string(v)
+
+    class Config:
+        from_attributes = True
 
 
 class RecommendResponse(BaseModel):

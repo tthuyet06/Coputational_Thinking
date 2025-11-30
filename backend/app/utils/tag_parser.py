@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 from typing import List, Optional
+=======
+from typing import List, Optional, Union
+>>>>>>> main
 
 def normalize_hobby_tags(tags: Optional[List[str]]) -> List[str]:
     """
@@ -25,4 +29,26 @@ def normalize_hobby_tags(tags: Optional[List[str]]) -> List[str]:
             seen.add(stripped_tag)
             normalized.append(stripped_tag)
 
+<<<<<<< HEAD
     return normalized
+=======
+    return normalized
+
+def parse_comma_separated_string(value: Union[str, List[str], None]) -> List[str]:
+    """
+    Chuyển đổi chuỗi phân tách bằng dấu phẩy thành danh sách các chuỗi.
+    Ví dụ: "cafe, checkin" -> ["cafe", "checkin"]
+    Hỗ trợ cả đầu vào là None hoặc đã là List.
+    """
+    if value is None:
+        return []
+
+    if isinstance(value, str):
+        # Cắt chuỗi, xóa khoảng trắng thừa, và bỏ qua chuỗi rỗng
+        return [item.strip() for item in value.split(',') if item.strip()]
+
+    if isinstance(value, list):
+        return value
+
+    return []
+>>>>>>> main
