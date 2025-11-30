@@ -4,9 +4,9 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import List, Protocol
 
-from .place import Place
-from .user import User
-from .location import Location
+from place import Place
+from user import User
+from location import Location
 
 
 @dataclass(frozen=True)
