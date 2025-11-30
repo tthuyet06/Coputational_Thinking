@@ -4,9 +4,9 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import List, Protocol
 
-from place import Place
-from user import User
-from location import Location
+from backend.app.domain.place import Place
+from backend.app.domain.user import User
+from backend.app.domain.location import Location
 
 
 @dataclass(frozen=True)
