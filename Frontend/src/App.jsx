@@ -11,6 +11,7 @@ import Preferences from "./pages/Preferences.jsx";
 import Results from "./pages/Results.jsx";
 import PlaceDetail from "./pages/PlaceDetail.jsx";
 import ProfilePage from "./pages/Profile.jsx";
+import Activities from "./pages/Activities.jsx";
 
 export default function App() {
   return (
@@ -28,6 +29,7 @@ export default function App() {
           <Route path="/results" element={<Results />} />
           <Route path="/details/:id" element={<PlaceDetail />} />
           <Route path="/profile" element={<ProfilePage />} />
+          <Route path="/activities" element={<Activities />} />
         {/*</Route>*/}
       </Routes>
     </AuthProvider>

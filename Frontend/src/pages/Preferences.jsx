@@ -61,7 +61,7 @@ export default function Preferences() {
       localStorage.setItem("hobbies", JSON.stringify(selectedHobbies));
 
       // sang trang chọn thời gian rảnh
-      navigate("/home");
+      navigate("/activities");
     } catch (err) {
       setError(
         typeof err === "string" ? err : err?.message || "Failed to save hobbies"
