@@ -1,46 +1,104 @@
-from typing import List, Optional, Union
+from typing import List, Optional
+from pydantic import BaseModel, EmailStr, field_validator
+from uuid import UUID
+from backend.app.utils.tag_parser import parse_comma_separated_string
 
-def normalize_hobby_tags(tags: Optional[List[str]]) -> List[str]:
-    """
-    Chuẩn hóa một danh sách các tag sở thích:
-    1. Nếu đầu vào là None, trả về danh sách rỗng.
-    2. Loại bỏ các khoảng trắng thừa ở đầu/cuối mỗi tag.
-    3. Loại bỏ các tag rỗng.
-    4. Loại bỏ các tag trùng lặp, giữ nguyên thứ tự.
-    5. Đảm bảo tất cả các tag đều bắt đầu bằng dấu "#".
-    """
-    if not tags:
-        return []
 
-    seen = set()
-    normalized = []
-    for tag in tags:
-        stripped_tag = tag.strip()
 
-        # Chuẩn hóa: Thêm dấu '#' nếu thiếu
-        if stripped_tag and not stripped_tag.startswith("#"):
-            stripped_tag = f"#{stripped_tag}"
+class RegisterRequest(BaseModel):
+    email: EmailStr
+    password: str
+    username: str
+    hobbies: Optional[List[str]] = []
 
-        if stripped_tag and stripped_tag not in seen:
-            seen.add(stripped_tag)
-            normalized.append(stripped_tag)
 
-    return normalized
+class UserResponse(BaseModel):
+    id: UUID
+    email: EmailStr
+    username: str
+    hobbies: Optional[List[str]] = []
 
-def parse_comma_separated_string(value: Union[str, List[str], None]) -> List[str]:
-    """
-    Chuyển đổi chuỗi phân tách bằng dấu phẩy thành danh sách các chuỗi.
-    Ví dụ: "cafe, checkin" -> ["cafe", "checkin"]
-    Hỗ trợ cả đầu vào là None hoặc đã là List.
-    """
-    if value is None:
-        return []
+    class Config:
+        from_attributes = True
 
-    if isinstance(value, str):
-        # Cắt chuỗi, xóa khoảng trắng thừa, và bỏ qua chuỗi rỗng
-        return [item.strip() for item in value.split(',') if item.strip()]
 
-    if isinstance(value, list):
-        return value
+class LoginRequest(BaseModel):
+    username: str
+    password: str
 
-    return []
+
+class LoginResponse(BaseModel):
+    access_token: str
+    refresh_token: str
+
+
+class RefreshRequest(BaseModel):
+    refresh_token: str
+
+
+class RefreshResponse(BaseModel):
+    access_token: str
+
+
+class UpdateHobbiesRequest(BaseModel):
+    hobbies: List[str]
+
+
+class UpdateHobbiesResponse(BaseModel):
+    message: str
+    hobbies: List[str]
+
+class HobbyItem(BaseModel):
+    id: int
+    tag: str
+    name: str
+
+    class Config:
+        from_attributes = True
+
+class HobbyTagsResponse(BaseModel):
+    hobbies: List[HobbyItem]
+
+class DurationTag(BaseModel):
+    display_name: str
+    tag_id: str
+
+
+class DurationTagResponse(BaseModel):
+    duration_tags: List[DurationTag]
+
+
+class RecommendRequest(BaseModel):
+    latitude: float
+    longitude: float
+    duration_tag: str
+
+
+class Place(BaseModel):
+    id: int
+    name: str
+    address: str
+    image: Optional[str] = None
+    overview: Optional[str] = None
+    tags: List[str] = []
+
+    @field_validator('tags', mode='before')
+    @classmethod
+    def convert_tags(cls, v):
+        # Gọi hàm xử lý từ file tag_parser.py
+        return parse_comma_separated_string(v)
+
+    class Config:
+        from_attributes = True
+
+
+class RecommendResponse(BaseModel):
+    recommendations: List[Place]
+
+
+class FavoriteRequest(BaseModel):
+    place_id: int
+
+
+class UpdateUserRequest(BaseModel):
+    username: str
