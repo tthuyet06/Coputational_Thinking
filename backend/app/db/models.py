@@ -41,6 +41,7 @@ class User(Base):
     hobbies = Column(Text, nullable=True)
 
     created_at = Column(DateTime, server_default=func.current_timestamp())
+<<<<<<< HEAD
 
     # Quan hệ
     favorites = relationship(
@@ -55,8 +56,34 @@ class User(Base):
         back_populates="user",
         cascade="all, delete-orphan",
     )
+=======
+>>>>>>> main
 
+    # Quan hệ
+    favorites = relationship(
+        "Favorite",
+        back_populates="user",
+        cascade="all, delete-orphan",
+    )
 
+<<<<<<< HEAD
+=======
+    # ✅ THÊM QUAN HỆ NÀY ĐỂ KHỚP VỚI RefreshToken
+    refresh_tokens = relationship(
+        "RefreshToken",
+        back_populates="user",
+        cascade="all, delete-orphan",
+    )
+class Tag(Base):
+    __tablename__ = "tags"
+
+    code = Column(String, primary_key=True, nullable=True)
+
+    name = Column(String, nullable=False)
+
+    type = Column(String, nullable=True)
+
+>>>>>>> main
 # ============================================================
 # PLACE
 # ============================================================
@@ -75,10 +102,18 @@ class Place(Base):
 
     overview = Column(Text, nullable=True)
     image = Column(String, nullable=True)
+<<<<<<< HEAD
 
     # tags được lưu dạng: "cafe,an_vat,van_hoa"
     tags = Column(Text, nullable=True)
 
+=======
+    summarization = Column(Text, nullable=True)
+    # tags được lưu dạng: "cafe,an_vat,van_hoa"
+    tags = Column(Text, nullable=True)
+    rating = Column(Float, nullable=True)
+    open = Column(Text, nullable=True)
+>>>>>>> main
     created_at = Column(DateTime, server_default=func.current_timestamp())
 
 
@@ -94,8 +129,24 @@ class Hobby(Base):
     code = Column(String, unique=True, index=True)
 
     # tên hiển thị
-    label_en = Column(String, nullable=False)
+    name = Column(String, nullable=False)
 
+
+class Activity(Base):
+    """
+    Bảng activities trong DB.
+
+    Lưu danh sách loại hình địa điểm / hoạt động.
+    Ví dụ:
+    - code: 'cafe', name: 'Quán cafe'
+    - code: 'food', name: 'Ăn uống'
+    - code: 'milktea', name: 'Trà sữa'
+    """
+    __tablename__ = "activities"
+
+    id = Column(Integer, primary_key=True, index=True)
+    code = Column(String, unique=True, index=True, nullable=False)
+    name = Column(String, nullable=False)
 
 # ============================================================
 # FAVORITE (mapping N-N giữa User và Place)

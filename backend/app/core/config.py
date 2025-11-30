@@ -18,3 +18,8 @@ REFRESH_TOKEN_EXPIRE_DAYS = 1
 # ==========================
 # 🔒 PASSWORD HASHING CONFIG (Nếu cần)
 # ==========================
+
+# ==========================
+# ☁️ OPENWEATHER CONFIG
+# ==========================
+OPENWEATHER_API_KEY = "2ab54102a7b4fcd1c91f89a1fae1e132"
