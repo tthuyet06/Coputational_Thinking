@@ -1,15 +1,5 @@
 # backend/app/domain/recommendation.py
 from __future__ import annotations
-<<<<<<< HEAD
-
-from dataclasses import dataclass, field
-from typing import List, Protocol
-
-from .place import Place
-from .user import User
-from .location import Location
-
-=======
 
 from dataclasses import dataclass, field
 from typing import List, Protocol
@@ -18,7 +8,6 @@ from backend.app.domain.place import Place
 from backend.app.domain.user import User
 from backend.app.domain.location import Location
 
->>>>>>> main
 
 @dataclass(frozen=True)
 class RecommendationCriteria:

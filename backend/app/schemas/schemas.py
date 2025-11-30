@@ -3,10 +3,6 @@ from pydantic import BaseModel, EmailStr, field_validator
 from uuid import UUID
 from backend.app.utils.tag_parser import parse_comma_separated_string
 
-<<<<<<< HEAD
-
-=======
->>>>>>> main
 
 
 class RegisterRequest(BaseModel):

@@ -8,7 +8,7 @@ from backend.app.db import models
 ROOT_DIR = Path(__file__).resolve().parents[3]
 
 # CSV nằm trong backend/data/place.csv
-CSV_FILE = ROOT_DIR / "backend" / "data" / "place.csv"
+CSV_FILE = ROOT_DIR / "backend" / "data" / "activities.csv"
 
 def safe_int(value):
     try:
@@ -24,7 +24,7 @@ def safe_float(value):
         return None
 
 
-def import_places():
+def import_activities():
     db = SessionLocal()
 
     print("📥 Importing from:", CSV_FILE)
@@ -34,7 +34,7 @@ def import_places():
         return
 
         # ⚠️ XÓA SẠCH BẢNG PLACES TRƯỚC KHI IMPORT
-    db.query(models.Place).delete()
+    db.query(models.Activity).delete()
     db.commit()
 
     with open(CSV_FILE, encoding="utf-8") as f:
@@ -46,26 +46,17 @@ def import_places():
                 print("⚠️ Bỏ qua dòng vì id trống:", row)
                 continue
 
-            place_id = safe_int(row["id"])
-            if place_id is None:
+            activity_id = safe_int(row["id"])
+            if activity_id is None:
                 print("⚠️ Bỏ qua dòng vì id không hợp lệ:", row["id"])
                 continue
 
-            place = models.Place(
-                id=place_id,
-                name=row["Name"],
-                address=row["Area"],
-                link_address=row["Link Area"],
-                lat=safe_float(row["Latitude"]),
-                lon=safe_float(row["Longitude"]),
-                overview=row["Overview"],
-                image=row["Image"],
-                summarization=row["Summarization"],
-                tags=row["Tags"],
-                rating=row["Rating"],
-                open=row["Open / Close time"],
+            activity = models.Activity(
+                id=activity_id,
+                name=row["name"],
+                code=row["tag_code"]
             )
-            db.add(place)
+            db.add(activity)
 
     db.commit()
     db.close()
@@ -73,4 +64,4 @@ def import_places():
 
 
 if __name__ == "__main__":
-    import_places()
+    import_activities()

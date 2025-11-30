@@ -1,8 +1,4 @@
-<<<<<<< HEAD
-from typing import List, Optional
-=======
 from typing import List, Optional, Union
->>>>>>> main
 
 def normalize_hobby_tags(tags: Optional[List[str]]) -> List[str]:
     """
@@ -29,9 +25,6 @@ def normalize_hobby_tags(tags: Optional[List[str]]) -> List[str]:
             seen.add(stripped_tag)
             normalized.append(stripped_tag)
 
-<<<<<<< HEAD
-    return normalized
-=======
     return normalized
 
 def parse_comma_separated_string(value: Union[str, List[str], None]) -> List[str]:
@@ -51,4 +44,3 @@ def parse_comma_separated_string(value: Union[str, List[str], None]) -> List[str
         return value
 
     return []
->>>>>>> main
