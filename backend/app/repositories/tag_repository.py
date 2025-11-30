@@ -1,55 +1,72 @@
 # backend/app/repositories/tag_repository.py
+
+# backend/app/repositories/hobby_repository.py
 from __future__ import annotations
 
-from typing import List
+from typing import List, Optional
 
 from sqlalchemy.orm import Session
 
 from backend.app.db import models
-from backend.app.domain.tag import Tag, TagRepository
+from backend.app.domain.tag import Tag as DomainTag
 
 
-class TagRepositoryImpl(TagRepository):
-    """
-    Implement thực tế cho TagRepository.
-    - Hobby tags: đọc từ bảng hobbies (nếu có)
-    - Duration tags: list cứng
-    """
+class TagRepository:
 
-    def __init__(self, db: Session):
-        self._db = db
+    def get_all(self, db: Session) -> List[DomainTag]:
+        rows = db.query(models.Tag).all()
+        return [self._to_domain(row) for row in rows]
 
-    # ========== Hobby tags ==========
+    def get_by_code(self, db: Session, code: str) -> Optional[DomainTag]:
+        row = db.query(models.Tag).filter(models.Tag.code == code).first()
+        return self._to_domain(row) if row else None
 
-    def get_hobby_tags(self) -> List[Tag]:
-        hobbies = self._db.query(models.Hobby).all()
+    @staticmethod
+    def _to_domain(row: models.Tag) -> DomainTag:
+        return DomainTag(
+            id=row.code,
+            display_name=row.name,
+            group=row.type,
+        )
+    def get_duration_tags(self, db: Session) -> List[DomainTag]:
+        rows = (
+            db.query(models.Tag)
+            .filter(models.Tag.type == "duration")
+            .all()
+        )
+        return [self._to_domain(row) for row in rows]
+
+    def get_hobby_tags(self, db: Session) -> List[DomainTag]:
+        # Query toàn bộ hobby trong DB
+        hobbies = db.query(models.Hobby).all()
+
+        # Nếu có dữ liệu → map sang DomainTag
         if hobbies:
             return [
-                Tag(
-                    id=h.code,
-                    display_name=h.label_en,
+                DomainTag(
+                    id=h.code,  # code là unique key của hobby
+                    display_name=h.name,
                     group="hobby",
                 )
                 for h in hobbies
             ]
 
-        # Fallback nếu bảng Hobby trống / chưa seed
-        return [
-            Tag(id="#an_chinh", display_name="Ăn chính", group="hobby"),
-            Tag(id="#an_vat", display_name="Ăn vặt", group="hobby"),
-            Tag(id="#cafe", display_name="Cà phê", group="hobby"),
-            Tag(id="#van_hoa", display_name="Văn hoá", group="hobby"),
-            Tag(id="#yen_tinh", display_name="Yên tĩnh", group="hobby"),
-            Tag(id="#soi_dong", display_name="Sôi động", group="hobby"),
-            Tag(id="#song_ao", display_name="Sống ảo", group="hobby"),
-        ]
+        # Nếu không có hobby nào → trả về list rỗng
+        return []
+    def get_activity_tags(self, db: Session) -> List[DomainTag]:
+        # Query toàn bộ hobby trong DB
+        activities = db.query(models.Activity).all()
 
-    # ========== Duration tags ==========
+        # Nếu có dữ liệu → map sang DomainTag
+        if activities:
+            return [
+                DomainTag(
+                    id=a.code,  # code là unique key của hobby
+                    display_name=a.name,
+                    group="activity",
+                )
+                for a in activities
+            ]
 
-    def get_duration_tags(self) -> List[Tag]:
-        # Hiện tại chưa có bảng duration trong DB, nên dùng list cứng.
-        return [
-            Tag(id="short", display_name="Dưới 2 giờ", group="duration"),
-            Tag(id="medium", display_name="2–4 giờ", group="duration"),
-            Tag(id="long", display_name="Trên 4 giờ", group="duration"),
-        ]
+        # Nếu không có activity nào → trả về list rỗng
+        return []

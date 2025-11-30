@@ -19,7 +19,10 @@ class Place:
     lon: float | None = None
     overview: str | None = None
     image: str | None = None
+    summarization: str | None = None
     tags: List[str] = field(default_factory=list)
+    rating: float | None = None
+    open: str | None = None
 
     def has_tag(self, tag: str) -> bool:
         """
