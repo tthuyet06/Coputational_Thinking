@@ -11,4 +11,4 @@ class Hobby:
     """
     id: int
     code: str
-    label_en: str
+    name: str
