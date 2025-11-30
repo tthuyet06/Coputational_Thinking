@@ -1,18 +1,11 @@
 import { createContext, useState, useEffect } from "react";
 import authService from "../services/authService";
+// Nhập hàm xử lý lỗi đã được chuẩn hóa
+import toErrorMessage from "../utils/toErrorMessage"; 
 
 export const AuthContext = createContext();
 
-const toMessage = (err, fallback) => {
-  if (!err) return fallback;
-  if (typeof err === "string") return err;
-  if (typeof err?.message === "string" && err.message) return err.message;
-  // Backend có thể trả mảng lỗi Pydantic
-  const detail = err?.response?.data?.detail;
-  if (Array.isArray(detail)) return detail.map(d => d?.msg ?? String(d)).join(", ");
-  if (typeof detail === "string") return detail;
-  return fallback;
-};
+// XÓA HÀM toMessage TRÙNG LẶP (đã được thay thế bằng toErrorMessage)
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
@@ -27,8 +20,10 @@ export const AuthProvider = ({ children }) => {
       setLoading(true);
       try {
         const me = await authService.getProfile();
-        setUser(me?.user ?? me);
+        // Giả sử getProfile trả về { user: {...} } hoặc chỉ {...}
+        setUser(me?.user ?? me); 
       } catch (err) {
+        // Nếu getProfile lỗi (token hết hạn/không hợp lệ)
         localStorage.removeItem("token");
         setUser(null);
       } finally {
@@ -46,12 +41,15 @@ export const AuthProvider = ({ children }) => {
       const data = await authService.login(username, password);
       if (!data?.access_token) throw new Error("Token not found");
       localStorage.setItem("token", data.access_token);
+      
+      // Tải thông tin người dùng
       const me = await authService.getProfile();
       setUser(me?.user ?? me);
       return true;
     } catch (err) {
       setUser(null);
-      setError(toMessage(err, "Login failed"));
+      // Sử dụng toErrorMessage để hiển thị lỗi đã được chuẩn hóa
+      setError(toErrorMessage(err, "Login failed"));
       return false;
     } finally {
       setLoading(false);
@@ -59,14 +57,16 @@ export const AuthProvider = ({ children }) => {
   };
 
   // SIGNUP: chỉ tạo tài khoản, không set token/user
-  const signup = async (username, email, password) => {
+  const signup = async (username, email, password, hobbies = []) => {
     setLoading(true);
     setError("");
     try {
-      await authService.signup(username, email, password);
+      // Truyền hobbies vào signup (giả định)
+      await authService.signup(username, email, password, hobbies); 
       return true;                 // thành công
     } catch (err) {
-      setError(toMessage(err, "Signup failed"));
+      // Sử dụng toErrorMessage để hiển thị lỗi đã được chuẩn hóa
+      setError(toErrorMessage(err, "Signup failed"));
       return false;                // thất bại
     } finally {
       setLoading(false);

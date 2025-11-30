@@ -11,7 +11,8 @@ from backend.app.db import models
 from backend.app.domain.tag import Tag as DomainTag
 
 
-class TagRepository:
+#Loi dat ten lop
+class TagRepositoryImpl:
 
     def get_all(self, db: Session) -> List[DomainTag]:
         rows = db.query(models.Tag).all()

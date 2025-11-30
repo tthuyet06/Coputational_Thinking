@@ -1,17 +1,19 @@
 // src/services/suggestionAPI.js
-import api from "../api"; // 🔥 dùng lại axios instance hiện có
+import api from "../api";
 
+/**
+ * API gọi recommend backend
+ */
 const suggestionAPI = {
-  // Gọi API recommend theo schema backend
-  // payload: { latitude, longitude, duration_tag }
   async getRecommendations({ latitude, longitude, duration_tag }) {
     const res = await api.post("/api/v1/recommend/", {
       latitude,
       longitude,
       duration_tag,
     });
-    // BE trả: { recommendations: [...] }
-    return res.data;
+
+    // BE: { recommendations: [ { id, name, address, image_url, description, tags }, ... ] }
+    return res.data?.recommendations ?? [];
   },
 };
 
