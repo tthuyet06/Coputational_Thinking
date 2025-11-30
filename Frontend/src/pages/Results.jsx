@@ -4,6 +4,7 @@ import Navbar from "../components/layouts/Navbar";
 import LoadingScreen from "./LoadingScreen";
 import EmptyState from "./EmptyState";
 import "../styles/Results.css";
+import suggestionAPI from "../services/suggestionAPI"; // 🔥 thêm dòng này
 
 /* ----------------- Helper: tạo link chỉ đường ----------------- */
 function buildDirectionsUrl(place) {
@@ -11,12 +12,39 @@ function buildDirectionsUrl(place) {
   const dest = place.coords
     ? `${place.coords.lat},${place.coords.lng}`
     : encodeURIComponent(place.address || place.title);
-  // origin dùng "Current Location" để Maps tự lấy vị trí người dùng
   return `${base}&origin=Current+Location&destination=${dest}`;
 }
 
+/* 🔹 Chuẩn hóa dữ liệu place từ BE về format UI đang dùng */
+function normalizePlace(place, index) {
+  // place = 1 item trong recommendations từ backend
+  return {
+    id: place.id ?? place.place_id ?? index,
+    title: place.title ?? place.name ?? "Unknown place",
+    image: place.image ?? place.image_url ?? "/placeholder.jpg",
+    description: place.description ?? "",
+    address: place.address ?? "",
+    // nếu BE có trường latitude / longitude
+    coords: place.coords
+      ? place.coords
+      : place.latitude && place.longitude
+      ? { lat: place.latitude, lng: place.longitude }
+      : null,
+    // tags có thể là array hoặc string "#cafe,#chill"
+    hashtags: Array.isArray(place.tags)
+      ? place.tags
+      : typeof place.tags === "string"
+      ? place.tags
+          .split(",")
+          .map((t) => t.replace("#", "").trim())
+          .filter(Boolean)
+      : [],
+    fav: false, // mặc định chưa favorite
+  };
+}
+
 /* ----------------- Card ----------------- */
-function ResultCard({ item, onToggleFav, origin }) {
+function ResultCard({ item, onToggleFav }) {
   const navigate = useNavigate();
 
   const goToDetail = () => navigate(`/details/${item.id}`);
@@ -38,14 +66,18 @@ function ResultCard({ item, onToggleFav, origin }) {
               onClick={openDirections}
               aria-label={`Chỉ đường đến ${item.title}`}
               title="Chỉ đường"
-              onMouseDown={(e) => e.preventDefault()} // tránh outline khi giữ chuột
+              onMouseDown={(e) => e.preventDefault()}
             >
-              {/* Nền diamond trắng + mũi tên rẽ phải đen */}
               <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true">
-                {/* Diamond (square xoay 45°) */}
-                <rect x="3" y="3" width="18" height="18" rx="3"
-                      fill="#ffffff" transform="rotate(45 12 12)"/>
-                {/* Arrow turn right (đơn giản, rõ nét) */}
+                <rect
+                  x="3"
+                  y="3"
+                  width="18"
+                  height="18"
+                  rx="3"
+                  fill="#ffffff"
+                  transform="rotate(45 12 12)"
+                />
                 <path
                   d="M9 16V12a3 3 0 0 1 3-3h3"
                   fill="none"
@@ -65,7 +97,6 @@ function ResultCard({ item, onToggleFav, origin }) {
               </svg>
             </button>
 
-            {/* ❤️ Nút yêu thích */}
             <button
               className={`fav-btn ${item.fav ? "is-fav" : ""}`}
               aria-label={item.fav ? "Unfavorite" : "Favorite"}
@@ -102,84 +133,77 @@ export default function Results() {
   const location = useLocation();
   const navigate = useNavigate();
 
-  // chỉ show loading nếu đi từ Home
   const showLoading = !!location.state?.showLoading;
 
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(showLoading);
+  const [error, setError] = useState("");
 
-  // xoá state sau khi đọc để Back/Forward không bật lại
+  // clear state location cho back/forward
   useEffect(() => {
     if (location.state) {
       navigate(".", { replace: true, state: null });
     }
   }, [location.state, navigate]);
 
-  const [origin, setOrigin] = useState(null);
-
+  // 🔥 Gọi API /recommend
   useEffect(() => {
-    if (!("geolocation" in navigator)) return;
-    navigator.geolocation.getCurrentPosition(
-      ({ coords }) => setOrigin(`${coords.latitude},${coords.longitude}`),
-      () => setOrigin(null), // fallback: không có origin
-      { enableHighAccuracy: true, timeout: 8000, maximumAge: 60000 }
-    );
-  }, []);
+    const loadResults = async () => {
+      const delay = showLoading ? 800 : 0;
 
+      try {
+        setLoading(true);
+        setError("");
 
+        if (delay > 0) {
+          await new Promise((r) => setTimeout(r, delay));
+        }
 
-  async function fetchResults(delayMs = 0) {
-    if (delayMs > 0) {
-      await new Promise((r) => setTimeout(r, delayMs));
-    }
-    return [
-      {
-        id: "timezone-arcade",
-        title: "TimeZone – Indoor Arcade",
-        image:
-          "https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=1200&auto=format&fit=crop",
-        description:
-          "Arcade với bowling, mini basketball, racing simulators ngay tại Saigon Centre. Lý tưởng cho nhóm bạn muốn xả năng lượng.",
-        address: "5th Floor, Saigon Centre, 65 Le Loi, District 1",
-        coords: { lat: 10.773337253342001, lng: 106.70103165732922},
-        hashtags: [
-          "PlayAndLaugh",
-          "EnergeticMood",
-          "FunVibes",
-          "TeamChallenge",
-          "ArcadeTime",
-        ],
-        fav: true,
-      },
-      {
-        id: "running-bean",
-        title: "The Running Bean Coffee",
-        image:
-          "https://hatiencorp.vn/wp-content/uploads/2020/08/bep-nha-hang-the-running-bean.jpg",
-        description:
-          "Quán cà phê hiện đại, tone trắng – gỗ, không gian mở, hợp chill/creative, có bàn dài làm việc nhóm.",
-        address: "33 Mac Thi Buoi Street, District 1",
-        coords: {lat: 10.775348279405895, lng: 106.7048851469228},
-        hashtags: [
-          "CreativeVibe",
-          "ChillMood",
-          "CoffeeGoals",
-          "CityCalm",
-          "SaigonSpot",
-        ],
-        fav: false,
-      },
-    ];
-  }
+        // Lấy params từ localStorage (set ở màn trước)
+        const stored = JSON.parse(
+          localStorage.getItem("recommendParams") || "{}"
+        );
+        const latitude =
+          typeof stored.latitude === "number" ? stored.latitude : 10.77;
+        const longitude =
+          typeof stored.longitude === "number" ? stored.longitude : 106.7;
+        const durationTag =
+          stored.durationTag || stored.duration_tag || "short";
 
-  useEffect(() => {
-    const delay = showLoading ? 800 : 0; // chỉ delay khi đi từ Home
-    fetchResults(delay).then((data) => {
-      setItems(data);
-      setLoading(false);
-    });
+        const res = await suggestionAPI.getRecommendations({
+          latitude,
+          longitude,
+          duration_tag: durationTag,
+        });
+
+        const raw = res.recommendations || [];
+        const mapped = raw.map(normalizePlace);
+        setItems(mapped);
+      } catch (err) {
+        console.error("Load recommend error:", err);
+      
+        // Nếu backend trả 404 => treat như "không có kết quả", không phải error kỹ thuật
+        if (err?.response?.status === 404) {
+          setItems([]);      // để đi vào EmptyState "no destination"
+          setError("");      // không show 'status code 404'
+        } else {
+          // Các lỗi khác: 500, network, v.v.
+          const backendDetail = err?.response?.data?.detail;
+          const msg =
+            typeof backendDetail === "string"
+              ? backendDetail
+              : err?.message || "Failed to load recommendations";
+          setError(msg);
+          setItems([]);
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadResults();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // mount 1 lần
+  }, []); // chỉ chạy khi mount
 
   if (loading) {
     return (
@@ -190,15 +214,19 @@ export default function Results() {
     );
   }
 
-  if (!loading && items.length === 0) {
+  if (!loading && (error || items.length === 0)) {
     return (
       <>
         <Navbar />
         <EmptyState
-          title="We can’t find any destination that matches your vibes."
-          subtitle="Please try again next time."
+          title={
+            error
+              ? "We had trouble finding a destination for you."
+              : "We can’t find any destination that matches your vibes."
+          }
+          subtitle={error || "Please try again next time."}
           ctaText="Edit your vibe"
-          ctaTo="/editvibe"
+          ctaTo="/profile"
         />
       </>
     );
@@ -222,7 +250,7 @@ export default function Results() {
 
           <section className="results-list">
             {items.map((it) => (
-              <ResultCard item={it} onToggleFav={toggleFav} origin={origin} />
+              <ResultCard key={it.id} item={it} onToggleFav={toggleFav} />
             ))}
           </section>
         </div>
