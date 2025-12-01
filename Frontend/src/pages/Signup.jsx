@@ -76,7 +76,13 @@ export default function SignupForm() {
 
           <p className="login-text">
             Already have an account?{" "}
-            <Link to="/login" className="login-link">Login here.</Link>
+            <Link
+              to="/login"
+              className="login-link"
+              onClick={() => clearError?.()}
+            >
+              Login here.
+            </Link>
           </p>
 
           <button type="submit" className="btn-continue" disabled={loading}>

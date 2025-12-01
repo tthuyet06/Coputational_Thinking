@@ -11,6 +11,7 @@ from backend.app.repositories import (
     FavoriteRepository,
     PlaceRepository,
 )
+from backend.app.db.models import Hobby
 
 # Khởi tạo repository (stateless, dùng lại được)
 user_repo = UserRepository()
@@ -112,37 +113,29 @@ def update_hobbies(
 ) -> List[str]:
     """
     Cập nhật danh sách sở thích cho user.
-
-    Bước xử lý:
-    1. Chuẩn hóa bằng normalize_hobby_tags():
-        - None -> []
-        - trim
-        - loại rỗng
-        - bỏ trùng, giữ thứ tự
-        - tự thêm '#' nếu thiếu
-    2. Validate: chỉ cho phép tag nằm trong list_hobby_tags().
-    3. Lưu xuống DB qua UserRepository.update_hobbies().
-    4. Trả về danh sách hobbies đã chuẩn hóa (để endpoint /users/me/hobbies trả ra).
-
-    Endpoint `hobbies.py` đang:
-        normalized = update_hobbies(...)
-        return {"message": "...", "hobbies": normalized}
-    nên hàm này phải trả về List[str].
+    Logic mới: Validate dựa trên dữ liệu thật trong bảng Hobbies (DB).
     """
-    # B1: Chuẩn hóa
+    # B1: Chuẩn hóa (None -> [], trim, lower, v.v.)
     normalized = normalize_hobby_tags(hobbies)
 
-    # B2: Validate với kho tag hợp lệ
-    allowed = set(list_hobby_tags())
-    invalid = [tag for tag in normalized if tag not in allowed]
+    # B2: Validate với DB (Thay vì dùng list cứng)
+    # Lấy tất cả code hợp lệ từ bảng 'hobbies'
+    valid_hobbies_db = db.query(Hobby.code).all()
+    
+    # Tạo một set chứa các code hợp lệ (vd: {"#cafe", "#an_vat"})
+    allowed_set = {h.code for h in valid_hobbies_db}
+
+    # Tìm các tag mà user gửi lên nhưng KHÔNG có trong DB
+    invalid = [tag for tag in normalized if tag not in allowed_set]
 
     if invalid:
         raise HTTPException(
             status_code=400,
-            detail=f"Invalid hobby tags: {invalid}. Allowed: {sorted(allowed)}",
+            detail=f"Invalid hobby tags: {invalid}. Allowed: {sorted(list(allowed_set))}",
         )
 
-    # B3: Lưu DB (cột Text `hobbies` trong bảng users)
+    # B3: Lưu xuống DB
+    # Lưu ý: user_repo.update_hobbies sẽ lo việc lưu vào DB.
     user_repo.update_hobbies(db, user, normalized)
 
     # B4: Trả về danh sách đã chuẩn hóa
