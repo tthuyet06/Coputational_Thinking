@@ -41,7 +41,6 @@ class User(Base):
     hobbies = Column(Text, nullable=True)
 
     created_at = Column(DateTime, server_default=func.current_timestamp())
-<<<<<<< HEAD
 
     # Quan hệ
     favorites = relationship(
@@ -50,24 +49,6 @@ class User(Base):
         cascade="all, delete-orphan",
     )
 
-    # ✅ THÊM QUAN HỆ NÀY ĐỂ KHỚP VỚI RefreshToken
-    refresh_tokens = relationship(
-        "RefreshToken",
-        back_populates="user",
-        cascade="all, delete-orphan",
-    )
-=======
->>>>>>> main
-
-    # Quan hệ
-    favorites = relationship(
-        "Favorite",
-        back_populates="user",
-        cascade="all, delete-orphan",
-    )
-
-<<<<<<< HEAD
-=======
     # ✅ THÊM QUAN HỆ NÀY ĐỂ KHỚP VỚI RefreshToken
     refresh_tokens = relationship(
         "RefreshToken",
@@ -83,7 +64,6 @@ class Tag(Base):
 
     type = Column(String, nullable=True)
 
->>>>>>> main
 # ============================================================
 # PLACE
 # ============================================================
@@ -102,18 +82,11 @@ class Place(Base):
 
     overview = Column(Text, nullable=True)
     image = Column(String, nullable=True)
-<<<<<<< HEAD
-
-    # tags được lưu dạng: "cafe,an_vat,van_hoa"
-    tags = Column(Text, nullable=True)
-
-=======
     summarization = Column(Text, nullable=True)
     # tags được lưu dạng: "cafe,an_vat,van_hoa"
     tags = Column(Text, nullable=True)
     rating = Column(Float, nullable=True)
     open = Column(Text, nullable=True)
->>>>>>> main
     created_at = Column(DateTime, server_default=func.current_timestamp())
 
 
