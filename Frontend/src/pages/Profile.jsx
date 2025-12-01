@@ -1,8 +1,8 @@
-// src/pages/Profile.jsx
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../components/layouts/Navbar";
 import TagSelector from "../components/common/TagSelector";
+import { DirectionButton, FavoriteButton } from "../components/common/ActionButtons"; // THÊM IMPORT NÀY
 import "../styles/Profile.css";
 import userAPI from "../services/userAPI";
 import preferenceAPI from "../services/preferenceAPI";
@@ -10,35 +10,30 @@ import preferenceAPI from "../services/preferenceAPI";
 export default function Profile() {
   const navigate = useNavigate();
 
-  // Menu trái
   const [activeMenu, setActiveMenu] = useState("Profile");
 
-  // Thông tin user
   const [userData, setUserData] = useState({
     username: "",
     email: "",
     passwordMasked: "********",
   });
 
-  // Edit form
   const [isEditing, setIsEditing] = useState(false);
-  const [editData, setEditData] = useState({ username: "", email: "" });
-
-  const [pwForm, setPwForm] = useState({
-    current: "",
-    next: "",
-    confirm: "",
+  const [editData, setEditData] = useState({
+    username: "",
+    email: "",
   });
 
-  // --- VIBES ---
-  const [allHobbyTags, setAllHobbyTags] = useState([]);    // tất cả tag từ /tags/hobbies
-  const [userHobbies, setUserHobbies] = useState([]);      // hobbies đã lưu trên server
-  const [editingVibes, setEditingVibes] = useState([]);    // state khi edit
+  // Vibes from backend
+  const [allHobbies, setAllHobbies] = useState([]);      // [{label,value}, ...]
+  const [userHobbies, setUserHobbies] = useState([]);    // ["#cafe", ...]
+  const [editingHobbies, setEditingHobbies] = useState([]);
   const [isEditingVibes, setIsEditingVibes] = useState(false);
-  const [vibeLoading, setVibeLoading] = useState(true);
-  const [vibeError, setVibeError] = useState("");
+  const [hobbyError, setHobbyError] = useState("");
+  const [hobbySaving, setHobbySaving] = useState(false);
+  const [hobbyLoading, setHobbyLoading] = useState(true);
 
-  // Favorites demo (giữ nguyên)
+  // Favorites demo
   const [favorites, setFavorites] = useState([
     {
       id: 1,
@@ -63,61 +58,53 @@ export default function Profile() {
   ]);
   const [fadingIds, setFadingIds] = useState([]);
 
-  // 🧠 Load user + hobbies + list tags khi mở trang Profile
+  // 🔹 Load profile + hobbies
   useEffect(() => {
-    const loadProfile = async () => {
+    const load = async () => {
       try {
-        setVibeLoading(true);
-        setVibeError("");
-
-        const [me, tags] = await Promise.all([
-          userAPI.getMe(),          // /users/me  → { username, email, hobbies }
-          preferenceAPI.getHobbyTags(), // /tags/hobbies → [ "#cafe", "#chill", ... ]
+        const [me, hobbyOptions, myHobbies] = await Promise.all([
+          userAPI.getMe(),
+          preferenceAPI.getHobbyTags(),
+          preferenceAPI.getMyHobbies(),
         ]);
 
-        // user
         setUserData({
           username: me.username,
           email: me.email,
           passwordMasked: "********",
         });
-        setEditData({ username: me.username, email: me.email });
 
-        // vibes
-        const hobbies = me.hobbies ?? [];
-        setUserHobbies(hobbies);
-        setEditingVibes(hobbies);
-        setAllHobbyTags(tags);
+        setEditData({
+          username: me.username,
+          email: me.email,
+        });
+
+        setAllHobbies(hobbyOptions);
+        setUserHobbies(myHobbies);
+        setEditingHobbies(myHobbies);
       } catch (err) {
         console.error("Load profile error:", err);
-        setVibeError(
-          err?.response?.data?.detail ||
-            err?.message ||
-            "Failed to load profile."
-        );
       } finally {
-        setVibeLoading(false);
+        setHobbyLoading(false);
       }
     };
 
-    loadProfile();
+    load();
   }, []);
 
   const handleLogout = () => {
-    // sau này có thể gọi logout() từ AuthContext
+    // sau này có AuthContext.logout thì gọi ở đây
+    localStorage.removeItem("token");
     navigate("/login");
   };
 
-  // -------- Profile tab --------
   const handleEditClick = () => {
     setEditData({ username: userData.username, email: userData.email });
-    setPwForm({ current: "", next: "", confirm: "" });
     setIsEditing(true);
   };
 
   const handleCancel = () => {
     setIsEditing(false);
-    setPwForm({ current: "", next: "", confirm: "" });
   };
 
   const handleChange = (e) => {
@@ -125,64 +112,21 @@ export default function Profile() {
     setEditData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handlePwChange = (e) => {
-    const { name, value } = e.target;
-    setPwForm((prev) => ({ ...prev, [name]: value }));
-  };
-
   const handleSave = async (e) => {
     e.preventDefault();
-
-    const wantsChangePw =
-      pwForm.current || pwForm.next || pwForm.confirm;
-
-    if (wantsChangePw) {
-      if (!pwForm.current) {
-        alert("Vui lòng nhập mật khẩu hiện tại.");
-        return;
-      }
-      if (pwForm.next !== pwForm.confirm) {
-        alert("Mật khẩu mới và xác nhận không khớp.");
-        return;
-      }
-    }
-
     try {
-      // 1. update username/email
-      const updatedUser = await userAPI.updateMe({
-        username: editData.username,
-        email: editData.email,
-      });
-
-      // 2. đổi password nếu có nhập
-      if (wantsChangePw) {
-        await userAPI.changePassword({
-          current_password: pwForm.current,
-          new_password: pwForm.next,
-        });
-      }
-
+      const updated = await userAPI.updateMe({ username: editData.username });
       setUserData((prev) => ({
         ...prev,
-        username: updatedUser.username,
-        email: updatedUser.email,
-        passwordMasked: "********",
+        username: updated.username,
       }));
-
       setIsEditing(false);
-      setPwForm({ current: "", next: "", confirm: "" });
       alert("Profile updated successfully!");
     } catch (err) {
-      console.error("Update profile error:", err);
-      const msg =
-        err?.response?.data?.detail ||
-        err?.message ||
-        "Failed to update profile.";
-      alert(msg);
+      alert(err?.message || "Failed to update profile");
     }
   };
 
-  // -------- Favorites --------
   const toggleFavorite = (id) => {
     const fav = favorites.find((f) => f.id === id);
     if (fav?.liked) {
@@ -194,6 +138,25 @@ export default function Profile() {
     }
   };
 
+  const saveHobbies = async () => {
+    try {
+      setHobbySaving(true);
+      setHobbyError("");
+      await preferenceAPI.updateMyHobbies(editingHobbies);
+      setUserHobbies(editingHobbies);
+      setIsEditingVibes(false);
+      alert("Your vibes have been updated!");
+    } catch (err) {
+      setHobbyError(
+        typeof err === "string"
+          ? err
+          : err?.message || "Failed to save hobbies"
+      );
+    } finally {
+      setHobbySaving(false);
+    }
+  };
+
   return (
     <>
       <Navbar />
@@ -202,7 +165,7 @@ export default function Profile() {
         <div className="sidebar">
           <div className="avatar-section">
             <div className="avatar-circle"></div>
-            <h3 className="username">Hello, {userData.username}</h3>
+            <h3 className="username">Hello, {userData.username || "Guest"}</h3>
           </div>
 
           <ul className="menu">
@@ -277,33 +240,7 @@ export default function Profile() {
                     name="email"
                     value={editData.email}
                     onChange={handleChange}
-                  />
-
-                  <label>Current Password:</label>
-                  <input
-                    type="password"
-                    name="current"
-                    placeholder="Enter your current password"
-                    value={pwForm.current}
-                    onChange={handlePwChange}
-                  />
-
-                  <label>New Password:</label>
-                  <input
-                    type="password"
-                    name="next"
-                    placeholder="Enter your new password"
-                    value={pwForm.next}
-                    onChange={handlePwChange}
-                  />
-
-                  <label>Confirm New Password:</label>
-                  <input
-                    type="password"
-                    name="confirm"
-                    placeholder="Confirm your new password"
-                    value={pwForm.confirm}
-                    onChange={handlePwChange}
+                    disabled
                   />
 
                   <div className="button-group">
@@ -327,32 +264,33 @@ export default function Profile() {
           {activeMenu === "Vibes" && (
             <div className="vibes-section">
               <h2 className="form-title">YOUR VIBES</h2>
-              {vibeLoading && <p>Loading vibes...</p>}
-              {vibeError && (
-                <p className="text-red-500 text-sm">{vibeError}</p>
+              <p className="vibes-sub">
+                {isEditingVibes
+                  ? "Edit your current vibe tags ✨"
+                  : "These are your current vibes"}
+              </p>
+
+              {hobbyLoading && <p>Loading vibes...</p>}
+              {hobbyError && (
+                <p className="text-red-500 text-sm mb-2">{hobbyError}</p>
               )}
 
-              {!vibeLoading && !vibeError && (
+              {!hobbyLoading && (
                 <>
-                  <p className="vibes-sub">
-                    {isEditingVibes
-                      ? "Edit your current vibe tags ✨"
-                      : "These are your current vibes"}
-                  </p>
-
                   {!isEditingVibes ? (
                     <>
-                      {/* ⭐ Hiển thị tất cả tag, những tag trong userHobbies sẽ được TagSelector tô màu */}
                       <TagSelector
-                        tags={allHobbyTags}
+                        tags={allHobbies}
                         defaultSelected={userHobbies}
                         onChange={() => {}}
+                        readOnly={true} // Đã sửa logic: Không cho phép chọn tag khi chưa nhấn Edit Vibes
                       />
+
                       <button
                         className="edit-btn"
                         style={{ marginTop: "20px" }}
                         onClick={() => {
-                          setEditingVibes(userHobbies);
+                          setEditingHobbies(userHobbies);
                           setIsEditingVibes(true);
                         }}
                       >
@@ -362,15 +300,17 @@ export default function Profile() {
                   ) : (
                     <>
                       <TagSelector
-                        tags={allHobbyTags}
-                        defaultSelected={editingVibes}
-                        onChange={(selected) => setEditingVibes(selected)}
+                        tags={allHobbies}
+                        defaultSelected={editingHobbies}
+                        onChange={(selected) => setEditingHobbies(selected)}
+                        readOnly={false} // Đã sửa logic: Cho phép chọn tag khi đang edit Vibes
                       />
+
                       <div className="button-group">
                         <button
                           className="cancel-btn"
                           onClick={() => {
-                            setEditingVibes(userHobbies);
+                            setEditingHobbies(userHobbies);
                             setIsEditingVibes(false);
                           }}
                         >
@@ -378,24 +318,10 @@ export default function Profile() {
                         </button>
                         <button
                           className="save-btn"
-                          onClick={async () => {
-                            try {
-                              const res = await preferenceAPI.updateMyHobbies(
-                                editingVibes
-                              );
-                              setUserHobbies(res.hobbies);
-                              setIsEditingVibes(false);
-                              alert("Your vibes have been updated!");
-                            } catch (err) {
-                              const msg =
-                                err?.response?.data?.detail ||
-                                err?.message ||
-                                "Failed to update vibes.";
-                              alert(msg);
-                            }
-                          }}
+                          onClick={saveHobbies}
+                          disabled={hobbySaving}
                         >
-                          Save
+                          {hobbySaving ? "Saving..." : "Save"}
                         </button>
                       </div>
                     </>
@@ -405,7 +331,7 @@ export default function Profile() {
             </div>
           )}
 
-          {/* TAB: FAVORITES (giữ nguyên) */}
+          {/* TAB: FAVORITES (demo, chưa nối API) */}
           {activeMenu === "Favorites" && (
             <div className="favorites-section">
               <h2 className="form-title">FAVORITE PLACES</h2>
@@ -424,13 +350,16 @@ export default function Profile() {
                       <p className="address">{fav.address}</p>
                       <p className="hashtags">{fav.hashtags}</p>
                     </div>
-                    <button
-                      className={`heart-btn ${fav.liked ? "liked" : ""}`}
-                      onClick={() => toggleFavorite(fav.id)}
-                      type="button"
-                    >
-                      ❤️
-                    </button>
+
+                    {/* THAY THẾ NÚT TIM CŨ BẰNG ACTION BUTTONS */}
+                    <div className="action-buttons-group"> 
+                        <DirectionButton place={{ name: fav.name, address: fav.address, title: fav.name }} />
+                        <FavoriteButton 
+                            isFav={fav.liked} 
+                            onToggle={() => toggleFavorite(fav.id)} 
+                        />
+                    </div>
+                    {/* END THAY THẾ */}
                   </div>
                 ))}
                 {favorites.length === 0 && (
