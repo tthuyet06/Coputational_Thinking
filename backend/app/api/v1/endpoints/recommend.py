@@ -26,7 +26,7 @@ async def recommend_places(
         latitude=payload.latitude,
         longitude=payload.longitude,
         duration_tag=payload.duration_tag,
-        activity=payload.activity,
+        activities=payload.activity,
         user=current_user
     )
 

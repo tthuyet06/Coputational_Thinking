@@ -102,3 +102,32 @@ class FavoriteRequest(BaseModel):
 
 class UpdateUserRequest(BaseModel):
     username: str
+
+
+class UpdateActivitiesRequest(BaseModel):
+    """Request khi user muốn cập nhật activity của mình"""
+    activities: List[str]  # list code activity
+
+
+class UpdateActivitiesResponse(BaseModel):
+    """Response sau khi cập nhật activity"""
+    message: str
+    activities: List[str]  # list code activity đã chuẩn hóa
+
+
+class ActivityItem(BaseModel):
+    """Thông tin chi tiết 1 activity"""
+    id: int
+    code: str
+    name: str
+
+    class Config:
+        from_attributes = True
+
+
+class ActivityResponse(BaseModel):
+    """Response trả về danh sách activity (có thể dùng cho /me/activities GET)"""
+    activities: List[ActivityItem]
+
+class ActivityCodesResponse(BaseModel):
+    activities: List[str]
