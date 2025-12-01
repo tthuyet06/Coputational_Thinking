@@ -30,7 +30,7 @@ def get_hobbies_list(db: Session = Depends(get_db)):
         results.append({
             "id": h.id,
             "tag": h.code,  # DB là 'code' (vd: #cafe)
-            "name": h.label_en  # DB là 'label_en' (vd: Coffee)
+            "name": h.name  # DB là 'label_en' (vd: Coffee)
         })
 
     return {"hobbies": results}
