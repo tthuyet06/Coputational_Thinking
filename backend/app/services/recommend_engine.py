@@ -23,6 +23,7 @@ def get_recommendations(
     latitude: float,
     longitude: float,
     duration_tag: str | None,
+    activity: List[str],
     user: models.User,
 ) -> List[Dict[str, Any]]:
 
@@ -31,6 +32,7 @@ def get_recommendations(
     criteria = RecommendationCriteria(
         location=Location(latitude=latitude, longitude=longitude),
         duration_tag=duration_tag,
+        activity=activity,
         extra_tags=domain_user.hobbies,
     )
 
@@ -218,9 +220,9 @@ def _filter_by_opening_hours(places: list[DomainPlace], current_hour: float) -> 
 
     result = []
 
-    for p in places:
-        s = p.open_time
-        e = p.close_time
+    for p in places: # Tạm mock 24/24
+        s = 0 # p.open_time
+        e = 0 # p.close_time
 
         if s is None or e is None:
             continue
@@ -347,13 +349,13 @@ TAG_TYPE_MAP = {
 }
 
 TAG_TYPE_WEIGHT = {
-"space": 7,
-"special": 5,
-"style": 10,
-"time": 5,
-"vibe": 10,
-"view": 8,
-"weather": 5,
+    "space": 7,
+    "special": 5,
+    "style": 10,
+    "time": 5,
+    "vibe": 10,
+    "view": 8,
+    "weather": 5,
 }
 
 def _score_hobbies(place_tags: list[str], preferred_tags: list[str]) -> float:
@@ -435,12 +437,11 @@ def _score_distance(criteria: RecommendationCriteria, place: DomainPlace) -> flo
 
 
 def _score_rating(criteria: RecommendationCriteria, place: DomainPlace) -> float:
-    """
-    Tính điểm dựa trên rating của place.
-    - rating tối đa 5 sao → tối đa 20 điểm
-    """
+    """Tính điểm dựa trên rating của place.
+    - rating tối đa 5 sao -> tối đa 20 điểm"""
+
     MAX_POINTS = 20.0
-    return (place.rating / 5.0) * MAX_POINTS
+    return (5.0 / 5.0) * MAX_POINTS # tạm mock: place.rating = 5.0
 
 
 def _penalty_by_history(place: DomainPlace, history: List[str]) -> float:
