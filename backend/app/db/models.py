@@ -86,7 +86,9 @@ class Place(Base):
     # tags được lưu dạng: "cafe,an_vat,van_hoa"
     tags = Column(Text, nullable=True)
     rating = Column(Float, nullable=True)
+
     open = Column(Text, nullable=True)
+    close = Column(Text, nullable=True)
     created_at = Column(DateTime, server_default=func.current_timestamp())
 
 
