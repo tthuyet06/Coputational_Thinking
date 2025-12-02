@@ -12,6 +12,7 @@ from backend.app.repositories import (
     PlaceRepository,
 )
 from backend.app.db.models import Hobby
+from backend.app.db.models import Activity
 
 # Khởi tạo repository (stateless, dùng lại được)
 user_repo = UserRepository()
@@ -54,9 +55,9 @@ def list_duration_tags() -> List[Dict[str, str]]:
     Endpoint /api/v1/tags/durations đang dùng format này.
     """
     return [
-        {"display_name": "Under 1 hour", "tag_id": "#moment"},
-        {"display_name": "1 – 3 hours", "tag_id": "#few_hours"},
-        {"display_name": "Over 3 hours", "tag_id": "#long_time"},
+        {"display_name": "Dưới 2 giờ", "tag_id": "short"},
+        {"display_name": "2–4 giờ", "tag_id": "medium"},
+        {"display_name": "Trên 4 giờ", "tag_id": "long"},
     ]
 
 
@@ -141,6 +142,44 @@ def update_hobbies(
     # B4: Trả về danh sách đã chuẩn hóa
     return normalized
 
+
+# ============================================================
+# HOẠT ĐỘNG (ACTIVITIES) CỦA USER
+# ============================================================
+def update_activities(
+    db: Session,
+    user: models.User,
+    activities: List[str] | None,
+) -> List[str]:
+    """
+    Cập nhật danh sách hoạt động (activities) cho user.
+    Logic giống update_hobbies:
+    - Chuẩn hóa input
+    - Validate với DB
+    - Lưu xuống user
+    - Trả về danh sách code đã chuẩn hóa
+    """
+    # B1: Chuẩn hóa (None -> [], trim, lower, loại trùng)
+    normalized = [a.strip() for a in (activities or []) if a.strip()]
+    normalized = list(dict.fromkeys(normalized))  # loại trùng giữ thứ tự
+
+    # B2: Lấy tất cả code hợp lệ từ DB (bảng Activity)
+    valid_activities_db = db.query(Activity.code).all()
+    allowed_set = {a.code for a in valid_activities_db}
+
+    # B3: Kiểm tra code không hợp lệ
+    invalid = [a for a in normalized if a not in allowed_set]
+    if invalid:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid activity codes: {invalid}. Allowed: {sorted(list(allowed_set))}"
+        )
+
+    # B4: Lưu xuống DB (giả sử user_repo có update_activities giống update_hobbies)
+    user_repo.update_activities(db, user, normalized)
+
+    # B5: Trả về danh sách đã chuẩn hóa
+    return normalized
 
 # ============================================================
 # FAVORITES (ĐỊA ĐIỂM YÊU THÍCH)
