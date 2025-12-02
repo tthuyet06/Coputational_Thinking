@@ -6,7 +6,7 @@ import api from "../api";
  */
 const suggestionAPI = {
   async getRecommendations({ latitude, longitude, duration_tag }) {
-    const res = await api.post("/api/v1/recommend/", {
+    const res = await api.post("/api/v1/recommend/recommend", {
       latitude,
       longitude,
       duration_tag,

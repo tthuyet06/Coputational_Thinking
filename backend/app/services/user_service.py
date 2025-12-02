@@ -55,9 +55,9 @@ def list_duration_tags() -> List[Dict[str, str]]:
     Endpoint /api/v1/tags/durations đang dùng format này.
     """
     return [
-        {"display_name": "Dưới 2 giờ", "tag_id": "short"},
-        {"display_name": "2–4 giờ", "tag_id": "medium"},
-        {"display_name": "Trên 4 giờ", "tag_id": "long"},
+        {"display_name": "Under 1 hour", "tag_id": "#moment"},
+        {"display_name": "1 - 3 hours", "tag_id": "#few_hours"},
+        {"display_name": "Over 3 hours", "tag_id": "#long_time"},
     ]
 
 
@@ -141,7 +141,6 @@ def update_hobbies(
 
     # B4: Trả về danh sách đã chuẩn hóa
     return normalized
-
 
 # ============================================================
 # HOẠT ĐỘNG (ACTIVITIES) CỦA USER
