@@ -1,10 +1,9 @@
-# backend/app/api/v1/endpoints/tags.py (Đã sửa)
+# backend/app/api/v1/endpoints/tags.py
 from sqlalchemy.orm import Session
 from backend.app.db.db_connection import get_db
 from fastapi import APIRouter
 from backend.app.schemas.schemas import HobbyTagsResponse, DurationTagResponse, ActivityTagsResponse
 from fastapi import Depends
-# Bỏ import Hobby, Activity
 
 from backend.app.services.user_service import (
     list_duration_tags,
