@@ -13,8 +13,8 @@ from backend.app.domain.recommendation import (
 )
 from backend.app.repositories import (UserRepository, PlaceRepository, TagRepositoryImpl, ActivityRepository)
 from backend.app.utils.geo_utils import haversine_distance
-from backend.app.utils.weather_utils import get_weather
-from backend.app.utils.time_utils import get_current_hour
+from backend.app.services.weather_service import get_current_weather_data
+from backend.app.utils.time_utils import get_current_hour, to_decimal_hours
 
 user_repo = UserRepository()
 place_repo = PlaceRepository()
@@ -28,7 +28,7 @@ def get_recommendations(
     duration_tag: str | None,
     activities: List[str],
     user: models.User,
-) -> List[DomainPlace]:
+) -> List[dict]:
 
     domain_user = user_repo.to_domain(user)
 
@@ -41,8 +41,8 @@ def get_recommendations(
 
     result: RecommendationResult = _recommend_core(db, domain_user, criteria)
 
-    return result.places
-    # return [_to_api_dict(p) for p in result.places]
+    # return result.places
+    return [_to_api_dict(p) for p in result.places]
 
 
 def _recommend_core(db: Session, user: DomainUser, criteria: RecommendationCriteria) -> RecommendationResult:
@@ -72,41 +72,39 @@ def _recommend_core(db: Session, user: DomainUser, criteria: RecommendationCrite
         return RecommendationResult(places=[])
 
     # 3. Lọc theo thời tiết
-    weather = get_weather(criteria.location.latitude, criteria.location.longitude)
+    weather = get_current_weather_data(criteria.location.latitude, criteria.location.longitude)
     places = _filter_by_weather(places, str(weather))
 
     # 4. Lọc theo thời gian: lọc các địa điểm không phù hợp thời gian(khi user kh chọn activity)
     hour = get_current_hour()
     if not criteria.activities:
-        places = _filter_by_time_tag(places, hour)
+        places = _filter_by_current_time(places)
 
     if not places:
         return RecommendationResult(places=[])
 
     # 5. Loại cứng theo giờ hoạt động
-    places = _filter_by_opening_hours(places, hour)
+    places = _filter_by_opening_hours(criteria, places)
 
     # 6. Tính điểm từng địa điểm
-    history = []
     tags = tag_repo.get_all(db)
     scored: list[tuple[float, DomainPlace]] = []
 
     for place in places:
-        total_score = _score_place(place, criteria, tags, history)
+        total_score = _score_place(place, criteria, tags, user)
         scored.append((total_score, place))
 
     # Sắp xếp giảm dần theo điểm
     scored.sort(key=lambda x: x[0], reverse=True)
 
     # Chỉ lấy danh sách place (bỏ điểm)
-    top_places = [place for _, place in scored[:5]]
+    top_places = [place for _, place in scored[:2]]
 
     return RecommendationResult(places=top_places)
 
 
 def _filter_by_activity(places: list[DomainPlace], user_activities: List[str], all_activities: List[Activity]):
-
-    # Không có activity user → giữ nguyên
+    # Không có activity user -> giữ nguyên
     if not user_activities:
         return places
 
@@ -130,7 +128,6 @@ def _filter_by_activity(places: list[DomainPlace], user_activities: List[str], a
 
     return filtered
 
-
 def _filter_by_hobby(places: list[DomainPlace], hobbies: list[str]):
     """Loại bỏ địa điểm không có bất kỳ tag nào trùng với sở thích người dùng.
     - hobbies rỗng -> không lọc."""
@@ -141,9 +138,7 @@ def _filter_by_hobby(places: list[DomainPlace], hobbies: list[str]):
 
     return [p for p in places if any(tag in hobby_set for tag in p.tags)]
 
-
 max_distance_by_duration = {
-
     "#Moment": 5,
     "#FewHours": 10,
     "#LongTime": 20,
@@ -163,7 +158,6 @@ def _filter_by_gps(places: list[DomainPlace], loc: Location, duration_tag: str):
 
 EXTREME_WEATHER_TAGS = {"#rain", "#storm", "#snow"}
 UNSAFE_SPACES_IN_EXTREME_WEATHER = {"#outdoor", "#rooftop"}
-
 
 def _filter_by_weather(places: list[DomainPlace], weather: str):
     """
@@ -185,7 +179,7 @@ UNSAFE_BY_TIME_TAG = {
 }
 
 
-def _filter_by_time_tag(places: list[DomainPlace], hour: float):
+def _filter_by_current_time(places: list[DomainPlace]):
     def time_to_tag(hour: float) -> str:
         """hour: 0–23
         Return: "morning" | "noon" | "night"""
@@ -197,7 +191,8 @@ def _filter_by_time_tag(places: list[DomainPlace], hour: float):
         else:
             return "night"
 
-    time_tag = time_to_tag(hour)
+    current_time = get_current_hour()
+    time_tag = time_to_tag(current_time)
     unsafe_tags = UNSAFE_BY_TIME_TAG.get(time_tag, set())
 
     return [
@@ -206,25 +201,27 @@ def _filter_by_time_tag(places: list[DomainPlace], hour: float):
     ]
 
 
-def _filter_by_opening_hours(places: list[DomainPlace], current_hour: float) -> list[DomainPlace]:
-    """
-    Trả về các địa điểm đang mở cửa tại current_hour.
-    - Hỗ trợ mở qua đêm (vd 22 -> 03)
-    - open == close -> coi là mở 24/7
-    """
+def _filter_by_opening_hours(criteria: RecommendationCriteria, places: list[DomainPlace]) -> list[DomainPlace]:
+    """Trả về các địa điểm đang mở cửa tại current_hour.
+    - Hỗ trợ mở qua đêm (vd 22 -> 03)"""
 
-    def is_open_now(start: float, end: float, now: float) -> bool:
-        """
-        Kiểm tra giờ mở cửa.
-        Nếu end < start -> mở qua đêm.
-        Nếu start == end -> mở 24/7.
-        """
-        # Mở 24/7
-        if start == end:
-            return True
+    def is_open_now(place: DomainPlace) -> bool:
+        """Kiểm tra giờ mở cửa.
+        Nếu start == end == 0 -> mở 24/7.
+        Nếu start == end == NULL -> Đóng cửa.
+        Nếu end < start -> mở qua đêm."""
+        if place.open == place.close:
+            if place.open == "NULL":
+                return False
+            else: # place.open == 0
+                return True
+
+        start = to_decimal_hours(p.open)
+        end = to_decimal_hours(p.close)
+        now = get_current_hour()
 
         # Mở - đóng trong cùng ngày
-        if end > start:
+        if start < end:
             return start <= now <= end
 
         # Mở qua đêm (vd 21 -> 4)
@@ -233,19 +230,16 @@ def _filter_by_opening_hours(places: list[DomainPlace], current_hour: float) -> 
     result = []
 
     for p in places:
-        s = 0.0 # p.open
-        e = 0.0 # p.close
-
-        if s is None or e is None:
+        if p.open is None or p.close is None:
             continue
 
-        if is_open_now(s, e, current_hour):
+        if is_open_now(p):
             result.append(p)
 
     return result
 
 
-def _score_place(place: DomainPlace, criteria: RecommendationCriteria, tags: List[Tag], history: List[str]) -> float:
+def _score_place(place: DomainPlace, criteria: RecommendationCriteria, tags: List[Tag], user: DomainUser) -> float:
     total_score = 0.0
 
     # 6.1 Hobby tag matching - 50%
@@ -258,7 +252,7 @@ def _score_place(place: DomainPlace, criteria: RecommendationCriteria, tags: Lis
     total_score += _score_rating(criteria, place)
 
     # 6.4 History penalty
-    total_score *= 1 - _penalty_by_history(place, history)
+    total_score *= 1 - _penalty_by_history(place, user)
 
     return total_score
 
@@ -329,7 +323,6 @@ def _score_hobbies(criteria: RecommendationCriteria, place: DomainPlace, tags: L
 
     return total_score
 
-
 def _score_distance(criteria: RecommendationCriteria, place: DomainPlace) -> float:
     distance = haversine_distance(criteria.location.latitude, criteria.location.longitude, place.lat, place.lon)
     max_distance = max_distance_by_duration.get(criteria.duration_tag)
@@ -369,20 +362,10 @@ def _score_rating(criteria: RecommendationCriteria, place: DomainPlace) -> float
     return (place.rating / 5.0) * MAX_POINTS
 
 
-def _penalty_by_history(place: DomainPlace, history: List[str]) -> float:
-    """Tính hệ số nhân điểm dựa trên lịch sử đề xuất.
-    - Biến đếm chạy theo chu kỳ 0 → 1 → 2 → ... → 7 → 0 → ...
-    - Khi biến đếm = 0 → giảm 0%
-    - Khi biến đếm = 1 → giảm 70%, biến đếm = 2 → giảm 60%, ..., biến đếm = 7 → giảm 10%
-    - Ở đây history là 1 list[str] các id"""
+def _penalty_by_history(place: DomainPlace, user: DomainUser) -> float:
     MAX_COUNT = 7
 
-    def count_occurrences(item: str, lst: List[str]) -> int:
-        """Đếm số lần item xuất hiện trong list lst"""
-        return lst.count(item)
-
-    # Đếm số lần xuất hiện của từng place
-    n = count_occurrences(str(place.id), history)
+    n = user.get_reco_count_by_place_id(place.id)
 
     # Biến đếm theo chu kỳ 0-7
     counter = n % (MAX_COUNT + 1)
@@ -397,9 +380,14 @@ def _to_api_dict(place: DomainPlace) -> dict:
     return {
         "id": place.id,
         "name": place.name,
+        # "link_address": place.link_address,
+        # "latitude": place.lat,
+        # "longitude": place.lon,
         "address": place.address or "",
         "image_url": place.image or "",
         "description": place.overview or "",
         "tags": place.tags,
-        "rating": place.rating or ""
+        "rating": place.rating or "",
+        "open": place.open or "",
+        "close": place.close or "",
     }
