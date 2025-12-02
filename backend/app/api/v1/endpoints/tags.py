@@ -35,19 +35,11 @@ def get_hobbies_list(db: Session = Depends(get_db)):
 
     return {"hobbies": results}
 
-
 @router.get("/activities", response_model=ActivityCodesResponse, summary="Danh sách tag hoạt động")
 def get_activities_list(db: Session = Depends(get_db)):
-    activities_db = db.query(Activity)
-
-    results = []
-    for a in activities_db:
-        results.append({"tag_code": a.code})
-
+    codes = db.query(Activity.code).all()
+    results = [code[0] for code in codes]
     return {"activities": results}
-
-
-
 
 @router.get("/durations", response_model=DurationTagResponse, summary="Danh sách tag thời lượng")
 def get_duration_tags():
