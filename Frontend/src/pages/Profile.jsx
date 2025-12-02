@@ -2,63 +2,47 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../components/layouts/Navbar";
 import TagSelector from "../components/common/TagSelector";
-import { DirectionButton, FavoriteButton } from "../components/common/ActionButtons"; // THÊM IMPORT NÀY
+import { DirectionButton, FavoriteButton } from "../components/common/ActionButtons";
 import "../styles/Profile.css";
+
+// Services
 import userAPI from "../services/userAPI";
 import preferenceAPI from "../services/preferenceAPI";
+import favoriteAPI from "../services/favoriteAPI"; // 1. Import mới
+
+// Utils
+import toErrorMessage from "../utils/toErrorMessage"; // 2. Import hàm xử lý lỗi (đảm bảo đúng đường dẫn)
 
 export default function Profile() {
   const navigate = useNavigate();
 
   const [activeMenu, setActiveMenu] = useState("Profile");
 
+  // --- USER & PROFILE STATE ---
   const [userData, setUserData] = useState({
     username: "",
     email: "",
     passwordMasked: "********",
   });
-
   const [isEditing, setIsEditing] = useState(false);
-  const [editData, setEditData] = useState({
-    username: "",
-    email: "",
-  });
+  const [editData, setEditData] = useState({ username: "", email: "" });
 
-  // Vibes from backend
-  const [allHobbies, setAllHobbies] = useState([]);      // [{label,value}, ...]
-  const [userHobbies, setUserHobbies] = useState([]);    // ["#cafe", ...]
+  // --- VIBES STATE ---
+  const [allHobbies, setAllHobbies] = useState([]);
+  const [userHobbies, setUserHobbies] = useState([]);
   const [editingHobbies, setEditingHobbies] = useState([]);
   const [isEditingVibes, setIsEditingVibes] = useState(false);
   const [hobbyError, setHobbyError] = useState("");
   const [hobbySaving, setHobbySaving] = useState(false);
   const [hobbyLoading, setHobbyLoading] = useState(true);
 
-  // Favorites demo
-  const [favorites, setFavorites] = useState([
-    {
-      id: 1,
-      name: "The Running Bean Coffee",
-      desc: "A modern-style café with open space and white-wood tones — perfect for a creative vibe.",
-      address: "33 Mac Thi Buoi Street, District 1",
-      hashtags: "#CreativeVibe #ChillMood #CoffeeGoals",
-      image:
-        "https://images.unsplash.com/photo-1509042239860-f550ce710b93?auto=format&fit=crop&w=800&q=80",
-      liked: true,
-    },
-    {
-      id: 2,
-      name: "Oromia Coffee",
-      desc: "Cozy space with relaxing music, ideal for working or chatting.",
-      address: "193A/D3 Nam Ky Khoi Nghia, District 3",
-      hashtags: "#Cozy #Chill #Relax #CoffeeTime",
-      image:
-        "https://images.unsplash.com/photo-1511920170033-f8396924c348?auto=format&fit=crop&w=800&q=80",
-      liked: true,
-    },
-  ]);
+  // --- FAVORITES STATE ---
+  const [favorites, setFavorites] = useState([]);
   const [fadingIds, setFadingIds] = useState([]);
+  const [favLoading, setFavLoading] = useState(false); // Loading state cho favorite
+  const [favError, setFavError] = useState("");        // Error state cho favorite
 
-  // 🔹 Load profile + hobbies
+  // 🔹 Load profile + hobbies (Initial Load)
   useEffect(() => {
     const load = async () => {
       try {
@@ -92,8 +76,49 @@ export default function Profile() {
     load();
   }, []);
 
+  // 🔹 Load Favorites khi switch sang tab "Favorites"
+  useEffect(() => {
+    if (activeMenu === "Favorites") {
+      fetchFavorites();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeMenu]);
+
+  const fetchFavorites = async () => {
+    setFavLoading(true);
+    setFavError("");
+    try {
+      // 1. Gọi API
+      const response = await favoriteAPI.getMyFavorites();
+      
+      // 2. LẤY DỮ LIỆU THỰC (FIX LỖI TẠI ĐÂY)
+      // Kiểm tra xem response.data có phải là mảng không, nếu không thì fallback về mảng rỗng
+      const rawData = response.data || []; 
+
+      // 3. Map dữ liệu
+      const formattedData = rawData.map((item) => ({
+        id: item.id,
+        name: item.name,
+        address: item.address,
+        image: item.image,
+        desc: item.overview, 
+        hashtags: Array.isArray(item.tags) 
+          ? item.tags.map(t => `#${t}`).join(" ")
+          : "", 
+        liked: true,
+      }));
+
+      setFavorites(formattedData);
+    } catch (err) {
+      console.error(err); // Log lỗi ra để dễ debug nếu có
+      const msg = toErrorMessage(err, "Failed to load favorites.");
+      setFavError(msg);
+    } finally {
+      setFavLoading(false);
+    }
+  };
+
   const handleLogout = () => {
-    // sau này có AuthContext.logout thì gọi ở đây
     localStorage.removeItem("token");
     navigate("/login");
   };
@@ -123,18 +148,29 @@ export default function Profile() {
       setIsEditing(false);
       alert("Profile updated successfully!");
     } catch (err) {
-      alert(err?.message || "Failed to update profile");
+      alert(toErrorMessage(err, "Failed to update profile"));
     }
   };
 
-  const toggleFavorite = (id) => {
-    const fav = favorites.find((f) => f.id === id);
-    if (fav?.liked) {
-      setFadingIds((prev) => [...prev, id]);
+  // Xử lý logic bỏ thích (Unfavorite)
+  const toggleFavorite = async (id) => {
+    // 1. Hiệu ứng UI (Optimistic update)
+    setFadingIds((prev) => [...prev, id]);
+    
+    try {
+      // 2. Gọi API để cập nhật backend
+      await favoriteAPI.toggleFavorite(id);
+
+      // 3. Sau khi animation xong (300ms), xóa khỏi state list
       setTimeout(() => {
         setFavorites((prev) => prev.filter((f) => f.id !== id));
         setFadingIds((prev) => prev.filter((fid) => fid !== id));
       }, 300);
+
+    } catch (err) {
+      // Nếu lỗi, hoàn tác UI (bỏ hiệu ứng fade và hiển thị lỗi)
+      setFadingIds((prev) => prev.filter((fid) => fid !== id));
+      alert(toErrorMessage(err, "Failed to remove favorite."));
     }
   };
 
@@ -147,11 +183,7 @@ export default function Profile() {
       setIsEditingVibes(false);
       alert("Your vibes have been updated!");
     } catch (err) {
-      setHobbyError(
-        typeof err === "string"
-          ? err
-          : err?.message || "Failed to save hobbies"
-      );
+      setHobbyError(toErrorMessage(err, "Failed to save hobbies"));
     } finally {
       setHobbySaving(false);
     }
@@ -170,25 +202,19 @@ export default function Profile() {
 
           <ul className="menu">
             <li
-              className={`menu-item ${
-                activeMenu === "Profile" ? "active" : ""
-              }`}
+              className={`menu-item ${activeMenu === "Profile" ? "active" : ""}`}
               onClick={() => setActiveMenu("Profile")}
             >
               Profile
             </li>
             <li
-              className={`menu-item ${
-                activeMenu === "Vibes" ? "active" : ""
-              }`}
+              className={`menu-item ${activeMenu === "Vibes" ? "active" : ""}`}
               onClick={() => setActiveMenu("Vibes")}
             >
               Vibes
             </li>
             <li
-              className={`menu-item ${
-                activeMenu === "Favorites" ? "active" : ""
-              }`}
+              className={`menu-item ${activeMenu === "Favorites" ? "active" : ""}`}
               onClick={() => setActiveMenu("Favorites")}
             >
               Favorites
@@ -208,18 +234,14 @@ export default function Profile() {
               <h2 className="form-title">
                 {isEditing ? "EDIT PROFILE" : "PROFILE SETTINGS"}
               </h2>
-
               {!isEditing ? (
                 <div className="profile-form">
                   <label>Username:</label>
                   <p className="static-input">{userData.username}</p>
-
                   <label>Email:</label>
                   <p className="static-input">{userData.email}</p>
-
                   <label>Password:</label>
                   <p className="static-input">{userData.passwordMasked}</p>
-
                   <button onClick={handleEditClick} className="edit-btn">
                     Edit profile
                   </button>
@@ -233,7 +255,6 @@ export default function Profile() {
                     value={editData.username}
                     onChange={handleChange}
                   />
-
                   <label>Email:</label>
                   <input
                     type="email"
@@ -242,13 +263,8 @@ export default function Profile() {
                     onChange={handleChange}
                     disabled
                   />
-
                   <div className="button-group">
-                    <button
-                      type="button"
-                      className="cancel-btn"
-                      onClick={handleCancel}
-                    >
+                    <button type="button" className="cancel-btn" onClick={handleCancel}>
                       Cancel
                     </button>
                     <button type="submit" className="save-btn">
@@ -265,15 +281,11 @@ export default function Profile() {
             <div className="vibes-section">
               <h2 className="form-title">YOUR VIBES</h2>
               <p className="vibes-sub">
-                {isEditingVibes
-                  ? "Edit your current vibe tags ✨"
-                  : "These are your current vibes"}
+                {isEditingVibes ? "Edit your current vibe tags ✨" : "These are your current vibes"}
               </p>
 
               {hobbyLoading && <p>Loading vibes...</p>}
-              {hobbyError && (
-                <p className="text-red-500 text-sm mb-2">{hobbyError}</p>
-              )}
+              {hobbyError && <p className="text-red-500 text-sm mb-2">{hobbyError}</p>}
 
               {!hobbyLoading && (
                 <>
@@ -283,9 +295,8 @@ export default function Profile() {
                         tags={allHobbies}
                         defaultSelected={userHobbies}
                         onChange={() => {}}
-                        readOnly={true} // Đã sửa logic: Không cho phép chọn tag khi chưa nhấn Edit Vibes
+                        readOnly={true}
                       />
-
                       <button
                         className="edit-btn"
                         style={{ marginTop: "20px" }}
@@ -303,9 +314,8 @@ export default function Profile() {
                         tags={allHobbies}
                         defaultSelected={editingHobbies}
                         onChange={(selected) => setEditingHobbies(selected)}
-                        readOnly={false} // Đã sửa logic: Cho phép chọn tag khi đang edit Vibes
+                        readOnly={false}
                       />
-
                       <div className="button-group">
                         <button
                           className="cancel-btn"
@@ -316,11 +326,7 @@ export default function Profile() {
                         >
                           Cancel
                         </button>
-                        <button
-                          className="save-btn"
-                          onClick={saveHobbies}
-                          disabled={hobbySaving}
-                        >
+                        <button className="save-btn" onClick={saveHobbies} disabled={hobbySaving}>
                           {hobbySaving ? "Saving..." : "Save"}
                         </button>
                       </div>
@@ -331,43 +337,53 @@ export default function Profile() {
             </div>
           )}
 
-          {/* TAB: FAVORITES (demo, chưa nối API) */}
+          {/* TAB: FAVORITES */}
           {activeMenu === "Favorites" && (
             <div className="favorites-section">
               <h2 className="form-title">FAVORITE PLACES</h2>
-              <div className="favorites-list">
-                {favorites.map((fav) => (
-                  <div
-                    key={fav.id}
-                    className={`favorite-card ${
-                      fadingIds.includes(fav.id) ? "fade-out" : ""
-                    }`}
-                  >
-                    <img src={fav.image} alt={fav.name} className="fav-image" />
-                    <div className="fav-info">
-                      <h3>{fav.name}</h3>
-                      <p>{fav.desc}</p>
-                      <p className="address">{fav.address}</p>
-                      <p className="hashtags">{fav.hashtags}</p>
-                    </div>
+              
+              {/* Error Message */}
+              {favError && <p className="error-message" style={{color: 'red', marginBottom: '10px'}}>{favError}</p>}
+              
+              {/* Loading State */}
+              {favLoading ? (
+                <p>Loading your favorites...</p>
+              ) : (
+                <div className="favorites-list">
+                  {favorites.map((fav) => (
+                    <div
+                      key={fav.id}
+                      className={`favorite-card ${
+                        fadingIds.includes(fav.id) ? "fade-out" : ""
+                      }`}
+                    >
+                      <img src={fav.image} alt={fav.name} className="fav-image" />
+                      <div className="fav-info">
+                        <h3>{fav.name}</h3>
+                        <p>{fav.desc}</p>
+                        <p className="address">{fav.address}</p>
+                        <p className="hashtags">{fav.hashtags}</p>
+                      </div>
 
-                    {/* THAY THẾ NÚT TIM CŨ BẰNG ACTION BUTTONS */}
-                    <div className="action-buttons-group"> 
-                        <DirectionButton place={{ name: fav.name, address: fav.address, title: fav.name }} />
-                        <FavoriteButton 
-                            isFav={fav.liked} 
-                            onToggle={() => toggleFavorite(fav.id)} 
+                      <div className="action-buttons-group">
+                        <DirectionButton
+                          place={{ name: fav.name, address: fav.address, title: fav.name }}
                         />
+                        <FavoriteButton
+                          isFav={fav.liked}
+                          onToggle={() => toggleFavorite(fav.id)}
+                        />
+                      </div>
                     </div>
-                    {/* END THAY THẾ */}
-                  </div>
-                ))}
-                {favorites.length === 0 && (
-                  <p className="empty-fav">
-                    You have no favorite places yet 💔
-                  </p>
-                )}
-              </div>
+                  ))}
+                  
+                  {!favLoading && favorites.length === 0 && !favError && (
+                    <p className="empty-fav">
+                      You have no favorite places yet 💔
+                    </p>
+                  )}
+                </div>
+              )}
             </div>
           )}
         </div>
