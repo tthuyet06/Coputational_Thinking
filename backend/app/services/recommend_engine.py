@@ -5,17 +5,20 @@ from backend.app.db import models
 from backend.app.domain.user import User as DomainUser
 from backend.app.domain.place import Place as DomainPlace
 from backend.app.domain.location import Location
+from backend.app.domain.tag import Tag
+from backend.app.domain.activity import Activity
 from backend.app.domain.recommendation import (
     RecommendationCriteria,
     RecommendationResult,
 )
-from backend.app.repositories import UserRepository, PlaceRepository
+from backend.app.repositories import (UserRepository, PlaceRepository, TagRepositoryImpl, ActivityRepository)
 from backend.app.utils.geo_utils import haversine_distance
 from backend.app.utils.weather_utils import get_weather
 from backend.app.utils.time_utils import get_current_hour
 
 user_repo = UserRepository()
 place_repo = PlaceRepository()
+tag_repo = TagRepositoryImpl()
 # history_repo = HistoryRepository()
 
 def get_recommendations(
@@ -45,10 +48,13 @@ def get_recommendations(
 def _recommend_core(db: Session, user: DomainUser, criteria: RecommendationCriteria) -> RecommendationResult:
     all_places: List[DomainPlace] = place_repo.get_all_as_domain(db)
     places = [p for p in all_places if p.lat is not None and p.lon is not None]
-    # history = history_repo.get_all()
+    # all_history: List[DomainHistory] = history_repo.get_all_as_domain(db)
+    # history = [p.id for p.id in all_history]
 
     # 1. Loại cứng theo Activity
-    places = _filter_by_activity(places, criteria.activities)
+    activity_repo = ActivityRepository(db)
+    all_activities: List[Activity] = activity_repo.list_all()
+    places = _filter_by_activity(places, criteria.activities, all_activities)
 
     if not places:
         return RecommendationResult(places=[])
@@ -82,10 +88,11 @@ def _recommend_core(db: Session, user: DomainUser, criteria: RecommendationCrite
 
     # 6. Tính điểm từng địa điểm
     history = []
+    tags = tag_repo.get_all(db)
     scored: list[tuple[float, DomainPlace]] = []
 
     for place in places:
-        total_score = _score_place(place, criteria, history)
+        total_score = _score_place(place, criteria, tags, history)
         scored.append((total_score, place))
 
     # Sắp xếp giảm dần theo điểm
@@ -97,28 +104,28 @@ def _recommend_core(db: Session, user: DomainUser, criteria: RecommendationCrite
     return RecommendationResult(places=top_places)
 
 
-# tạm thời do chưa tách
-def _filter_by_activity(places: list[DomainPlace], activity: List[str]):
-    """Lọc danh sách địa điểm theo activity tag mà user chọn.
-    Chỉ giữ lại những place có ít nhất 1 activity tag trùng.
-    activity: List[str] (danh sách tag activity do user chọn)"""
+def _filter_by_activity(places: list[DomainPlace], user_activities: List[str], all_activities: List[Activity]):
 
-    # nếu user không nhập activity -> không lọc
-    if not activity:
+    # Không có activity user → giữ nguyên
+    if not user_activities:
         return places
 
-    # convert sang set cho nhanh
-    user_activity_tags = set(activity)
+    user_activity_set = set(user_activities)
+
+    # Tập hợp activity code hợp lệ trong DB
+    valid_activity_codes = {a.code for a in all_activities}
 
     filtered = []
+
     for p in places:
-        # lấy ra toàn bộ activity tag của place
-        place_activity_tags = {
-            t for t in p.tags if TAG_TYPE_MAP.get(t) == "activity"
+        # Lọc activity của place từ tags
+        place_activity_set = {
+            t for t in p.tags
+            if t in valid_activity_codes
         }
 
-        # nếu có giao nhau -> giữ lại
-        if place_activity_tags & user_activity_tags:
+        # Nếu có ít nhất 1 tag activity trùng với user
+        if place_activity_set & user_activity_set:
             filtered.append(p)
 
     return filtered
@@ -201,15 +208,15 @@ def _filter_by_time_tag(places: list[DomainPlace], hour: float):
 def _filter_by_opening_hours(places: list[DomainPlace], current_hour: float) -> list[DomainPlace]:
     """
     Trả về các địa điểm đang mở cửa tại current_hour.
-    - Hỗ trợ mở qua đêm (vd 22 → 03)
-    - open_time == close_time → coi là mở 24/7
+    - Hỗ trợ mở qua đêm (vd 22 -> 03)
+    - open == close -> coi là mở 24/7
     """
 
     def is_open_now(start: float, end: float, now: float) -> bool:
         """
         Kiểm tra giờ mở cửa.
-        Nếu end < start → mở qua đêm.
-        Nếu start == end → mở 24/7.
+        Nếu end < start -> mở qua đêm.
+        Nếu start == end -> mở 24/7.
         """
         # Mở 24/7
         if start == end:
@@ -224,9 +231,9 @@ def _filter_by_opening_hours(places: list[DomainPlace], current_hour: float) -> 
 
     result = []
 
-    for p in places: # Tạm mock 24/24
-        s = 0 # p.open_time
-        e = 0 # p.close_time
+    for p in places:
+        s = 0.0 # p.open
+        e = 0.0 # p.close
 
         if s is None or e is None:
             continue
@@ -237,11 +244,11 @@ def _filter_by_opening_hours(places: list[DomainPlace], current_hour: float) -> 
     return result
 
 
-def _score_place(place: DomainPlace, criteria: RecommendationCriteria, history: List[str]) -> float:
+def _score_place(place: DomainPlace, criteria: RecommendationCriteria, tags: List[Tag], history: List[str]) -> float:
     total_score = 0.0
 
     # 6.1 Hobby tag matching - 50%
-    total_score += _score_hobbies(place.tags, criteria.extra_tags)
+    total_score += _score_hobbies(criteria, place, tags)
 
     # 6.2 Distance - 30%
     total_score += _score_distance(criteria, place)
@@ -254,105 +261,8 @@ def _score_place(place: DomainPlace, criteria: RecommendationCriteria, history: 
 
     return total_score
 
-
-# Tạm thời do chưa tách activity
-TAG_TYPE_MAP = {
-    # --- activity ---
-    "#cafe": "activity",
-    "#milk_tea": "activity",
-    "#snack": "activity",
-    "#food": "activity",
-    "#restaurant": "activity",
-    "#healthy": "activity",
-    "#buffet": "activity",
-    "#bbq": "activity",
-    "#seafood": "activity",
-    "#bar": "activity",
-    "#pub": "activity",
-    "#dessert": "activity",
-    "#sweet": "activity",
-    "#streetfood": "activity",
-    "#cheap_eats": "activity",
-    "#quick_bite": "activity",
-    "#late_night_food": "activity",
-    "#takeaway": "activity",
-    "#brunch": "activity",
-    "#spicy_food": "activity",
-    "#signature_dish": "activity",
-    "#late_cafe": "activity",
-    "#vegetarian": "activity",
-    "#light_meal": "activity",
-    "#work_cafe": "activity",
-    "#hotpot": "activity",
-    "#cultural_visit": "activity",
-
-    # --- space ---
-    "#indoor": "space",
-    "#outdoor": "space",
-    "#rooftop": "space",
-    "#spacious": "space",
-    "#small_space": "space",
-    "#coffee_in_bed": "space",
-
-    # --- special ---
-    "#live_music": "special",
-    "#acoustic": "special",
-    "#workshop": "special",
-    "#boardgame": "special",
-    "#karaoke": "special",
-    "#pet_friendly": "special",
-
-    # --- style ---
-    "#aesthetic": "style",
-    "#creative": "style",
-    "#vintage": "style",
-    "#minimal": "style",
-    "#indie": "style",
-    "#street_style": "style",
-    "#kstyle": "style",
-
-    # --- time ---
-    "#morning": "time",
-    "#afternoon": "time",
-    "#evening": "time",
-    "#night": "time",
-    "#late_night": "time",
-    "#sunset": "time",
-    "#moment": "time",
-    "#few_hours": "time",
-    "#long_time": "time",
-
-    # --- vibe ---
-    "#quiet": "vibe",
-    "#chill": "vibe",
-    "#vibrant": "vibe",
-    "#romantic": "vibe",
-    "#cozy": "vibe",
-    "#luxury": "vibe",
-    "#local_spot": "vibe",
-    "#hidden_gem": "vibe",
-    "#chinatown_vibe": "vibe",
-    "#family_friendly": "vibe",
-    "#date_spot": "vibe",
-    "#solo_friendly": "vibe",
-    "#group_friendly": "vibe",
-    "#traditional": "vibe",
-    "#ancient_vibe": "vibe",
-
-    # --- view ---
-    "#photo_spot": "view",
-    "#view_spot": "view",
-    "#river_view": "view",
-    "#city_view": "view",
-
-    # --- weather ---
-    "#rain": "weather",
-    "#sunny": "weather",
-    "#windy": "weather",
-    "#cloudy": "weather",
-}
-
 TAG_TYPE_WEIGHT = {
+    "activity": 0,
     "space": 7,
     "special": 5,
     "style": 10,
@@ -362,49 +272,59 @@ TAG_TYPE_WEIGHT = {
     "weather": 5,
 }
 
-def _score_hobbies(place_tags: list[str], preferred_tags: list[str]) -> float:
-    if not preferred_tags:
+def _score_hobbies(criteria: RecommendationCriteria, place: DomainPlace, tags: List[Tag]) -> float:
+
+    user_hobbies = criteria.extra_tags or []
+    place_tags = place.tags or []
+
+    if not user_hobbies:
         return 0.0
 
-    # Gom tag user theo type
-    user_by_type = {}
-    for tag in preferred_tags:
-        t = TAG_TYPE_MAP.get(tag)
-        if not t:
-            continue
-        user_by_type.setdefault(t, set()).add(tag)
+    # ----- Bảng tra cứu: tag_code -> group -----
+    tag_group_map: dict[str, str] = {}
+    for t in tags:
+        if t.group:                      # chỉ nhận tag có group hợp lệ
+            tag_group_map[t.id] = t.group
 
-    # Gom tag place theo type
-    place_by_type = {}
-    for tag in place_tags:
-        t = TAG_TYPE_MAP.get(tag)
-        if not t:
+    # ----- Gom hobby user theo group -----
+    user_by_group: dict[str, set[str]] = {}
+    for code in user_hobbies:
+        group = tag_group_map.get(code)
+        if not group:
             continue
-        place_by_type.setdefault(t, set()).add(tag)
+        user_by_group.setdefault(group, set()).add(code)
+
+    # ----- Gom place tag theo group -----
+    place_by_group: dict[str, set[str]] = {}
+    for code in place_tags:
+        group = tag_group_map.get(code)
+        if not group:
+            continue
+        place_by_group.setdefault(group, set()).add(code)
 
     total_score = 0.0
 
-    # Tính điểm cho từng type
-    for tag_type, user_tags in user_by_type.items():
-        weight = TAG_TYPE_WEIGHT.get(tag_type, 0)
-
-        place_tags_in_type = place_by_type.get(tag_type, set())
-
-        if not place_tags_in_type:
+    # ----- Tính điểm theo group -----
+    for group, user_codes in user_by_group.items():
+        weight = TAG_TYPE_WEIGHT.get(group, 0)
+        if weight == 0:
             continue
 
-        # Số tag trùng
-        match_count = len(user_tags.intersection(place_tags_in_type))
+        place_codes = place_by_group.get(group)
+        if not place_codes:
+            continue
 
+        # số tag trùng
+        match_count = len(user_codes.intersection(place_codes))
         if match_count == 0:
             continue
 
-        # Số tag user có trong type
-        total_user_tags = len(user_tags)
+        # tổng số hobby user trong group
+        total_user_tags = len(user_codes)
 
-        type_score = (match_count / total_user_tags) * weight
-
-        total_score += type_score
+        # công thức chuẩn: (match / total_user_hobbies_group) * weight
+        score = (match_count / total_user_tags) * weight
+        total_score += score
 
     return total_score
 
@@ -445,7 +365,7 @@ def _score_rating(criteria: RecommendationCriteria, place: DomainPlace) -> float
     - rating tối đa 5 sao -> tối đa 20 điểm"""
 
     MAX_POINTS = 20.0
-    return (5.0 / 5.0) * MAX_POINTS # tạm mock: place.rating = 5.0
+    return (place.rating / 5.0) * MAX_POINTS
 
 
 def _penalty_by_history(place: DomainPlace, history: List[str]) -> float:
@@ -480,4 +400,5 @@ def _to_api_dict(place: DomainPlace) -> dict:
         "image_url": place.image or "",
         "description": place.overview or "",
         "tags": place.tags,
+        "rating": place.rating or ""
     }
