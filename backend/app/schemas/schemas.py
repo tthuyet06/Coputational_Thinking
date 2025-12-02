@@ -70,6 +70,7 @@ class RecommendRequest(BaseModel):
     latitude: float
     longitude: float
     duration_tag: str
+    activity: str
 
 
 class Place(BaseModel):
@@ -122,6 +123,5 @@ class ActivityItem(BaseModel):
     class Config:
         from_attributes = True
 
-class ActivityTagsResponse(BaseModel):
-    """Response trả về danh sách activity với cấu trúc object đầy đủ"""
-    activities: List[ActivityItem]
+class ActivityCodesResponse(BaseModel):
+    activities: List[str]

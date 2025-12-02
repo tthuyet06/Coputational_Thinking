@@ -13,7 +13,7 @@ from backend.app.domain.recommendation import (
 )
 from backend.app.repositories import (UserRepository, PlaceRepository, TagRepositoryImpl, ActivityRepository)
 from backend.app.utils.geo_utils import haversine_distance
-from backend.app.services.weather_service import get_current_weather_data
+from backend.app.services.weather_service import get_current_weather_data, get_main_weather, normalize_weather_tag
 from backend.app.utils.time_utils import get_current_hour, to_decimal_hours
 
 user_repo = UserRepository()
@@ -72,11 +72,9 @@ def _recommend_core(db: Session, user: DomainUser, criteria: RecommendationCrite
         return RecommendationResult(places=[])
 
     # 3. Lọc theo thời tiết
-    weather = get_current_weather_data(criteria.location.latitude, criteria.location.longitude)
-    places = _filter_by_weather(places, str(weather))
+    places = _filter_by_weather(places)
 
     # 4. Lọc theo thời gian: lọc các địa điểm không phù hợp thời gian(khi user kh chọn activity)
-    hour = get_current_hour()
     if not criteria.activities:
         places = _filter_by_current_time(places)
 
@@ -99,6 +97,10 @@ def _recommend_core(db: Session, user: DomainUser, criteria: RecommendationCrite
 
     # Chỉ lấy danh sách place (bỏ điểm)
     top_places = [place for _, place in scored[:2]]
+
+    # Cập nhật history của user
+    for p in top_places:
+        user.update_history(p.id)
 
     return RecommendationResult(places=top_places)
 
@@ -156,15 +158,19 @@ def _filter_by_gps(places: list[DomainPlace], loc: Location, duration_tag: str):
     return out
 
 
-EXTREME_WEATHER_TAGS = {"#rain", "#storm", "#snow"}
+EXTREME_WEATHER_TAGS = {"#rain", "#storm", "#snow", "#misty", "#extreme"}
 UNSAFE_SPACES_IN_EXTREME_WEATHER = {"#outdoor", "#rooftop"}
 
-def _filter_by_weather(places: list[DomainPlace], weather: str):
-    """
-    Loại bỏ các địa điểm không phù hợp trong thời tiết cực đoan.
-    - Nếu thời tiết thuộc EXTREME_WEATHER_TAGS -> loại mọi place chứa tag trong UNSAFE_SPACES_IN_EXTREME_WEATHER.
-    """
-    if weather in EXTREME_WEATHER_TAGS:
+
+def _filter_by_weather(criteria: RecommendationCriteria, places: list[DomainPlace]):
+    """Loại bỏ các địa điểm không phù hợp trong thời tiết cực đoan.
+    - Nếu thời tiết thuộc EXTREME_WEATHER_TAGS -> loại mọi place chứa tag trong UNSAFE_SPACES_IN_EXTREME_WEATHER."""
+
+    weather_js = get_current_weather_data(criteria.location.latitude, criteria.location.longitude)
+    weather = get_main_weather(weather_js)
+    weather_tag = normalize_weather_tag(weather)
+
+    if weather_tag in EXTREME_WEATHER_TAGS:
         return [
             p for p in places
             if not any(tag in UNSAFE_SPACES_IN_EXTREME_WEATHER for tag in p.tags)

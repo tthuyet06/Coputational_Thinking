@@ -39,17 +39,13 @@ class User:
                 h.update_rec_counter()
                 return
 
-        # nếu chưa tồn tại place_id thì thêm vào với reco_count: 0->1
-        self.history.append(History(place_id=place_id,reco_count=1))
+        # nếu chưa tồn tại place_id thì thêm vào với reco_count: 0->7
+        self.history.append(History(place_id=place_id,reco_count=7))
 
 
     def get_reco_count_by_place_id(self, place_id: int) -> int:
         for h in self.history:
             if h.place_id == place_id:
-                result = h.reco_count
-                self.update_history(place_id)
-                return result
+                return h.reco_count
 
-        # không tồn tại place_id trong history
-        self.update_history(place_id)
         return 0
