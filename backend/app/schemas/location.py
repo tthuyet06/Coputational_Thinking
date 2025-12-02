@@ -13,9 +13,12 @@ class Place(BaseModel):
     image_url: str
     description: str
     tags: List[str]
+    rating: float
+    open: str
+    close: str
 
 class RecommendationResponse(BaseModel):
-    recommendations: List[Place]
+    recommendations: List[dict]
 
 class RecommendationErrorResponse(BaseModel):
     error: str
