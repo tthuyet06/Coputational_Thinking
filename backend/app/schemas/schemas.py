@@ -3,8 +3,6 @@ from pydantic import BaseModel, EmailStr, field_validator
 from uuid import UUID
 from backend.app.utils.tag_parser import parse_comma_separated_string
 
-
-
 class RegisterRequest(BaseModel):
     email: EmailStr
     password: str
@@ -116,18 +114,14 @@ class UpdateActivitiesResponse(BaseModel):
 
 
 class ActivityItem(BaseModel):
-    """Thông tin chi tiết 1 activity"""
+    """Thông tin chi tiết 1 activity, cấu trúc giống HobbyItem"""
     id: int
-    code: str
+    tag: str  # Đổi tên từ 'code' sang 'tag' để đồng nhất với Hobby
     name: str
 
     class Config:
         from_attributes = True
 
-
-class ActivityResponse(BaseModel):
-    """Response trả về danh sách activity (có thể dùng cho /me/activities GET)"""
+class ActivityTagsResponse(BaseModel):
+    """Response trả về danh sách activity với cấu trúc object đầy đủ"""
     activities: List[ActivityItem]
-
-class ActivityCodesResponse(BaseModel):
-    activities: List[str]
