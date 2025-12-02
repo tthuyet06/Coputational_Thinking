@@ -63,8 +63,7 @@ def import_places():
                 summarization=row["Summarization"],
                 tags=row["Tags"],
                 rating=row["Rating"],
-                open=row["Open"],
-                close=row["Close"],
+                open=row["Open / Close time"],
             )
             db.add(place)
 

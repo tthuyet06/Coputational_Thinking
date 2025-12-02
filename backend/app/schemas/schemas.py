@@ -123,5 +123,6 @@ class ActivityItem(BaseModel):
     class Config:
         from_attributes = True
 
-class ActivityCodesResponse(BaseModel):
-    activities: List[str]
+class ActivityTagsResponse(BaseModel):
+    """Response trả về danh sách activity với cấu trúc object đầy đủ"""
+    activities: List[ActivityItem]
