@@ -22,7 +22,8 @@ class Place:
     summarization: str | None = None
     tags: List[str] = field(default_factory=list)
     rating: float | None = None
-    open: str | None = None
+    # open: float | None = None
+    # close: float | None = None
 
     def has_tag(self, tag: str) -> bool:
         """

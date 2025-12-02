@@ -9,12 +9,12 @@ from abc import ABC, abstractmethod
 @dataclass(frozen=True)
 class Tag:
     """
-    Tag chung: dùng cho sở thích, thời lượng, vibe...
+       Tag chung: dùng cho sở thích, thời lượng, vibe...
 
-    - id: mã nội bộ (ví dụ "#cafe", "short")
-    - display_name: tên hiển thị cho user
-    - group: nhóm (hobby, duration, vibe, time_of_day...)
-    """
+       - id: mã nội bộ (ví dụ "#cafe", "short")
+       - display_name: tên hiển thị cho user
+       - group: nhóm (hobby, duration, vibe, time_of_day...)
+       """
     id: str
     display_name: str
     group: str | None = None

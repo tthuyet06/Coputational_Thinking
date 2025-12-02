@@ -11,6 +11,8 @@ from backend.app.repositories import (
     FavoriteRepository,
     PlaceRepository,
 )
+from backend.app.db.models import Hobby
+from backend.app.db.models import Activity
 
 # Khởi tạo repository (stateless, dùng lại được)
 user_repo = UserRepository()
@@ -112,42 +114,72 @@ def update_hobbies(
 ) -> List[str]:
     """
     Cập nhật danh sách sở thích cho user.
-
-    Bước xử lý:
-    1. Chuẩn hóa bằng normalize_hobby_tags():
-        - None -> []
-        - trim
-        - loại rỗng
-        - bỏ trùng, giữ thứ tự
-        - tự thêm '#' nếu thiếu
-    2. Validate: chỉ cho phép tag nằm trong list_hobby_tags().
-    3. Lưu xuống DB qua UserRepository.update_hobbies().
-    4. Trả về danh sách hobbies đã chuẩn hóa (để endpoint /users/me/hobbies trả ra).
-
-    Endpoint `hobbies.py` đang:
-        normalized = update_hobbies(...)
-        return {"message": "...", "hobbies": normalized}
-    nên hàm này phải trả về List[str].
+    Logic mới: Validate dựa trên dữ liệu thật trong bảng Hobbies (DB).
     """
-    # B1: Chuẩn hóa
+    # B1: Chuẩn hóa (None -> [], trim, lower, v.v.)
     normalized = normalize_hobby_tags(hobbies)
 
-    # B2: Validate với kho tag hợp lệ
-    allowed = set(list_hobby_tags())
-    invalid = [tag for tag in normalized if tag not in allowed]
+    # B2: Validate với DB (Thay vì dùng list cứng)
+    # Lấy tất cả code hợp lệ từ bảng 'hobbies'
+    valid_hobbies_db = db.query(Hobby.code).all()
+    
+    # Tạo một set chứa các code hợp lệ (vd: {"#cafe", "#an_vat"})
+    allowed_set = {h.code for h in valid_hobbies_db}
+
+    # Tìm các tag mà user gửi lên nhưng KHÔNG có trong DB
+    invalid = [tag for tag in normalized if tag not in allowed_set]
 
     if invalid:
         raise HTTPException(
             status_code=400,
-            detail=f"Invalid hobby tags: {invalid}. Allowed: {sorted(allowed)}",
+            detail=f"Invalid hobby tags: {invalid}. Allowed: {sorted(list(allowed_set))}",
         )
 
-    # B3: Lưu DB (cột Text `hobbies` trong bảng users)
+    # B3: Lưu xuống DB
+    # Lưu ý: user_repo.update_hobbies sẽ lo việc lưu vào DB.
     user_repo.update_hobbies(db, user, normalized)
 
     # B4: Trả về danh sách đã chuẩn hóa
     return normalized
 
+
+# ============================================================
+# HOẠT ĐỘNG (ACTIVITIES) CỦA USER
+# ============================================================
+def update_activities(
+    db: Session,
+    user: models.User,
+    activities: List[str] | None,
+) -> List[str]:
+    """
+    Cập nhật danh sách hoạt động (activities) cho user.
+    Logic giống update_hobbies:
+    - Chuẩn hóa input
+    - Validate với DB
+    - Lưu xuống user
+    - Trả về danh sách code đã chuẩn hóa
+    """
+    # B1: Chuẩn hóa (None -> [], trim, lower, loại trùng)
+    normalized = [a.strip() for a in (activities or []) if a.strip()]
+    normalized = list(dict.fromkeys(normalized))  # loại trùng giữ thứ tự
+
+    # B2: Lấy tất cả code hợp lệ từ DB (bảng Activity)
+    valid_activities_db = db.query(Activity.code).all()
+    allowed_set = {a.code for a in valid_activities_db}
+
+    # B3: Kiểm tra code không hợp lệ
+    invalid = [a for a in normalized if a not in allowed_set]
+    if invalid:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid activity codes: {invalid}. Allowed: {sorted(list(allowed_set))}"
+        )
+
+    # B4: Lưu xuống DB (giả sử user_repo có update_activities giống update_hobbies)
+    user_repo.update_activities(db, user, normalized)
+
+    # B5: Trả về danh sách đã chuẩn hóa
+    return normalized
 
 # ============================================================
 # FAVORITES (ĐỊA ĐIỂM YÊU THÍCH)
