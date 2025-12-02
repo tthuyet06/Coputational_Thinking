@@ -142,7 +142,6 @@ def update_hobbies(
     # B4: Trả về danh sách đã chuẩn hóa
     return normalized
 
-
 # ============================================================
 # HOẠT ĐỘNG (ACTIVITIES) CỦA USER
 # ============================================================

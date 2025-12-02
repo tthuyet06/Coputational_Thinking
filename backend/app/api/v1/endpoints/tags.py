@@ -1,9 +1,9 @@
 from sqlalchemy.orm import Session
 from backend.app.db.db_connection import get_db
 from fastapi import APIRouter
-from backend.app.schemas.schemas import HobbyTagsResponse, DurationTagResponse
+from backend.app.schemas.schemas import HobbyTagsResponse, DurationTagResponse, ActivityCodesResponse
 from fastapi import Depends
-from backend.app.db.models import Hobby
+from backend.app.db.models import Hobby, Activity
 
 from backend.app.services.user_service import (
     list_duration_tags,
@@ -34,6 +34,20 @@ def get_hobbies_list(db: Session = Depends(get_db)):
         })
 
     return {"hobbies": results}
+
+
+@router.get("/activities", response_model=ActivityCodesResponse, summary="Danh sách tag hoạt động")
+def get_activities_list(db: Session = Depends(get_db)):
+    activities_db = db.query(Activity)
+
+    results = []
+    for a in activities_db:
+        results.append({"tag_code": a.code})
+
+    return {"activities": results}
+
+
+
 
 @router.get("/durations", response_model=DurationTagResponse, summary="Danh sách tag thời lượng")
 def get_duration_tags():

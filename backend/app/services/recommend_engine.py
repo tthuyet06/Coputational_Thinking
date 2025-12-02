@@ -143,9 +143,9 @@ def _filter_by_hobby(places: list[DomainPlace], hobbies: list[str]):
 
 
 max_distance_by_duration = {
-    "#choc_lat": 5,
-    "#vai_tieng": 10,
-    "#nua_ngay": 20,
+    "#Moment": 5,
+    "#FewHours": 10,
+    "#LongTime": 20,
 }
 
 def _filter_by_gps(places: list[DomainPlace], loc: Location, duration_tag: str):
