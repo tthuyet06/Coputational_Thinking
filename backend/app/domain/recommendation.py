@@ -15,10 +15,12 @@ class RecommendationCriteria:
     Điều kiện gợi ý:
     - location: vị trí hiện tại của user
     - duration_tag: thời lượng rảnh (short/medium/long...)
+    - activities:
     - extra_tags: các tag filter thêm (ví dụ: "#cafe", "#yen_tinh"...)
     """
     location: Location
     duration_tag: str | None = None
+    activities: List[str] | None = None
     extra_tags: List[str] = field(default_factory=list)
 
 

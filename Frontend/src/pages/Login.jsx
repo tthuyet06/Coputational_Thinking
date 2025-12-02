@@ -53,7 +53,13 @@ export default function LoginForm() {
 
           <p className="signup-text">
             Don’t have an account?{" "}
-            <Link to="/signup" className="signup-link">Create one here.</Link>
+            <Link
+              to="/signup"
+              className="signup-link"
+              onClick={() => clearError?.()}
+            >
+              Create one here.
+            </Link>
           </p>
 
           <button type="submit" className="btn-continue" disabled={loading}>
