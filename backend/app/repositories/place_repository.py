@@ -42,9 +42,10 @@ class PlaceRepository:
             lat=place.lat,
             lon=place.lon,
             overview=place.overview,
+            summarization=place.summarization,
             image=place.image,
-            tags=tags,
-            rating=rating,
+            tags=place.tags,
+            rating=place.rating,
         )
 
     def get_all_as_domain(self, db: Session) -> List[DomainPlace]:

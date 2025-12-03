@@ -6,7 +6,6 @@ from backend.app.domain.user import User as DomainUser
 from backend.app.domain.place import Place as DomainPlace
 from backend.app.domain.location import Location
 from backend.app.domain.tag import Tag
-from backend.app.domain.activity import Activity
 from backend.app.domain.recommendation import (
     RecommendationCriteria,
     RecommendationResult,
@@ -20,7 +19,6 @@ user_repo = UserRepository()
 place_repo = PlaceRepository()
 tag_repo = TagRepositoryImpl()
 # opening_hours_repo = OpeningHoursRepository()
-
 
 def get_recommendations(
     db: Session,
@@ -52,10 +50,9 @@ def _recommend_core(db: Session, user: DomainUser, criteria: RecommendationCrite
     # all_history: List[DomainHistory] = history_repo.get_all_as_domain(db)
     # history = [p.id for p.id in all_history]
 
+
     # 1. Loại cứng theo Activity
-    activity_repo = ActivityRepository(db)
-    all_activities: List[Activity] = activity_repo.list_all()
-    places = _filter_by_activity(places, criteria.activities, all_activities)
+    places = _filter_by_activity(places, criteria.activities)
 
     if not places:
         return RecommendationResult(places=[])
@@ -73,7 +70,7 @@ def _recommend_core(db: Session, user: DomainUser, criteria: RecommendationCrite
         return RecommendationResult(places=[])
 
     # 3. Lọc theo thời tiết
-    places = _filter_by_weather(places)
+    places = _filter_by_weather(criteria, places)
 
     # 4. Lọc theo thời gian: lọc các địa điểm không phù hợp thời gian(khi user kh chọn activity)
     if not criteria.activities:
@@ -83,7 +80,7 @@ def _recommend_core(db: Session, user: DomainUser, criteria: RecommendationCrite
         return RecommendationResult(places=[])
 
     # 5. Loại cứng theo giờ hoạt động
-    places = _filter_by_opening_hours(criteria, places)
+    # places = _filter_by_opening_hours(criteria, places)
 
     # 6. Tính điểm từng địa điểm
     tags = tag_repo.get_all(db)
@@ -106,30 +103,11 @@ def _recommend_core(db: Session, user: DomainUser, criteria: RecommendationCrite
     return RecommendationResult(places=top_places)
 
 
-def _filter_by_activity(places: list[DomainPlace], user_activities: List[str], all_activities: List[Activity]):
-    # Không có activity user -> giữ nguyên
-    if not user_activities:
+def _filter_by_activity(places: list[DomainPlace], activities: List[str]):
+    if not activities:
         return places
 
-    user_activity_set = set(user_activities)
-
-    # Tập hợp activity code hợp lệ trong DB
-    valid_activity_codes = {a.code for a in all_activities}
-
-    filtered = []
-
-    for p in places:
-        # Lọc activity của place từ tags
-        place_activity_set = {
-            t for t in p.tags
-            if t in valid_activity_codes
-        }
-
-        # Nếu có ít nhất 1 tag activity trùng với user
-        if place_activity_set & user_activity_set:
-            filtered.append(p)
-
-    return filtered
+    return [p for p in places if p.match_any_tags(activities)]
 
 def _filter_by_hobby(places: list[DomainPlace], hobbies: list[str]):
     """Loại bỏ địa điểm không có bất kỳ tag nào trùng với sở thích người dùng.
@@ -198,7 +176,7 @@ def _filter_by_current_time(places: list[DomainPlace]):
 
     current_time = get_current_hour()
     time_tag = time_to_tag(current_time)
-    unsafe_tags = UNSAFE_BY_TIME_TAG.get(time_tag, set())
+    unsafe_tags = UNSAFE_BY_TIME_TAG.get(time_tag)
 
     return [
         p for p in places
@@ -278,7 +256,7 @@ def _score_place(place: DomainPlace, criteria: RecommendationCriteria, tags: Lis
     total_score += _score_rating(criteria, place)
 
     # 6.4 History penalty
-    total_score *= 1 - _penalty_by_history(place, user)
+    total_score *= _penalty_by_history(place, user)
 
     return total_score
 
@@ -293,59 +271,49 @@ TAG_TYPE_WEIGHT = {
     "weather": 5,
 }
 
-def _score_hobbies(criteria: RecommendationCriteria, place: DomainPlace, tags: List[Tag]) -> float:
 
+def _score_hobbies(criteria: RecommendationCriteria, place: DomainPlace, tags: List[Tag]) -> float:
     user_hobbies = criteria.extra_tags or []
     place_tags = place.tags or []
 
     if not user_hobbies:
         return 0.0
 
-    # ----- Bảng tra cứu: tag_code -> group -----
-    tag_group_map: dict[str, str] = {}
-    for t in tags:
-        if t.group:                      # chỉ nhận tag có group hợp lệ
-            tag_group_map[t.id] = t.group
+    # 1. Tạo bảng tra cứu Tag -> Group bằng Dictionary Comprehension
+    tag_group_map = {t.id: t.group for t in tags if t.group}
 
-    # ----- Gom hobby user theo group -----
+    # 2. Gom sở thích người dùng theo nhóm (User Hobbies by Group)
     user_by_group: dict[str, set[str]] = {}
     for code in user_hobbies:
         group = tag_group_map.get(code)
-        if not group:
-            continue
-        user_by_group.setdefault(group, set()).add(code)
+        if group and TAG_TYPE_WEIGHT.get(group, 0) > 0:  # Chỉ gom nhóm có trọng số > 0
+            user_by_group.setdefault(group, set()).add(code)
 
-    # ----- Gom place tag theo group -----
+    # 3. Gom tag địa điểm theo nhóm (Place Tags by Group)
     place_by_group: dict[str, set[str]] = {}
     for code in place_tags:
         group = tag_group_map.get(code)
-        if not group:
-            continue
-        place_by_group.setdefault(group, set()).add(code)
+        if group:
+            place_by_group.setdefault(group, set()).add(code)
 
     total_score = 0.0
 
-    # ----- Tính điểm theo group -----
+    # 4. Tính điểm và tích lũy
     for group, user_codes in user_by_group.items():
-        weight = TAG_TYPE_WEIGHT.get(group, 0)
-        if weight == 0:
-            continue
-
+        # Trọng số đã được kiểm tra > 0 ở bước 2
+        weight = TAG_TYPE_WEIGHT[group]
         place_codes = place_by_group.get(group)
-        if not place_codes:
-            continue
 
-        # số tag trùng
-        match_count = len(user_codes.intersection(place_codes))
-        if match_count == 0:
-            continue
+        if place_codes:
+            # Số tag trùng
+            match_count = len(user_codes.intersection(place_codes))
 
-        # tổng số hobby user trong group
-        total_user_tags = len(user_codes)
+            if match_count > 0:
+                total_user_tags = len(user_codes)
 
-        # công thức chuẩn: (match / total_user_hobbies_group) * weight
-        score = (match_count / total_user_tags) * weight
-        total_score += score
+                # Tính điểm: (match / total_user_hobbies_group) * weight
+                score = (match_count / total_user_tags) * weight
+                total_score += score
 
     return total_score
 
@@ -392,14 +360,11 @@ def _penalty_by_history(place: DomainPlace, user: DomainUser) -> float:
     MAX_COUNT = 7
 
     n = user.get_reco_count_by_place_id(place.id)
+    if n <= MAX_COUNT:
+        return n * 0.1
 
-    # Biến đếm theo chu kỳ 0-7
-    counter = n % (MAX_COUNT + 1)
-
-    # Tính giảm điểm theo biến đếm
-    penalty_percentage = max(0.0, (MAX_COUNT + 1 - counter) * 0.1 * (counter != 0))
-
-    return penalty_percentage
+    # Nếu count lỗi(out of range [0,7] thì giữ nguyên
+    return 1
 
 
 def _to_api_dict(place: DomainPlace) -> dict:
