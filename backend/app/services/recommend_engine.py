@@ -141,6 +141,7 @@ def _filter_by_hobby(places: list[DomainPlace], hobbies: list[str]):
     return [p for p in places if any(tag in hobby_set for tag in p.tags)]
 
 max_distance_by_duration = {
+
     "#Moment": 5,
     "#FewHours": 10,
     "#LongTime": 20,
