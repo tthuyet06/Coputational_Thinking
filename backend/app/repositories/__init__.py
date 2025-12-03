@@ -5,6 +5,7 @@ from .place_repository import PlaceRepository
 from .hobby_repository import HobbyRepository
 from .favorite_repository import FavoriteRepository
 from .tag_repository import TagRepositoryImpl
+from .activity_repository import ActivityRepository
 
 __all__ = [
     "UserRepository",
@@ -12,4 +13,5 @@ __all__ = [
     "HobbyRepository",
     "FavoriteRepository",
     "TagRepositoryImpl",
+    "ActivityRepository"
 ]

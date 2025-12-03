@@ -55,6 +55,13 @@ class User(Base):
         back_populates="user",
         cascade="all, delete-orphan",
     )
+
+    history_items = relationship(
+        "History",
+        back_populates="user",
+        cascade="all, delete-orphan"
+    )
+
 class Tag(Base):
     __tablename__ = "tags"
 
@@ -176,3 +183,25 @@ class RefreshToken(Base):
 
     # Quan hệ ngược về User (phải KHỚP với User.refresh_tokens)
     user = relationship("User", back_populates="refresh_tokens")
+
+
+# ============================================================
+# HISTORY
+# ============================================================
+class History(Base):
+    __tablename__ = "history"
+    # User ID: Khóa ngoại trỏ về users.id
+    user_id = Column(
+        PG_UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        primary_key=True,
+        nullable=False
+    )
+
+    place_id = Column(Integer, primary_key=True, nullable=False)
+    reco_count = Column(Integer, default=0)
+    date = Column(DateTime)  # Mapping với field 'time' bên domain
+
+    # Relationship ngược về User
+    # Tên 'history_items' phải khớp với relationship bên model User
+    user = relationship("User", back_populates="history_items")

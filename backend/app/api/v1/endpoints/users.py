@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session
 from backend.app.db.db_connection import get_db
 from backend.app.db import models
-from typing import Optional, Dict, Any
+
 from fastapi.security import APIKeyHeader
 from fastapi import APIRouter, Depends, HTTPException, Security, Header
 from starlette import status
@@ -9,18 +9,12 @@ from starlette import status
 from backend.app.schemas.schemas import (
     UserResponse,
     UpdateUserRequest,
-    UpdateHobbiesRequest,
-    UpdateHobbiesResponse,
-    FavoriteRequest,
-    Place
 )
 
 from backend.app.services.user_service import (
     get_profile,
     update_name,
-    update_hobbies,
-    list_favorites,
-    toggle_favorite
+
 )
 
 from backend.app.core.dependencies import get_current_user

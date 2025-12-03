@@ -24,7 +24,7 @@ def seed_hobbies(db: Session):
         if exists:
             continue
 
-        db.add(models.Hobby(code=code, label_en=label))
+        db.add(models.Hobby(code=code, name=label))
         print(f"✔ Added hobby: {code}")
 
     db.commit()

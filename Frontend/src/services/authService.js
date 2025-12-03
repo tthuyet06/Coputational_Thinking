@@ -1,4 +1,8 @@
+// Thay đổi đầu file:
 import api from "../api";
+import toErrorMessage from "../utils/toErrorMessage"; // <--- Thêm import này
+
+// Xóa hoàn toàn hàm const pickErrorMessage = (...) => { ... };
 
 const pickErrorMessage = (error, fallback) => {
   if (!error?.response) return error?.message || "Network error";

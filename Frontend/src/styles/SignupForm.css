@@ -120,17 +120,6 @@
   background: #333;
 }
 
-.login-link:hover {
-  text-decoration: underline;
-  font-weight: 700;
-  font-size: 18px;            
-  border: none;
-  border-radius: 10px;
-  padding: 16px;
-  cursor: pointer;
-  margin-top: 8px;
-  transition: background 0.2s ease, transform 0.02s ease-in-out;
-}
 .btn-continue:hover { background: #333; }
 .btn-continue:active { transform: translateY(1px); }
 

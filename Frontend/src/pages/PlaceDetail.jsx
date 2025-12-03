@@ -1,65 +1,60 @@
-import React, { useMemo, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import React, { useState } from "react";
+import { useNavigate, useParams, useLocation } from "react-router-dom";
 import Navbar from "../components/layouts/Navbar";
 import "../styles/PlaceDetail.css";
+// 💡 IMPORT COMPONENTS MỚI
+import { DirectionButton, FavoriteButton } from "../components/common/ActionButtons"; 
 
-const MOCK = {
-  "running-bean": {
-    id: "running-bean",
-    title: "The Running Bean Coffee",
-    hero:
-      "https://hatiencorp.vn/wp-content/uploads/2020/08/bep-nha-hang-the-running-bean.jpg",
-    description:
-      "The Running Bean is a modern café & brunch spot located in the heart of Ho Chi Minh City...",
-    detail:
-      "The Running Bean is a modern café & brunch spot located in the heart of Ho Chi Minh City, offering a cozy yet captivating atmosphere perfect for individuals, friends, and families alike. Known for its blend of high-quality locally roasted coffee and a diverse brunch menu — from classics like egg sandwiches and avocado toasts to more creative options like smoothie bowls — The Running Bean delivers a delightful “from morning till afternoon” dining experience.",
-    hashtags: ["CreativeVibe", "ChillMood", "CoffeeGoals", "CityCalm", "SaigonSpot"],
-    openingHours: "8:30 AM – 9:30 PM",
-    activities: "Dinning - Coffee",
-    setting: "Indoor - Outdoor",
-    priceRange: "Medium - High",
-    address: "33 Mac Thi Buoi Street, District 1, Ho Chi Minh City",
-    // coords: { lat: 10.7754914016056, lng: 106.70486653828021 }, // (tuỳ chọn) thêm nếu bạn muốn mở đúng toạ độ
-  },
-  "timezone-arcade": {
-    id: "timezone-arcade",
-    title: "TimeZone – Indoor Arcade",
-    hero:
-      "https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=1600&auto=format&fit=crop",
-    description:
-      "A vibrant arcade in Saigon Centre featuring bowling, mini basketball and racing simulators.",
-    detail:
-      "A modern arcade experience in Saigon Centre featuring bowling, mini basketball, and racing simulators. Ideal for energetic groups or families looking to unwind.",
-    hashtags: ["PlayAndLaugh", "EnergeticMood", "FunVibes", "TeamChallenge", "ArcadeTime"],
-    openingHours: "10:00 AM – 10:00 PM",
-    activities: "Arcade - Bowling - Mini games",
-    setting: "Indoor",
-    priceRange: "Medium",
-    address: "5th Floor, Saigon Centre, 65 Le Loi, District 1",
-    // coords: { lat: 10.773337253342001, lng: 106.70103165732922 }, // (tuỳ chọn)
-  },
-};
 
 /* Helper: tạo URL chỉ đường (ưu tiên coords, fallback address) */
-function buildDirectionsUrl(place) {
-  const base = "https://www.google.com/maps/dir/?api=1";
-  const dest = place.coords
-    ? `${place.coords.lat},${place.coords.lng}`
-    : encodeURIComponent(place.address || place.title);
-  // origin dùng "Current Location" để Maps tự lấy vị trí người dùng
-  return `${base}&origin=Current+Location&destination=${dest}`;
-}
+// 💡 LOẠI BỎ HÀM buildDirectionsUrl() VÌ ĐÃ CHUYỂN SANG ActionButtons.jsx
+// function buildDirectionsUrl(place) {
+//   const base = "https://www.google.com/maps/dir/?api=1";
+//   const dest = place.coords
+//     ? `${place.coords.lat},${place.coords.lng}`
+//     : encodeURIComponent(place.address || place.title);
+//   // origin dùng "Current Location" để Maps tự lấy vị trí người dùng
+//   return `${base}&origin=Current+Location&destination=${dest}`;
+// }
 
 export default function PlaceDetail() {
-  const { id = "running-bean" } = useParams();
-  const data = useMemo(() => MOCK[id] ?? Object.values(MOCK)[0], [id]);
-  const [fav, setFav] = useState(false);
+  const { id } = useParams(); // Lấy ID từ URL
+  const location = useLocation();
   const navigate = useNavigate();
+  
+  // ⬅️ LẤY DATA TRUYỀN TỪ RESULTS (data tóm tắt)
+  const data = location.state?.place;
 
-  const openDirections = (e) => {
-    e.stopPropagation();
-    window.open(buildDirectionsUrl(data), "_blank", "noopener,noreferrer");
-  };
+  // ⬅️ KHÔNG CÓ DATA → F5 → TRẢ VỀ RESULTS
+  if (!data) {
+    navigate("/results");
+    return null;
+  }
+  
+  // Mặc định cho các trường chi tiết chưa có trong data
+  // Giả định tên trường API trả về: title, image, description, hashtags, address, fav
+  const place = {
+      // 💡 Lưu ý: DirectionButton cần place.name hoặc place.address, 
+      // ta thêm trường name và dùng title làm name tạm thời
+      name: data.title, 
+      title: data.title || "Tên địa điểm",
+      image: data.image || data.hero, 
+      description: data.description, 
+      hashtags: Array.isArray(data.hashtags) ? data.hashtags : [],
+      address: data.address,
+      coords: data.coords, // Giữ lại nếu bạn có tọa độ chi tiết hơn
+      // CÁC TRƯỜNG API CHƯA CUNG CẤP (để trống/N/A)
+      openingHours: "", 
+      activities: "",
+      setting: "",
+      priceRange: "",
+      detail: data.description, 
+      fav: data.fav || false
+  }
+
+  const [fav, setFav] = useState(place.fav);
+  
+  // 💡 openDirections không cần thiết nữa
 
   return (
     <>
@@ -71,89 +66,71 @@ export default function PlaceDetail() {
               <path d="M15 18 9 12l6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           </button>
-          <img src={data.hero} alt={data.title} />
+          {/* Sửa data.hero thành place.image */}
+          <img src={place.image} alt={place.title} />
         </div>
 
         <article className="detail-card">
           <header className="detail-header">
-            {/* ✅ Title 1 dòng */}
-            <h1 className="detail-title">{data.title}</h1>
+            {/* ✅ Title */}
+            <h1 className="detail-title">{place.title}</h1>
 
             <div className="detail-actions">
-              <button
-                className="icon-btn dir-btn"
-                onClick={openDirections}
-                aria-label={`Chỉ đường đến ${data.title}`}
-                title="Chỉ đường"
-                onMouseDown={(e) => e.preventDefault()} // tránh outline khi giữ chuột
-              >
-                {/* Nền diamond trắng + mũi tên rẽ phải đen */}
-                <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true">
-                  {/* Diamond (square xoay 45°) */}
-                  <rect x="3" y="3" width="18" height="18" rx="3"
-                        fill="#ffffff" transform="rotate(45 12 12)"/>
-                  {/* Arrow turn right (đơn giản, rõ nét) */}
-                  <path
-                    d="M9 16V12a3 3 0 0 1 3-3h3"
-                    fill="none"
-                    stroke="#111111"
-                    strokeWidth="2.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                  <path
-                    d="M14 7l4 4-4 4"
-                    fill="none"
-                    stroke="#111111"
-                    strokeWidth="2.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-              </button>
+              
+              {/* 💡 THAY THẾ NÚT CHỈ ĐƯỜNG */}
+              {/* Lưu ý: DirectionButton sử dụng buildDirectionsUrl đã chuyển, nó cần place object */}
+              <DirectionButton place={place} /> 
 
-              {/* ❤️ Yêu thích */}
-              <button
-                className={`fav-btn ${fav ? "is-fav" : ""}`}
-                onClick={() => setFav((v) => !v)}
-                aria-label={fav ? "Unfavorite" : "Favorite"}
-                title={fav ? "Bỏ yêu thích" : "Thêm vào yêu thích"}
-              >
-                <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true">
-                  <path d="M12 21s-6.7-4.1-9.6-7.6A6.1 6.1 0 0 1 12 5.3a6.1 6.1 0 0 1 9.6 8.1C18.7 16.9 12 21 12 21z" fill="currentColor"/>
-                </svg>
-              </button>
+              {/* 💡 THAY THẾ NÚT YÊU THÍCH */}
+              <FavoriteButton 
+                isFav={fav}
+                onToggle={() => setFav((v) => !v)}
+              />
             </div>
           </header>
 
-          <p className="detail-desc">{data.detail}</p>
+          {/* Sửa data.detail thành place.description (nếu muốn hiển thị mô tả tóm tắt) */}
+          <p className="detail-desc">{place.description}</p>
 
           <dl className="detail-meta">
             <div className="meta-row">
               <dt>Hashtags:</dt>
-              <dd className="tags">{data.hashtags.map((t) => `#${t}`).join(" ")}</dd>
+              {/* Sử dụng place.hashtags */}
+              <dd className="tags">{place.hashtags.map((t) => `#${t}`).join(" ")}</dd>
             </div>
+            
             <div className="meta-row">
               <dt>Opening Hours:</dt>
-              <dd>{data.openingHours}</dd>
+              {/* Trường thiếu: sẽ hiển thị trống */}
+              <dd>{place.openingHours}</dd>
             </div>
             <div className="meta-row">
               <dt>Activities:</dt>
-              <dd>{data.activities}</dd>
+              {/* Trường thiếu: sẽ hiển thị trống */}
+              <dd>{place.activities}</dd>
             </div>
             <div className="meta-row">
               <dt>Setting:</dt>
-              <dd>{data.setting}</dd>
+              {/* Trường thiếu: sẽ hiển thị trống */}
+              <dd>{place.setting}</dd>
             </div>
             <div className="meta-row">
               <dt>Price Range:</dt>
-              <dd>{data.priceRange}</dd>
+              {/* Trường thiếu: sẽ hiển thị trống */}
+              <dd>{place.priceRange}</dd>
             </div>
             <div className="meta-row">
               <dt>Address:</dt>
-              <dd><span className="pin">📍</span>{data.address}</dd>
+              {/* Trường có sẵn: sẽ hiển thị địa chỉ */}
+              <dd><span className="pin">📍</span>{place.address}</dd>
             </div>
           </dl>
+          
+          {/* Nếu bạn có một section dài hơn cho mô tả chi tiết, nhưng hiện tại dùng description */}
+          {/* <section className="detail-long-text">
+            {place.detail} 
+          </section> */}
+
         </article>
       </main>
     </>

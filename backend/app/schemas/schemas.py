@@ -1,10 +1,7 @@
 from typing import List, Optional
-from fastapi import FastAPI
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, field_validator
 from uuid import UUID
-
-
-
+from backend.app.utils.tag_parser import parse_comma_separated_string
 
 class RegisterRequest(BaseModel):
     email: EmailStr
@@ -18,6 +15,9 @@ class UserResponse(BaseModel):
     email: EmailStr
     username: str
     hobbies: Optional[List[str]] = []
+
+    class Config:
+        from_attributes = True
 
 
 class LoginRequest(BaseModel):
@@ -70,15 +70,25 @@ class RecommendRequest(BaseModel):
     latitude: float
     longitude: float
     duration_tag: str
+    activity: str
 
 
 class Place(BaseModel):
     id: int
     name: str
     address: str
-    image_url: str
-    description: str
-    tags: List[str]
+    image: Optional[str] = None
+    overview: Optional[str] = None
+    tags: List[str] = []
+
+    @field_validator('tags', mode='before')
+    @classmethod
+    def convert_tags(cls, v):
+        # Gọi hàm xử lý từ file tag_parser.py
+        return parse_comma_separated_string(v)
+
+    class Config:
+        from_attributes = True
 
 
 class RecommendResponse(BaseModel):
@@ -91,3 +101,28 @@ class FavoriteRequest(BaseModel):
 
 class UpdateUserRequest(BaseModel):
     username: str
+
+
+class UpdateActivitiesRequest(BaseModel):
+    """Request khi user muốn cập nhật activity của mình"""
+    activities: List[str]  # list code activity
+
+
+class UpdateActivitiesResponse(BaseModel):
+    """Response sau khi cập nhật activity"""
+    message: str
+    activities: List[str]  # list code activity đã chuẩn hóa
+
+
+class ActivityItem(BaseModel):
+    """Thông tin chi tiết 1 activity, cấu trúc giống HobbyItem"""
+    id: int
+    tag: str  # Đổi tên từ 'code' sang 'tag' để đồng nhất với Hobby
+    name: str
+
+    class Config:
+        from_attributes = True
+
+class ActivityTagsResponse(BaseModel):
+    """Response trả về danh sách activity với cấu trúc object đầy đủ"""
+    activities: List[ActivityItem]

@@ -1,5 +1,7 @@
 import { createContext, useState, useEffect } from "react";
 import authService from "../services/authService";
+// Nhập hàm xử lý lỗi đã được chuẩn hóa
+import toErrorMessage from "../utils/toErrorMessage"; 
 
 export const AuthContext = createContext();
 
@@ -29,6 +31,7 @@ export const AuthProvider = ({ children }) => {
         const me = await authService.getProfile();
         setUser(me?.user ?? me);
       } catch (err) {
+        // Nếu getProfile lỗi (token hết hạn/không hợp lệ)
         localStorage.removeItem("token");
         setUser(null);
       } finally {

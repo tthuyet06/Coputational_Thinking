@@ -1,29 +1,37 @@
+// src/pages/Preferences.jsx
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import Navbar from "../components/layouts/Navbar";
 import TagSelector from "../components/common/TagSelector";
 import "../styles/Preferences.css";
-import { useNavigate } from "react-router-dom";
 import preferenceAPI from "../services/preferenceAPI";
 
 export default function Preferences() {
   const navigate = useNavigate();
 
-  const [allHobbies, setAllHobbies] = useState([]);
-  const [selectedHobbies, setSelectedHobbies] = useState([]);
+  const [allHobbies, setAllHobbies] = useState([]);      // [{label,value}, ...]
+  const [selectedHobbies, setSelectedHobbies] = useState([]); // ["#cafe", ...]
 
   const [tagsLoading, setTagsLoading] = useState(true);
   const [tagsError, setTagsError] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
-  // 🔹 load list tag từ /tags/hobbies
+  // 🔹 Load list hobbies + hobbies hiện tại của user
   useEffect(() => {
-    const loadTags = async () => {
+    const load = async () => {
       try {
         setTagsLoading(true);
         setTagsError("");
-        const tags = await preferenceAPI.getHobbyTags();
-        setAllHobbies(tags);
+
+        // Lấy list tag (mock / DB)
+        const [options, myHobbies] = await Promise.all([
+          preferenceAPI.getHobbyTags(),
+          preferenceAPI.getMyHobbies(),
+        ]);
+
+        setAllHobbies(options);           // [{label,value}, ...]
+        setSelectedHobbies(myHobbies);    // ["#cafe", ...]
       } catch (err) {
         setTagsError(
           typeof err === "string" ? err : err?.message || "Failed to load hobbies"
@@ -32,7 +40,7 @@ export default function Preferences() {
         setTagsLoading(false);
       }
     };
-    loadTags();
+    load();
   }, []);
 
   const handleNext = async () => {
@@ -45,14 +53,15 @@ export default function Preferences() {
 
     try {
       setSaving(true);
-      // 🔹 lưu chọn lên /users/me/hobbies
+
+      // lưu sở thích lên BE
       await preferenceAPI.updateMyHobbies(selectedHobbies);
 
-      // (optional) lưu local để màn /results dùng tiếp
+      // lưu local để sau này cần dùng
       localStorage.setItem("hobbies", JSON.stringify(selectedHobbies));
 
-      // Chuyển qua màn chọn thời gian rảnh
-      navigate("/home");
+      // sang trang chọn thời gian rảnh
+      navigate("/activities");
     } catch (err) {
       setError(
         typeof err === "string" ? err : err?.message || "Failed to save hobbies"
@@ -75,6 +84,7 @@ export default function Preferences() {
         {!tagsLoading && !tagsError && (
           <TagSelector
             tags={allHobbies}
+            defaultSelected={selectedHobbies}
             onChange={setSelectedHobbies}
           />
         )}

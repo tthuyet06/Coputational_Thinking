@@ -1,28 +1,57 @@
 // src/services/preferenceAPI.js
-import api from "../api"; // 🔥 dùng lại axios instance hiện có
+import api from "../api";
 
-// Làm việc với hobbies (sở thích)
+/**
+ * API làm việc với sở thích (hobbies) & duration tags
+ */
 const preferenceAPI = {
-  // Lấy list tag sở thích từ DB
+  // 🔹 Lấy danh sách hobbies (mock từ backend)
   async getHobbyTags() {
-    // GET /api/v1/tags/hobbies  → { tags: [...] }
+    // BE: /api/v1/tags/hobbies
     const res = await api.get("/api/v1/tags/hobbies");
-    return res.data?.tags ?? [];
+
+    // Case 1: BE trả dạng { tags: ["#cafe", "#yen_tinh", ...] }
+    if (Array.isArray(res.data?.tags)) {
+      return res.data.tags.map((t, idx) => ({
+        id: idx + 1,
+        label: t.replace("#", "").replace(/_/g, " "),
+        value: t,
+        raw: t,
+      }));
+    }
+
+    // Case 2: BE mock như bạn gửi: { hobbies: [ { id, name, tag, ... }, ... ] }
+    if (Array.isArray(res.data?.hobbies)) {
+      return res.data.hobbies.map((hobby) => ({
+        id: hobby.id,
+        label: hobby.name, // hiển thị tên
+        value: hobby.tag,  // gửi tag cho backend
+        raw: hobby,
+      }));
+    }
+
+    return [];
   },
 
-  // Lấy hobbies hiện tại của user (nếu cần dùng ở Profile)
+  // 🔹 Lấy hobbies hiện tại của user (list string tag: ["#cafe", ...])
   async getMyHobbies() {
-    // Thường là trả { user: { ..., hobbies: [...] } }
     const res = await api.get("/api/v1/users/me");
-    return res.data?.user?.hobbies ?? res.data?.hobbies ?? [];
+    if (Array.isArray(res.data?.hobbies)) return res.data.hobbies;
+    if (Array.isArray(res.data?.user?.hobbies)) return res.data.user.hobbies;
+    return [];
   },
 
-  // Cập nhật hobbies cho user đang login
+  // 🔹 Cập nhật hobbies của user
   async updateMyHobbies(hobbies) {
-    // POST /api/v1/users/me/hobbies  body: { hobbies: [...] }
     const res = await api.post("/api/v1/users/me/hobbies", { hobbies });
-    // BE trả: { message, hobbies }
-    return res.data;
+    return res.data; // { message, hobbies }
+  },
+
+  // 🔹 Lấy duration tags cho trang Home
+  async getDurationTags() {
+    // BE: { duration_tags: [ { display_name, tag_id }, ... ] }
+    const res = await api.get("/api/v1/tags/durations");
+    return res.data?.duration_tags ?? [];
   },
 };
 
