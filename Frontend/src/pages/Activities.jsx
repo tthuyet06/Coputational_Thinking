@@ -1,4 +1,4 @@
-// src/pages/Preferences.jsx
+// src/pages/Activities.jsx
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../components/layouts/Navbar";
@@ -9,32 +9,35 @@ import activitiesAPI from "../services/activitiesAPI";
 export default function Activities() {
   const navigate = useNavigate();
 
-  const [allActivities, setAllActivities] = useState([]);      // [{label,value}, ...]
-  const [selectedActivities, setSelectedActivities] = useState([]); // ["#cafe", ...]
+  const [allActivities, setAllActivities] = useState([]);          // [{label,value}, ...]
+  const [selectedActivities, setSelectedActivities] = useState([]); // ["eating_out", ...]
 
   const [tagsLoading, setTagsLoading] = useState(true);
   const [tagsError, setTagsError] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
-  // 🔹 Load list Activities + Activities hiện tại của user
+  // 🔹 Load list Activities
   useEffect(() => {
     const load = async () => {
       try {
         setTagsLoading(true);
         setTagsError("");
 
-        // Lấy list tag (mock / DB)
-        const [options, myActivities] = await Promise.all([
-          activitiesAPI.getActivityTags(),
-          activitiesAPI.getMyActivities(),
-        ]);
+        const options = await activitiesAPI.getActivityTags();
+        setAllActivities(options);
 
-        setAllActivities(options);           // [{label,value}, ...]
-        setSelectedActivities(myActivities);    // ["#cafe", ...]
+        // nếu muốn load lại từ localStorage (optional)
+        const stored = localStorage.getItem("activities");
+        if (stored) {
+          const arr = JSON.parse(stored);
+          if (Array.isArray(arr)) setSelectedActivities(arr);
+        }
       } catch (err) {
         setTagsError(
-          typeof err === "string" ? err : err?.message || "Failed to load Activities"
+          typeof err === "string"
+            ? err
+            : err?.message || "Failed to load activities"
         );
       } finally {
         setTagsLoading(false);
@@ -54,17 +57,18 @@ export default function Activities() {
     try {
       setSaving(true);
 
-      // lưu sở thích lên BE
-      await activitiesAPI.updateMyActivities(selectedActivities);
+      // BE không có API lưu activities ⇒ chỉ lưu local
+      localStorage.setItem(
+        "activities",
+        JSON.stringify(selectedActivities)
+      );
 
-      // lưu local để sau này cần dùng
-      localStorage.setItem("activities", JSON.stringify(selectedActivities));
-
-      // sang trang chọn thời gian rảnh
       navigate("/home");
     } catch (err) {
       setError(
-        typeof err === "string" ? err : err?.message || "Failed to save activities"
+        typeof err === "string"
+          ? err
+          : err?.message || "Failed to save activities"
       );
     } finally {
       setSaving(false);

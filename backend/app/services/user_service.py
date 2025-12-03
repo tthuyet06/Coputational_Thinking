@@ -1,7 +1,7 @@
 # backend/app/services/user_service.py
 
 from typing import List, Dict, Any
-from fastapi import HTTPException
+from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
 from backend.app.db import models
@@ -108,9 +108,9 @@ def update_name(db: Session, user: models.User, username: str) -> models.User:
 # SỞ THÍCH (HOBBIES) CỦA USER
 # ============================================================
 def update_hobbies(
-    db: Session,
-    user: models.User,
-    hobbies: List[str] | None,
+        db: Session,
+        user: models.User,
+        hobbies: List[str] | None,
 ) -> List[str]:
     """
     Cập nhật danh sách sở thích cho user.
@@ -122,7 +122,7 @@ def update_hobbies(
     # B2: Validate với DB (Thay vì dùng list cứng)
     # Lấy tất cả code hợp lệ từ bảng 'hobbies'
     valid_hobbies_db = db.query(Hobby.code).all()
-    
+
     # Tạo một set chứa các code hợp lệ (vd: {"#cafe", "#an_vat"})
     allowed_set = {h.code for h in valid_hobbies_db}
 
@@ -146,9 +146,9 @@ def update_hobbies(
 # HOẠT ĐỘNG (ACTIVITIES) CỦA USER
 # ============================================================
 def update_activities(
-    db: Session,
-    user: models.User,
-    activities: List[str] | None,
+        db: Session,
+        user: models.User,
+        activities: List[str] | None,
 ) -> List[str]:
     """
     Cập nhật danh sách hoạt động (activities) cho user.
@@ -180,34 +180,22 @@ def update_activities(
     # B5: Trả về danh sách đã chuẩn hóa
     return normalized
 
+
 # ============================================================
-# FAVORITES (ĐỊA ĐIỂM YÊU THÍCH)
+# FAVORITES (YÊU THÍCH)
 # ============================================================
 def list_favorites(db: Session, user: models.User) -> List[Dict[str, Any]]:
     """
-    Lấy danh sách địa điểm yêu thích của user hiện tại.
-
-    Output: list các dict có format của schema Place:
-    {
-        "id": int,
-        "name": str,
-        "address": str,
-        "image_url": str,
-        "description": str,
-        "tags": List[str],
-    }
-
-    - Dùng FavoriteRepository để lấy các favorite (user_id, place_id)
-    - Dùng PlaceRepository để lấy thông tin chi tiết địa điểm + map sang domain.Place
+    Lấy danh sách địa điểm yêu thích của user.
     """
     favorites = fav_repo.list_by_user(db, user.id)
 
     results: List[Dict[str, Any]] = []
 
     for fav in favorites:
+        # Lấy Place từ repo
         orm_place = place_repo.get_by_id(db, fav.place_id)
         if not orm_place:
-            # Nếu place bị xóa khỏi DB thì bỏ qua
             continue
 
         domain_place = place_repo.to_domain(orm_place)
@@ -217,8 +205,8 @@ def list_favorites(db: Session, user: models.User) -> List[Dict[str, Any]]:
                 "id": domain_place.id,
                 "name": domain_place.name,
                 "address": domain_place.address or "",
-                "image_url": domain_place.image or "",
-                "description": domain_place.overview or "",
+                "image": getattr(domain_place, "image", "") or getattr(domain_place, "image_url", "") or "",
+                "overview": getattr(domain_place, "overview", "") or getattr(domain_place, "description", "") or "",
                 "tags": domain_place.tags,
             }
         )
@@ -226,25 +214,47 @@ def list_favorites(db: Session, user: models.User) -> List[Dict[str, Any]]:
     return results
 
 
-def toggle_favorite(
-    db: Session,
-    user: models.User,
-    place_id: int,
+def add_favorite_item(
+        db: Session,
+        user: models.User,
+        place_id: int,
 ) -> Dict[str, str]:
     """
-    Thêm / bỏ địa điểm khỏi danh sách yêu thích của user.
-
-    - Nếu place không tồn tại -> 404
-    - Nếu đã là favorite -> xóa & trả message "Removed from favorites"
-    - Nếu chưa -> thêm & trả message "Saved to favorites"
+    Thêm địa điểm vào danh sách yêu thích.
     """
+    # 1. Kiểm tra Place tồn tại
     place = place_repo.get_by_id(db, place_id)
     if not place:
-        raise HTTPException(status_code=404, detail="Place not found.")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Place not found")
 
-    if fav_repo.is_favorite(db, user.id, place_id):
-        fav_repo.remove(db, user.id, place_id)
-        return {"message": "Removed from favorites"}
+    # 2. Kiểm tra đã favorite chưa
+    existing_fav = fav_repo.is_favorite(db, user.id, place_id)
+
+    if existing_fav:
+        raise HTTPException(status_code=422, detail="Already saved to favorites")
     else:
         fav_repo.add(db, user.id, place_id)
         return {"message": "Saved to favorites"}
+
+
+def remove_favorite_item(
+        db: Session,
+        user: models.User,
+        place_id: int,
+) -> Dict[str, str]:
+    """
+    Bỏ địa điểm khỏi danh sách yêu thích.
+    """
+    # 1. Kiểm tra Place tồn tại
+    place = place_repo.get_by_id(db, place_id)
+    if not place:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Place not found")
+
+    # 2. Kiểm tra đã favorite chưa
+    existing_fav = fav_repo.is_favorite(db, user.id, place_id)
+
+    if existing_fav:
+        fav_repo.remove(db, user.id, place_id)
+        return {"message": "Removed from favorites"}
+    else:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Not in favorites, no action needed")

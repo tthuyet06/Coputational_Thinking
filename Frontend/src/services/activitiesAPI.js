@@ -32,27 +32,6 @@ const activitiesAPI = {
 
     return [];
   },
-
-  // 🔹 Lấy activities hiện tại của user (list string tag: ["#cafe", ...])
-  async getMyActivities() {
-    const res = await api.get("/api/v1/users/me");
-    if (Array.isArray(res.data?.activities)) return res.data.activities;
-    if (Array.isArray(res.data?.user?.activities)) return res.data.user.activities;
-    return [];
-  },
-
-  // 🔹 Cập nhật hobbies của user
-  async updateMyActivities(activities) {
-    const res = await api.post("/api/v1/users/me/activities", { activities });
-    return res.data; // { message, hobbies }
-  },
-
-  // 🔹 Lấy duration tags cho trang Home
-  async getDurationTags() {
-    // BE: { duration_tags: [ { display_name, tag_id }, ... ] }
-    const res = await api.get("/api/v1/tags/durations");
-    return res.data?.duration_tags ?? [];
-  },
 };
 
 export default activitiesAPI;

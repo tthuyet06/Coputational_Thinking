@@ -1,13 +1,14 @@
+# backend/app/api/v1/endpoints/tags.py
 from sqlalchemy.orm import Session
 from backend.app.db.db_connection import get_db
 from fastapi import APIRouter
-from backend.app.schemas.schemas import HobbyTagsResponse, DurationTagResponse, ActivityCodesResponse
+from backend.app.schemas.schemas import HobbyTagsResponse, DurationTagResponse, ActivityTagsResponse
 from fastapi import Depends
-from backend.app.db.models import Hobby, Activity
 
 from backend.app.services.user_service import (
     list_duration_tags,
 )
+from backend.app.services import tag_service # <--- Thêm service mới
 
 router = APIRouter(prefix="/tags", tags=["tags"])
 
@@ -16,36 +17,26 @@ router = APIRouter(prefix="/tags", tags=["tags"])
 def get_hobbies_list(db: Session = Depends(get_db)):
     """
     GET /api/v1/tags/hobbies
-    - Lấy dữ liệu thật từ bảng 'hobbies'.
-    - Map field 'code' -> 'tag'.
-    - Map field 'label_en' -> 'name'.
+    - Gọi tag_service.list_hobby_tags() để lấy và map dữ liệu.
     """
-
-    # 1. Query tất cả hobby từ DB
-    hobbies_db = db.query(Hobby).all()
-
-    # 2. Map dữ liệu để khớp với Schema HobbyItem
-    results = []
-    for h in hobbies_db:
-        results.append({
-            "id": h.id,
-            "tag": h.code,  # DB là 'code' (vd: #cafe)
-            "name": h.name  # DB là 'label_en' (vd: Coffee)
-        })
-
+    # Logic đã chuyển sang tag_service
+    results = tag_service.list_hobby_tags(db)
     return {"hobbies": results}
 
-@router.get("/activities", response_model=ActivityCodesResponse, summary="Danh sách tag hoạt động")
+@router.get("/activities", response_model=ActivityTagsResponse, summary="Danh sách tag hoạt động")
 def get_activities_list(db: Session = Depends(get_db)):
-    codes = db.query(Activity.code).all()
-    results = [code[0] for code in codes]
+    """
+    GET /api/v1/tags/activities
+    - Gọi tag_service.list_activity_tags() để lấy và map dữ liệu.
+    """
+    # Logic đã chuyển sang tag_service
+    results = tag_service.list_activity_tags(db)
     return {"activities": results}
 
 @router.get("/durations", response_model=DurationTagResponse, summary="Danh sách tag thời lượng")
 def get_duration_tags():
     """
     GET /api/v1/tags/durations
-    - Public.
-    - Gọi service list_duration_tags() để lấy 3 lựa chọn theo hợp đồng API.
+    - Gọi service list_duration_tags() (từ user_service)
     """
     return {"duration_tags": list_duration_tags()}
