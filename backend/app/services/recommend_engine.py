@@ -395,5 +395,5 @@ def _to_api_dict(place: DomainPlace) -> dict:
         "tags": place.tags,
         "rating": place.rating or "",
         "open": place.open or "",
-        "close": place.close or "",
+        # "close": place.close or "",
     }
