@@ -105,12 +105,20 @@ export default function Results() {
       const parsed = stored ? JSON.parse(stored) : null;
       const duration_tag = parsed?.tag_id;
 
+      const storedActs = localStorage.getItem("activities");
+      const parsedActs = storedActs ? JSON.parse(storedActs) : [];
+      const activity = parsedActs[0];
+
       if (!duration_tag) {
         setError("Missing duration selection. Please go back and choose your free time.");
         setItems([]);
         return;
       }
-      
+      if (!activity) {
+        setError("Please select an activity before searching.");
+        setItems([]);
+        return;
+      }
       // Chọn tọa độ: ưu tiên geoLoc, nếu không có thì dùng default
       const latitude = geoLoc?.lat ?? DEFAULT_LATITUDE;
       const longitude = geoLoc?.lng ?? DEFAULT_LONGITUDE;
@@ -125,6 +133,7 @@ export default function Results() {
         latitude,
         longitude,
         duration_tag,
+        activity,
       });
 
       // Map dữ liệu API về cấu trúc hiển thị

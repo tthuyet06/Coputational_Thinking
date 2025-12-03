@@ -66,11 +66,11 @@ class DurationTagResponse(BaseModel):
     duration_tags: List[DurationTag]
 
 
-class RecommendRequest(BaseModel):
+class RecommendationRequest(BaseModel):
     latitude: float
     longitude: float
     duration_tag: str
-    activity: str
+    activity: List[str] | None = None
 
 
 class Place(BaseModel):
@@ -91,7 +91,7 @@ class Place(BaseModel):
         from_attributes = True
 
 
-class RecommendResponse(BaseModel):
+class RecommendationResponse(BaseModel):
     recommendations: List[Place]
 
 
