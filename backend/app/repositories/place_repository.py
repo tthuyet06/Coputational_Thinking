@@ -45,8 +45,6 @@ class PlaceRepository:
             image=place.image,
             tags=tags,
             rating=rating,
-            open=open,
-            close=close,
         )
 
     def get_all_as_domain(self, db: Session) -> List[DomainPlace]:

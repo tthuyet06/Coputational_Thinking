@@ -8,7 +8,6 @@ from typing import List
 class Place:
     """
     Thực thể Place ở tầng domain.
-
     Tối thiểu bám sát bảng places
     """
     id: int
@@ -22,8 +21,8 @@ class Place:
     summarization: str | None = None
     tags: List[str] = field(default_factory=list)
     rating: float | None = None
-    open: str | None = None
-    close: str | None = None
+    # open: str | None = None
+    # close: str | None = None
 
     def has_tag(self, tag: str) -> bool:
         """

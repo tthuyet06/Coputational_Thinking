@@ -14,12 +14,13 @@ from backend.app.domain.recommendation import (
 from backend.app.repositories import (UserRepository, PlaceRepository, TagRepositoryImpl, ActivityRepository)
 from backend.app.utils.geo_utils import haversine_distance
 from backend.app.services.weather_service import get_current_weather_data, get_main_weather, normalize_weather_tag
-from backend.app.utils.time_utils import get_current_hour, to_decimal_hours
+from backend.app.utils.time_utils import get_current_hour, to_decimal_hours, get_week_day
 
 user_repo = UserRepository()
 place_repo = PlaceRepository()
 tag_repo = TagRepositoryImpl()
-# history_repo = HistoryRepository()
+# opening_hours_repo = OpeningHoursRepository()
+
 
 def get_recommendations(
     db: Session,
@@ -136,9 +137,7 @@ def _filter_by_hobby(places: list[DomainPlace], hobbies: list[str]):
     if not hobbies:
         return places
 
-    hobby_set = set(hobbies)
-
-    return [p for p in places if any(tag in hobby_set for tag in p.tags)]
+    return [p for p in places if p.match_any_tags(hobbies)]
 
 max_distance_by_duration = {
     "#Moment": 5,
@@ -206,8 +205,29 @@ def _filter_by_current_time(places: list[DomainPlace]):
         if not any(tag in unsafe_tags for tag in p.tags)
     ]
 
+# def _filter_by_opening_hours(criteria: RecommendationCriteria, places: list[DomainPlace]) -> list[DomainPlace]:
+    def is_open_now(start, end, now) -> bool:
+        """Kiểm tra giờ mở cửa.
+        Nếu start == end == 0 -> mở 24/7.
+        Nếu start == end == NULL -> Đóng cửa.
+        Nếu end < start -> mở qua đêm."""
+        if place.open == place.close:
+            if place.open == "NULL":
+                return False
+            else: # place.open == 0
+                return True
 
-def _filter_by_opening_hours(criteria: RecommendationCriteria, places: list[DomainPlace]) -> list[DomainPlace]:
+    # week_day = get_week_day()
+    # list_placed_id = opening_hours_repo.filter_by_week_day(week_day)
+    # current_hours = get_current_hours()
+
+    fiter = []
+
+    # for p in places:
+    #   for
+
+
+# def _filter_by_opening_hours(criteria: RecommendationCriteria, places: list[DomainPlace]) -> list[DomainPlace]:
     """Trả về các địa điểm đang mở cửa tại current_hour.
     - Hỗ trợ mở qua đêm (vd 22 -> 03)"""
 
@@ -394,6 +414,6 @@ def _to_api_dict(place: DomainPlace) -> dict:
         "description": place.overview or "",
         "tags": place.tags,
         "rating": place.rating or "",
-        "open": place.open or "",
-        "close": place.close or "",
+        # "open": place.open or "",
+        # "close": place.close or "",
     }
