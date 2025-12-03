@@ -70,6 +70,7 @@ class RecommendRequest(BaseModel):
     latitude: float
     longitude: float
     duration_tag: str
+    activity: str
 
 
 class Place(BaseModel):

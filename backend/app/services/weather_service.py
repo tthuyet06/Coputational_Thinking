@@ -34,3 +34,36 @@ def get_current_weather_data(lat: float, lon: float) -> Dict[str, Any]:
     except requests.exceptions.RequestException as e:
         # Lỗi kết nối mạng/timeout
         raise HTTPException(status_code=500, detail=f"Connection error: {str(e)}")
+
+
+def get_main_weather(weather_data: Dict[str, Any]) -> str:
+    return weather_data['weather'][0]['main']
+
+
+def normalize_weather_tag(main_weather: str) -> str:
+    """Chuyển đổi giá trị 'main' của OpenWeatherMap thành tag chuẩn hóa.
+    Nếu không khớp với các giá trị được định nghĩa, sẽ trả về tag
+    viết thường với dấu # ở đầu."""
+    w = main_weather.lower()
+
+    match w:
+        case "clear":
+            return "#sunny"
+        case "clouds":
+            return "#cloudy"
+        case "rain":
+            return "#rain"
+        case "drizzle":
+            return "#rain"
+        case "thunderstorm":
+            return "#storm"
+        case "snow":
+            return "#snow"
+
+        case "mist" | "smoke" | "haze" | "dust" | "fog" | "sand" | "ash":
+            return "#misty"
+        case "squall" | "tornado":
+            return "#extreme"
+
+        case _:
+            return f"#{w}"
