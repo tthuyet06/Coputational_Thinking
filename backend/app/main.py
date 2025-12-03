@@ -6,7 +6,7 @@ from backend.app.api.v1.routers import api_router
 from backend.app.db.init_db import create_all
 
 app = FastAPI(title="MoodyTrip API")
-
+create_all()
 # =======================================================
 # ✅ 2. THÊM ĐOẠN NÀY ĐỂ BẬT CORS
 # =======================================================
