@@ -30,8 +30,6 @@ async def recommend_places(
         user=current_user
     )
 
-
-
     if not results:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
