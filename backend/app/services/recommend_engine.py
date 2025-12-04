@@ -1,6 +1,23 @@
 from typing import List, Dict, Any
 from sqlalchemy.orm import Session
 
+import sys
+import os
+
+# Tính toán đường dẫn gốc của dự án (Computonal_Thinking)
+# os.path.dirname(__file__) là services/
+# .. là app/
+# .. là backend/
+# .. là Computonal_Thinking/ (Project Root)
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
+
+if project_root not in sys.path:
+    sys.path.append(project_root)
+
+# LƯU Ý: Các lệnh import khác (như from backend.app.db import models)
+# phải nằm DƯỚI đoạn code này.
+# ...
+
 from backend.app.db import models
 from backend.app.domain.user import User as DomainUser
 from backend.app.domain.place import Place as DomainPlace
@@ -11,7 +28,12 @@ from backend.app.domain.recommendation import (
     RecommendationCriteria,
     RecommendationResult,
 )
-from backend.app.repositories import (UserRepository, PlaceRepository, TagRepositoryImpl, ActivityRepository)
+from backend.app.repositories import (
+    UserRepository,
+    PlaceRepository,
+    TagRepositoryImpl,
+    ActivityRepository
+)
 from backend.app.utils.geo_utils import haversine_distance
 from backend.app.services.weather_service import get_current_weather_data, get_main_weather, normalize_weather_tag
 from backend.app.utils.time_utils import get_current_hour, to_decimal_hours
@@ -19,7 +41,6 @@ from backend.app.utils.time_utils import get_current_hour, to_decimal_hours
 user_repo = UserRepository()
 place_repo = PlaceRepository()
 tag_repo = TagRepositoryImpl()
-# history_repo = HistoryRepository()
 
 def get_recommendations(
     db: Session,
@@ -48,8 +69,6 @@ def get_recommendations(
 def _recommend_core(db: Session, user: DomainUser, criteria: RecommendationCriteria) -> RecommendationResult:
     all_places: List[DomainPlace] = place_repo.get_all_as_domain(db)
     places = [p for p in all_places if p.lat is not None and p.lon is not None]
-    # all_history: List[DomainHistory] = history_repo.get_all_as_domain(db)
-    # history = [p.id for p.id in all_history]
 
     # 1. Loại cứng theo Activity
     places = _filter_by_activity(places, criteria.activities)
@@ -83,7 +102,6 @@ def _recommend_core(db: Session, user: DomainUser, criteria: RecommendationCrite
     # places = _filter_by_opening_hours(criteria, places)
 
     # 6. Tính điểm từng địa điểm
-    history = []
     tags = tag_repo.get_all(db)
     scored: list[tuple[float, DomainPlace]] = []
 
@@ -100,6 +118,9 @@ def _recommend_core(db: Session, user: DomainUser, criteria: RecommendationCrite
     # Cập nhật history của user
     for p in top_places:
         user.update_history(p.id)
+
+    # Lưu lịch sử vào db
+    # user.save(db, user)
 
     return RecommendationResult(places=top_places)
 
@@ -118,21 +139,37 @@ def _filter_by_hobby(places: list[DomainPlace], hobbies: list[str]):
 
     return [p for p in places if p.match_any_tags(hobbies)]
 
-max_distance_by_duration = {
+Duration_Data = {
+    "#moment": {
+        "max_distance": 5,
+        "min_stay_time": 1
+    },
 
-    "#Moment": 5,
-    "#FewHours": 10,
-    "#LongTime": 20,
+    "#few_hours": {
+        "max_distance": 10,
+        "min_stay_time": 2,
+    },
+
+    "#long_time": {
+        "max_distance": 20,
+        "min_stay_time": 3
+    },
 }
 
 def _filter_by_gps(places: list[DomainPlace], loc: Location, duration_tag: str):
+    max_distance_by_duration = Duration_Data.get(duration_tag, {}).get("max_distance")
+
+    if max_distance_by_duration is None:
+        return places
+
     out = []
+
     for p in places:
         try:
             d = haversine_distance(loc.latitude, loc.longitude, p.lat, p.lon)
         except:
             continue
-        if d <= max_distance_by_duration.get(duration_tag):
+        if d <= max_distance_by_duration:
             out.append(p)
     return out
 
@@ -229,14 +266,17 @@ def _score_place(place: DomainPlace, criteria: RecommendationCriteria, tags: Lis
     # 6.1 Hobby tag matching - 50%
     total_score += _score_hobbies(criteria, place, tags)
 
-    # 6.2 Distance - 30%
+    # 6.2 Distance - 20%
     total_score += _score_distance(criteria, place)
 
     # 6.3 Rating - 20%
     total_score += _score_rating(criteria, place)
 
+    # 6.4 Duration - 10%
+    total_score += _score_time_relevance(criteria, place)
+
     # 6.4 History penalty
-    total_score *= _penalty_by_history(place, user)
+    total_score *= 1 - _penalty_by_history(place, user)
 
     return total_score
 
@@ -250,7 +290,6 @@ TAG_TYPE_WEIGHT = {
     "view": 8,
     "weather": 5,
 }
-
 
 def _score_hobbies(criteria: RecommendationCriteria, place: DomainPlace, tags: List[Tag]) -> float:
     user_hobbies = criteria.extra_tags or []
@@ -299,9 +338,9 @@ def _score_hobbies(criteria: RecommendationCriteria, place: DomainPlace, tags: L
 
 def _score_distance(criteria: RecommendationCriteria, place: DomainPlace) -> float:
     distance = haversine_distance(criteria.location.latitude, criteria.location.longitude, place.lat, place.lon)
-    max_distance = max_distance_by_duration.get(criteria.duration_tag)
+    max_distance = Duration_Data.get(criteria.duration_tag).get("max_distance")
 
-    MAX_SCORE = 30.0
+    MAX_SCORE = 20.0
 
     if max_distance <= 5:
         if distance < 3:
@@ -336,6 +375,19 @@ def _score_rating(criteria: RecommendationCriteria, place: DomainPlace) -> float
     return (place.rating / 5.0) * MAX_POINTS
 
 
+def _score_time_relevance(criteria: RecommendationCriteria, place: DomainPlace) -> float:
+    MAX_SCORE = 10.0
+
+    current_time = get_current_hour()
+    min_stay_time = Duration_Data.get(criteria.duration_tag).get("min_stay_time")
+
+    # close_time = .... # get close time sau
+    close_time = 0.0 # Mock taị chưa có data
+    if current_time + min_stay_time > close_time:
+        return 0.0
+
+    return MAX_SCORE
+
 def _penalty_by_history(place: DomainPlace, user: DomainUser) -> float:
     MAX_COUNT = 7
 
@@ -344,7 +396,7 @@ def _penalty_by_history(place: DomainPlace, user: DomainUser) -> float:
         return n * 0.1
 
     # Nếu count lỗi(out of range [0,7] thì giữ nguyên
-    return 1
+    return 0
 
 
 def _to_api_dict(place: DomainPlace) -> dict:

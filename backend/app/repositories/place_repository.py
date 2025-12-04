@@ -45,7 +45,7 @@ class PlaceRepository:
             image=place.image,
             tags=tags,
             rating=place.rating,
-            open=place.open,
+            # open=place.open,
             # close=close,
         )
 

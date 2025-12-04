@@ -72,6 +72,8 @@ class RecommendationRequest(BaseModel):
     duration_tag: str
     activity: List[str] | None = None
 
+class RecommendationErrorResponse(BaseModel):
+    error: str
 
 class Place(BaseModel):
     id: int
@@ -124,4 +126,7 @@ class ActivityItem(BaseModel):
         from_attributes = True
 
 class ActivityCodesResponse(BaseModel):
+    activities: List[str]
+
+class ActivityTagsResponse(BaseModel):
     activities: List[str]
