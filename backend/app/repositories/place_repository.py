@@ -45,7 +45,7 @@ class PlaceRepository:
             image=place.image,
             tags=tags,
             rating=place.rating,
-            open=place.open,
+            # open=place.open,
             # close=close,
         )
 
@@ -55,9 +55,9 @@ class PlaceRepository:
     # ------------------------------
     # Lấy Place + toàn bộ giờ mở cửa
     # ------------------------------
-    def get_place_with_schedule(
-        self, place_id: int, db: Session
-    ) -> Tuple[DomainPlace, List[OpeningRange], List[SpecialOpeningRuleDomain]]:
+#    def get_place_with_schedule(
+#        self, place_id: int, db: Session
+#    ) -> Tuple[DomainPlace, List[OpeningRange], List[SpecialOpeningRuleDomain]]:
 
         orm_place = (
             db.query(models.Place)
