@@ -2,7 +2,10 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../components/layouts/Navbar";
 import TagSelector from "../components/common/TagSelector";
-import { DirectionButton, FavoriteButton } from "../components/common/ActionButtons"; // THÊM IMPORT NÀY
+import {
+  DirectionButton,
+  FavoriteButton,
+} from "../components/common/ActionButtons"; // THÊM IMPORT NÀY
 import "../styles/Profile.css";
 import userAPI from "../services/userAPI";
 import preferenceAPI from "../services/preferenceAPI";
@@ -18,15 +21,20 @@ export default function Profile() {
     passwordMasked: "********",
   });
 
-  const [isEditing, setIsEditing] = useState(false);
-  const [editData, setEditData] = useState({
-    username: "",
-    email: "",
+  // 🔒 Đổi mật khẩu
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const [passwordForm, setPasswordForm] = useState({
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: "",
   });
+  const [passwordError, setPasswordError] = useState("");
+  const [passwordSuccess, setPasswordSuccess] = useState("");
+  const [passwordLoading, setPasswordLoading] = useState(false);
 
   // Vibes from backend
-  const [allHobbies, setAllHobbies] = useState([]);      // [{label,value}, ...]
-  const [userHobbies, setUserHobbies] = useState([]);    // ["#cafe", ...]
+  const [allHobbies, setAllHobbies] = useState([]); // [{label,value}, ...]
+  const [userHobbies, setUserHobbies] = useState([]); // ["#cafe", ...]
   const [editingHobbies, setEditingHobbies] = useState([]);
   const [isEditingVibes, setIsEditingVibes] = useState(false);
   const [hobbyError, setHobbyError] = useState("");
@@ -74,11 +82,6 @@ export default function Profile() {
           passwordMasked: "********",
         });
 
-        setEditData({
-          username: me.username,
-          email: me.email,
-        });
-
         setAllHobbies(hobbyOptions);
         setUserHobbies(myHobbies);
         setEditingHobbies(myHobbies);
@@ -93,40 +96,79 @@ export default function Profile() {
   }, []);
 
   const handleLogout = () => {
-    // sau này có AuthContext.logout thì gọi ở đây
     localStorage.removeItem("token");
     navigate("/login");
   };
 
-  const handleEditClick = () => {
-    setEditData({ username: userData.username, email: userData.email });
-    setIsEditing(true);
-  };
-
-  const handleCancel = () => {
-    setIsEditing(false);
-  };
-
-  const handleChange = (e) => {
+  // ====== ĐỔI MẬT KHẨU ======
+  const handlePasswordFieldChange = (e) => {
     const { name, value } = e.target;
-    setEditData((prev) => ({ ...prev, [name]: value }));
+    setPasswordForm((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
   };
 
-  const handleSave = async (e) => {
+  const handleChangePassword = async (e) => {
     e.preventDefault();
+    setPasswordError("");
+    setPasswordSuccess("");
+
+    if (
+      !passwordForm.currentPassword ||
+      !passwordForm.newPassword ||
+      !passwordForm.confirmPassword
+    ) {
+      setPasswordError("Vui lòng điền đầy đủ cả 3 ô mật khẩu.");
+      return;
+    }
+
+    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+      setPasswordError("Mật khẩu mới và xác nhận mật khẩu không khớp.");
+      return;
+    }
+
     try {
-      const updated = await userAPI.updateMe({ username: editData.username });
-      setUserData((prev) => ({
-        ...prev,
-        username: updated.username,
-      }));
-      setIsEditing(false);
-      alert("Profile updated successfully!");
+      setPasswordLoading(true);
+
+      // GỌI API ĐỔI MẬT KHẨU
+      await userAPI.changePassword({
+        current_password: passwordForm.currentPassword,
+        new_password: passwordForm.newPassword,
+      });
+
+      setPasswordSuccess("Password changed successfully 🎉");
+      setPasswordForm({
+        currentPassword: "",
+        newPassword: "",
+        confirmPassword: "",
+      });
+      setIsChangingPassword(false);
+      alert("Password changed successfully!");
     } catch (err) {
-      alert(err?.message || "Failed to update profile");
+      console.error("Change password error:", err);
+      const msg =
+        err?.response?.data?.detail ||
+        err?.message ||
+        "Password changed unsuccessfully. Please check again";
+      setPasswordError(msg);
+    } finally {
+      setPasswordLoading(false);
     }
   };
 
+  const handleCancelChangePassword = () => {
+    setIsChangingPassword(false);
+    setPasswordForm({
+      currentPassword: "",
+      newPassword: "",
+      confirmPassword: "",
+    });
+    setPasswordError("");
+    setPasswordSuccess("");
+  };
+
+  // ====== FAVORITES ======
   const toggleFavorite = (id) => {
     const fav = favorites.find((f) => f.id === id);
     if (fav?.liked) {
@@ -138,6 +180,7 @@ export default function Profile() {
     }
   };
 
+  // ====== VIBES ======
   const saveHobbies = async () => {
     try {
       setHobbySaving(true);
@@ -206,10 +249,11 @@ export default function Profile() {
           {activeMenu === "Profile" && (
             <div className="profile-container">
               <h2 className="form-title">
-                {isEditing ? "EDIT PROFILE" : "PROFILE SETTINGS"}
+                {isChangingPassword ? "EDIT PROFILE" : "PROFILE SETTINGS"}
               </h2>
 
-              {!isEditing ? (
+              {/* View bình thường: chỉ xem thông tin + nút Change password */}
+              {!isChangingPassword ? (
                 <div className="profile-form">
                   <label>Username:</label>
                   <p className="static-input">{userData.username}</p>
@@ -220,39 +264,65 @@ export default function Profile() {
                   <label>Password:</label>
                   <p className="static-input">{userData.passwordMasked}</p>
 
-                  <button onClick={handleEditClick} className="edit-btn">
-                    Edit profile
+                  <button
+                    onClick={() => setIsChangingPassword(true)}
+                    className="edit-btn"
+                  >
+                    EDIT PROFILE
                   </button>
                 </div>
               ) : (
-                <form className="profile-form" onSubmit={handleSave}>
-                  <label>Username:</label>
+                // Form đổi mật khẩu: 3 khung
+                <form className="profile-form" onSubmit={handleChangePassword}>
+                  <label>Current password:</label>
                   <input
-                    type="text"
-                    name="username"
-                    value={editData.username}
-                    onChange={handleChange}
+                    type="password"
+                    name="currentPassword"
+                    value={passwordForm.currentPassword}
+                    onChange={handlePasswordFieldChange}
+                    placeholder="Enter current password"
                   />
 
-                  <label>Email:</label>
+                  <label>New password:</label>
                   <input
-                    type="email"
-                    name="email"
-                    value={editData.email}
-                    onChange={handleChange}
-                    disabled
+                    type="password"
+                    name="newPassword"
+                    value={passwordForm.newPassword}
+                    onChange={handlePasswordFieldChange}
+                    placeholder="Enter new password"
                   />
+
+                  <label>Confirm new password:</label>
+                  <input
+                    type="password"
+                    name="confirmPassword"
+                    value={passwordForm.confirmPassword}
+                    onChange={handlePasswordFieldChange}
+                    placeholder="Re-enter new password"
+                  />
+
+                  {passwordError && (
+                    <p className="form-error">{passwordError}</p>
+                  )}
+                  {passwordSuccess && (
+                    <p className="form-success">{passwordSuccess}</p>
+                  )}
 
                   <div className="button-group">
                     <button
                       type="button"
                       className="cancel-btn"
-                      onClick={handleCancel}
+                      onClick={handleCancelChangePassword}
+                      disabled={passwordLoading}
                     >
                       Cancel
                     </button>
-                    <button type="submit" className="save-btn">
-                      Save
+                    <button
+                      type="submit"
+                      className="save-btn"
+                      disabled={passwordLoading}
+                    >
+                      {passwordLoading ? "Saving..." : "Save"}
                     </button>
                   </div>
                 </form>
@@ -283,7 +353,7 @@ export default function Profile() {
                         tags={allHobbies}
                         defaultSelected={userHobbies}
                         onChange={() => {}}
-                        readOnly={true} // Đã sửa logic: Không cho phép chọn tag khi chưa nhấn Edit Vibes
+                        readOnly={true}
                       />
 
                       <button
@@ -303,7 +373,7 @@ export default function Profile() {
                         tags={allHobbies}
                         defaultSelected={editingHobbies}
                         onChange={(selected) => setEditingHobbies(selected)}
-                        readOnly={false} // Đã sửa logic: Cho phép chọn tag khi đang edit Vibes
+                        readOnly={false}
                       />
 
                       <div className="button-group">
@@ -351,15 +421,19 @@ export default function Profile() {
                       <p className="hashtags">{fav.hashtags}</p>
                     </div>
 
-                    {/* THAY THẾ NÚT TIM CŨ BẰNG ACTION BUTTONS */}
-                    <div className="action-buttons-group"> 
-                        <DirectionButton place={{ name: fav.name, address: fav.address, title: fav.name }} />
-                        <FavoriteButton 
-                            isFav={fav.liked} 
-                            onToggle={() => toggleFavorite(fav.id)} 
-                        />
+                    <div className="action-buttons-group">
+                      <DirectionButton
+                        place={{
+                          name: fav.name,
+                          address: fav.address,
+                          title: fav.name,
+                        }}
+                      />
+                      <FavoriteButton
+                        isFav={fav.liked}
+                        onToggle={() => toggleFavorite(fav.id)}
+                      />
                     </div>
-                    {/* END THAY THẾ */}
                   </div>
                 ))}
                 {favorites.length === 0 && (
