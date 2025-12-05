@@ -2,28 +2,25 @@
 import api from "../api";
 
 const suggestionAPI = {
-  async getRecommendations({ latitude, longitude, duration_tag }) {
-    // Lấy activities user đã chọn từ localStorage
-    let activities = [];
-    try {
-      const stored = localStorage.getItem("activities");
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        if (Array.isArray(parsed)) {
-          activities = parsed;           // ['#cafe', '#mall']
-        } else if (typeof parsed === "string" && parsed.trim() !== "") {
-          activities = [parsed];         // '#mall' -> ['#mall']
-        }
-      }
-    } catch (e) {
-      console.error("Parse activities error", e);
-    }
+  // 1. Thêm 'activity' vào tham số nhận vào
+  async getRecommendations({ latitude, longitude, duration_tag, activity }) {
+    
+    // 2. Validate dữ liệu để khớp Schema
 
+    // Schema yêu cầu: "duration_tag": "string"
+    // Nếu duration_tag là số (VD: 1), hãy ép sang string
+    const finalDurationTag = String(duration_tag); 
+
+    // Schema yêu cầu: "activity": ["string"]
+    // Đảm bảo activity là mảng
+    const finalActivity = Array.isArray(activity) ? activity : [];
+
+    // Gửi request
     const res = await api.post("/api/v1/recommend/", {
-      latitude,
-      longitude,
-      duration_tag,
-      activity: activities, // 👈 GỬI LIST LÊN BE
+      latitude: latitude,      // Schema: number -> OK
+      longitude: longitude,    // Schema: number -> OK
+      duration_tag: finalDurationTag, // Schema: string -> Đã ép kiểu
+      activity: finalActivity, // Schema: [string] -> OK (Lấy từ tham số truyền vào)
     });
 
     return res.data?.recommendations ?? [];

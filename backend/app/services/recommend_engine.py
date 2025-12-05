@@ -408,9 +408,10 @@ def _to_api_dict(place: DomainPlace) -> dict:
         # "longitude": place.lon,
         "address": place.address or "",
         "image": place.image or "",
-        "description": place.overview or "",
+        "overview": place.overview or "",
         "tags": place.tags,
         "rating": place.rating or "",
+        "summarization" : place.summarization or "",
         # "open": place.open or "",
         # "close": place.close or "",
     }

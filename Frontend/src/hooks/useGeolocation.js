@@ -48,8 +48,8 @@ const useGeolocation = () => {
 
         navigator.geolocation.getCurrentPosition(handleSuccess, handleError, {
             enableHighAccuracy: true, // Yêu cầu độ chính xác cao
-            timeout: 5000,          // Timeout sau 5 giây
-            maximumAge: 0,           // Không dùng cache
+            timeout: 15000,          // Timeout sau 5 giây
+            maximumAge: 600000,           // Không dùng cache
         });
     }, []);
 
