@@ -6,17 +6,6 @@ import "../styles/PlaceDetail.css";
 import { DirectionButton, FavoriteButton } from "../components/common/ActionButtons"; 
 
 
-/* Helper: tạo URL chỉ đường (ưu tiên coords, fallback address) */
-// 💡 LOẠI BỎ HÀM buildDirectionsUrl() VÌ ĐÃ CHUYỂN SANG ActionButtons.jsx
-// function buildDirectionsUrl(place) {
-//   const base = "https://www.google.com/maps/dir/?api=1";
-//   const dest = place.coords
-//     ? `${place.coords.lat},${place.coords.lng}`
-//     : encodeURIComponent(place.address || place.title);
-//   // origin dùng "Current Location" để Maps tự lấy vị trí người dùng
-//   return `${base}&origin=Current+Location&destination=${dest}`;
-// }
-
 export default function PlaceDetail() {
   const { id } = useParams(); // Lấy ID từ URL
   const location = useLocation();
@@ -39,13 +28,12 @@ export default function PlaceDetail() {
       name: data.title, 
       title: data.title || "Tên địa điểm",
       image: data.image || data.hero, 
-      description: data.description, 
+      description: data.overview || "Chưa có mô tả chi tiết.", 
       hashtags: Array.isArray(data.hashtags) ? data.hashtags : [],
       address: data.address,
       coords: data.coords, // Giữ lại nếu bạn có tọa độ chi tiết hơn
       // CÁC TRƯỜNG API CHƯA CUNG CẤP (để trống/N/A)
       openingHours: "", 
-      activities: "",
       setting: "",
       priceRange: "",
       detail: data.description, 
@@ -61,7 +49,7 @@ export default function PlaceDetail() {
       <Navbar />
       <main className="detail-wrap">
         <div className="detail-hero">
-          <button className="back-btn" onClick={() => navigate("/results")} aria-label="Back to results">
+          <button className="back-btn" onClick={() => navigate(-1)} aria-label="Back to results">
             <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true">
               <path d="M15 18 9 12l6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
@@ -103,11 +91,6 @@ export default function PlaceDetail() {
               <dt>Opening Hours:</dt>
               {/* Trường thiếu: sẽ hiển thị trống */}
               <dd>{place.openingHours}</dd>
-            </div>
-            <div className="meta-row">
-              <dt>Activities:</dt>
-              {/* Trường thiếu: sẽ hiển thị trống */}
-              <dd>{place.activities}</dd>
             </div>
             <div className="meta-row">
               <dt>Setting:</dt>
