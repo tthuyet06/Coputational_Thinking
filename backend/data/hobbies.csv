@@ -1,26 +1,29 @@
 id,name,tag_code,describe
-1,Chinatown Vibe,#chinatown_vibe,"Chinatown-style atmosphere: red & gold signs, incense scent, traditional architecture."
-2,Ancient Vibe,#ancient_vibe,"Old-school, vintage feel; perfect for nostalgia lovers."
-3,Local Spot,#local_spot,"A favorite spot of locals, not the usual touristy place."
-4,Hidden Gem,#hidden_gem,"Small, hard-to-find place with surprisingly good quality."
-5,Traditional,#traditional,Full of traditional elements in decor and food.
-6,Pet Friendly,#pet_friendly,Pets are welcome; space is comfortable for your furry friends.
-7,Family Friendly,#family_friendly,Perfect for families; safe and cozy environment.
-8,Solo Friendly,#solo_friendly,Comfortable for solo visitors; no awkward stares.
-9,Group Friendly,#group_friendly,"Ideal for groups, friends, or team hangouts."
-10,Date Spot,#date_spot,"Romantic setting, perfect for a date."
-11,Small Space,#small_space,"Cozy, intimate space with limited seating."
-12,Photo Spot,#photo_spot,"Instagram-worthy, every corner is photogenic."
-13,View Spot,#view_spot,"Scenic views: city streets, rivers, rooftops."
-14,Workshop,#workshop,"Interest in hands-on creative activities such as crafting, pottery, candle making, or art classes. Suitable for users who enjoy learning new skills and making things."
-15,Vintage,#vintage,"A preference for old-school aesthetics, retro décor, antique items, and classic styles. Ideal for users who love nostalgic vibes and timeless charm."
-16,Luxury,#luxury,"A taste for high-end, premium, elegant spaces or experiences. Suited for users who prefer refined ambiance, upscale service, and quality-focused destinations"
-17,Late Cafe,#late_cafe,Cafes that stay open late.
-18,City View,#city_view,Offers a view of the city skyline.
-19,Cozy,#cozy,"A warm and comfortable atmosphere, ideal for relaxing or unwinding; often small, softly lit, and inviting."
-20,Aesthetic,#aesthetic,"A visually appealing place with stylish decor, perfect for taking photos or enjoying a beautifully designed space."
-21,Chill,#chill,"A laid-back, easy-going environment where you can relax without pressure — calm music, gentle atmosphere, and casual seating."
-22,Indoor,#indoor,"Enjoys spending time in comfortable indoor spaces, suitable for working, studying, or relaxing inside."
-23,Outdoor,#outdoor,"Likes open-air environments such as gardens, patios, or street-side seating; perfect for fresh-air experiences."
-24,Indie,#indie,"You enjoy discovering independent, artistic places with a unique, alternative charm — spots that feel creative, personal, and slightly unconventional."
-25,Minimal,#minimal,"You prefer clean, simple, and clutter-free spaces — calm environments with modern design that help you relax, focus, or unwind easily."
+1,Cozy,#cozy,Warm and comfortable place.
+2,Quiet,#quiet,A calm place with low noise.
+3,Busy,#busy,Lively place with many people.
+4,Modern,#modern,Clean and stylish design.
+5,Vintage,#vintage,"Old-style, classic look."
+6,Minimal,#minimal,Simple and clean space.
+7,Luxury,#luxury,High-end and elegant feel.
+8,Rooftop,#rooftop,Place on a high floor with open air.
+9,Garden,#garden,Green space with plants or trees.
+10,Calm,#calm,Soft and relaxing feeling.
+11,Fun,#fun,Happy and exciting mood.
+12,Chill,#chill,Easy-going and relaxed vibe.
+13,Romantic,#romantic,Warm and lovely atmosphere.
+14,Aesthetic,#aesthetic,Beautiful and Instagram-friendly.
+15,Spicy,#spicy,"Food with strong, hot taste."
+16,Sweet,#sweet,Dessert or sugary flavor.
+17,Light Meal,#light,Small and easy-to-eat dishes.
+18,Healthy,#healthy,Fresh and good-for-body food.
+19,Vegetarian,#vegetarian,Plant-based meals only.
+20,Cheap Eats,#cheap,"Low-price, budget food."
+21,Streetfood,#streetfood,Local food from small stalls.
+22,Dessert,#dessert,"Cakes, ice cream, sweet treats."
+23,Brunch,#brunch,"Late breakfast, early lunch meals."
+24,Late Night,#late,Food available very late.
+25,Music,#music,You enjoy places with music.
+26,Art,#art,You like creative and art-themed spots.
+27,Books,#books,You enjoy reading or book cafés.
+28,Culture,#culture,You enjoy local culture and traditions.

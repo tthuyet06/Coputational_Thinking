@@ -33,6 +33,6 @@ dist-ssr
 *.sw?
 node_modules/
 
-__pycache__/
+__pycache__/*
+.idea/*
 *.pyc
-backend/data/project.db

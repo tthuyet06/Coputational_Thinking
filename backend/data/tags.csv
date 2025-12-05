@@ -1,34 +1,18 @@
 code,type,label_en,describe
-#cafe,activity,Cafe,"A place for coffee, chatting, or working."
-#milk_tea,activity,Milk Tea,A spot focused on milk tea and sweet drinks.
-#snack,activity,Snack,Light bites and quick snacks.
-#food,activity,Food,A location for full meals and general dining.
-#restaurant,activity,Restaurant,A proper sit-down dining place.
-#healthy,activity,Healthy,"Light, clean, and health-conscious food options."
-#buffet,activity,Buffet,All-you-can-eat buffet-style dining.
-#bbq,activity,BBQ,"Barbecue-style dining, good for groups."
-#seafood,activity,Seafood,A place specializing in seafood dishes.
-#bar,activity,Bar,A bar with alcoholic drinks and nightlife energy.
-#pub,activity,Pub,A casual bar with food and drinks.
-#dessert,activity,Dessert,"A dessert shop offering cakes, ice cream, sweets."
-#sweet,activity,Sweet,Sweet treats or sugary flavors.
-#streetfood,activity,Street Food,Street-style food stalls and vendors.
-#cheap_eats,activity,Cheap Eats,Affordable and budget-friendly food.
-#quick_bite,activity,Quick Bite,Suitable for grabbing a fast meal.
-#late_night_food,activity,Late-Night Food,Food available late at night.
-#takeaway,activity,Takeaway,Easy and convenient for takeaway.
-#brunch,activity,Brunch,A casual place for late breakfast or early lunch.
-#spicy_food,activity,Spicy Food,Food known for its spicy flavors or heat level.
-#signature_dish,activity,Signature Dish,A place known for its signature or must-try dish.
-#late_cafe,activity,Late Cafe,A café that stays open until late at night.
-#vegetarian,activity,Vegetarian Friendly,A place offering vegetarian or plant-based food options.
-#light_meal,activity,Light Meal,"A light and easy meal option, suitable for quick or gentle dining."
-#work_cafe,activity,Work Cafe,"A café suitable for working, studying, or laptop use with a comfortable environment."
-#hotpot,activity,Hotpot,"Enjoys hotpot dining experiences, from traditional broths to modern buffet-style setups — perfect for group meals, sharing dishes, and warm, cozy gatherings."
-#cultural_visit,activity,Cultural Visit,"A tag for places that offer meaningful cultural or historical experiences — temples, heritage sites, assembly halls, and traditional landmarks where visitors can explore architecture, rituals, and local traditions."
-#indoor,space,Indoor,Indoor seating or enclosed space.
-#outdoor,space,Outdoor,Outdoor or open-air seating.
-#rooftop,space,Rooftop,A rooftop area with an open view.
+#cafe,activity,Coffee,"Go to a café to relax, chat, or enjoy drinks."
+#eat,activity,Food,"Go out to eat — restaurants, street food, casual dining."
+#movie,activity,Movie,Watch a movie at the cinema.
+#shopping,activity,Shopping,Watch a movie at the cinema.
+#entertainment,activity,Entertainment,"Activities like karaoke, bowling, arcade games, etc."
+#outdoor,activity,Outdoor,"Walking in parks, strolling outside, scenery spots."
+#indoor,activity,Indoor,"Indoor activities like museums, libraries, exhibitions."
+#walking,activity,Walking,Casual walk outside.
+#study,activity,Studying,Studying or working at a place.
+#photo,activity,Photos,Taking pictures.
+#drinks,activity,Drinks,"Bars, pubs, cocktail places."
+#nightlife,activity,Nightlife,Going out at night.
+#dating,activity,Dating,A date activity — cozy spots for couples.
+#rooftop,space,Rooftop,Place on a high floor with open air.
 #spacious,space,Spacious,"A large, open, and comfortable space."
 #small_space,space,Small Space,"A small, cozy, and intimate area."
 #coffee_in_bed,space,Coffe In Bed,"A cozy café setup with beds or soft lounging spots where guests can relax, lie down, and enjoy their drinks in a home-like, restful space."
@@ -38,10 +22,10 @@ code,type,label_en,describe
 #boardgame,special,Boardgame,A place where people can play board games.
 #karaoke,special,Karaoke,A place for singing and group fun.
 #pet_friendly,special,Pet Friendly,A place that welcomes pets or allows pet owners to bring animals.
-#aesthetic,style,Aesthetic,"A visually pleasing, Instagrammable space."
+#aesthetic,style,Aesthetic,Beautiful and Instagram-friendly.
 #creative,style,Creative,"A creative, artistic, or unique atmosphere."
-#vintage,style,Vintage,"Old-school, nostalgic style."
-#minimal,style,Minimal,"Clean, simple, minimalistic design."
+#vintage,style,Vintage,"Old-style, classic look."
+#minimal,style,Minimal,Simple and clean space.
 #indie,style,Indie,"Independent, artistic, non-mainstream vibe."
 #street_style,style,Street Style,"Urban, casual, street-fashion vibe."
 #kstyle,style,K-Style,Korean-inspired style or atmosphere.
@@ -49,17 +33,17 @@ code,type,label_en,describe
 #afternoon,time,Afternoon,Best to visit in the afternoon.
 #evening,time,Evening,Ideal for evening visits.
 #night,time,Night,Suitable for nighttime visits.
-#late_night,time,Late Night,Ideal for very late-night hours.
+#late_night,time,Late Night,Food available very late.
 #sunset,time,Sunset,Best during sunset hours.
 #moment ,duration,Under 1 Hours,"A quick visit or short stop, usually under one hour."
 #few_hours,duration,1 Hours To 3 Hours,"A medium–length stay, suitable for relaxing, working, or enjoying a full meal."
 #long_time,duration,Over 3 Hours,"A long visit for deep relaxation, studying, hanging out, or extended activities."
-#quiet,vibe,Quiet,A quiet atmosphere suitable for relaxing or focusing.
-#chill,vibe,Chill,"A relaxed, easy-going vibe."
+#quiet,vibe,Quiet,A calm place with low noise.
+#chill,vibe,Chill,Easy-going and relaxed vibe.
 #vibrant,vibe,Vibrant,A lively and energetic atmosphere.
-#romantic,vibe,Romantic,"A place suitable for dates with warm, intimate vibes."
-#cozy,vibe,Cozy,"A warm, comfortable, homey feeling."
-#luxury,vibe,Luxury,A premium and upscale environment.
+#romantic,vibe,Romantic,Warm and lovely atmosphere.
+#cozy,vibe,Cozy,Warm and comfortable place.
+#luxury,vibe,Luxury,High-end and elegant feel.
 #local_spot,vibe,Local Spot,A beloved local location known by residents.
 #hidden_gem,vibe,Hidden Gem,A great place not widely known.
 #chinatown_vibe,vibe,Chinatown Vibe,Influenced by Chinatown culture and style.
@@ -76,4 +60,24 @@ code,type,label_en,describe
 #rain,weather,Rain,Suitable for rainy weather or sheltered spaces.
 #sunny,weather,Sunny,Best on sunny and bright days.
 #windy,weather,Windy,Good when the weather is breezy.
-#cloudy,weather,Cloudy,"Ideal for exploring cozy cafes or indoor spots during overcast weather, offering a calm and soft atmosphere."
+#cloudy,weather,Cloudy,"Ideal for exploring cozy cafés or indoor spots during overcast weather, offering a calm and soft atmosphere."
+#busy,Vibe,Busy,Lively place with many people.
+#modern,style,Modern,Clean and stylish design.
+#garden,Style,Garden,Green space with plants or trees.
+#calm,Vibe,Calm,Soft and relaxing feeling.
+#fun,Vibe,Fun,Happy and exciting mood.
+#spicy,Vibe,Spicy,"Food with strong, hot taste."
+#sweet,Vibe,Sweet,Dessert or sugary flavor.
+#light,style,Light Meal,Small and easy-to-eat dishes.
+#healthy,vibe,Healthy,Fresh and good-for-body food.
+#vegetarian,vibe,Vegetarian,Plant-based meals only.
+#cheap,style,Cheap Eats,"Low-price, budget food."
+#streetfood,style,Streetfood,Local food from small stalls.
+#dessert,vibe,Dessert,"Cakes, ice cream, sweet treats."
+#brunch,vibe,Brunch,"Late breakfast, early lunch meals."
+#music,vibe,Music,You enjoy places with music.
+#art,style,Art,You like creative and art-themed spots.
+#books,style,Books,You enjoy reading or book cafés.
+#culture,vibe,Culture,You enjoy local culture and traditions.
+#takeaway,activity,Takeaway,Sharing quick and convenient food to-go
+#snacks,activity,Snacks,Small bites for anytime hunger.
