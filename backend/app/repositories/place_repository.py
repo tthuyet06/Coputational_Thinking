@@ -42,6 +42,7 @@ class PlaceRepository:
             lat=place.lat,
             lon=place.lon,
             overview=place.overview,
+            summarization=place.summarization,
             image=place.image,
             tags=tags,
             rating=place.rating,
