@@ -94,9 +94,47 @@ class Place(Base):
     tags = Column(Text, nullable=True)
     rating = Column(Float, nullable=True)
     open = Column(Text, nullable=True)
+    opening_hours = relationship(
+        "OpeningHour",
+        back_populates="place",
+        cascade="all, delete-orphan",
+    )
+    special_opening_rules = relationship(
+        "SpecialOpeningRule",
+        back_populates="place",
+        cascade="all, delete-orphan",
+    )
     created_at = Column(DateTime, server_default=func.current_timestamp())
 
+class OpeningHour(Base):
+    __tablename__ = "opening_hours"
 
+    id = Column(Integer, primary_key=True, index=True)
+    place_id = Column(Integer, ForeignKey("places.id"), nullable=False)
+    day_of_week = Column(Integer, nullable=False)   # 0-6
+    open_time = Column(String, nullable=False)      # 'HH:MM'
+    close_time = Column(String, nullable=False)     # 'HH:MM'
+
+    place = relationship("Place", back_populates="opening_hours")
+
+
+class SpecialOpeningRule(Base):
+    __tablename__ = "special_opening_rules"
+
+    id = Column(Integer, primary_key=True, index=True)
+    place_id = Column(Integer, ForeignKey("places.id"), nullable=False)
+
+    rule_type = Column(String, nullable=False)      # 'yearly' | 'date'
+    year = Column(Integer, nullable=True)           # dùng cho 'date'
+    month = Column(Integer, nullable=False)
+    day = Column(Integer, nullable=False)
+
+    open_time = Column(String, nullable=True)       # 'HH:MM' hoặc None
+    close_time = Column(String, nullable=True)
+    is_closed = Column(Integer, nullable=False, default=0)
+    note = Column(String, nullable=True)
+
+    place = relationship("Place", back_populates="special_opening_rules")
 # ============================================================
 # HOBBY (tag sở thích lưu trong DB – optional)
 # ============================================================

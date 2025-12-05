@@ -8,7 +8,7 @@ from backend.app.db import models
 ROOT_DIR = Path(__file__).resolve().parents[3]
 
 # CSV nằm trong backend/data/place.csv
-CSV_FILE = ROOT_DIR / "backend" / "data" / "place.csv"
+CSV_FILE = ROOT_DIR / "backend" / "data" / "places.csv"
 
 def safe_int(value):
     try:
@@ -55,7 +55,6 @@ def import_places():
                 id=place_id,
                 name=row["Name"],
                 address=row["Area"],
-                link_address=row["Link Area"],
                 lat=safe_float(row["Latitude"]),
                 lon=safe_float(row["Longitude"]),
                 overview=row["Overview"],
@@ -63,7 +62,8 @@ def import_places():
                 summarization=row["Summarization"],
                 tags=row["Tags"],
                 rating=row["Rating"],
-                open=row["Open / Close time"],
+                open=row["Open/Close time"],
+                link_address=row["Link Area"],
             )
             db.add(place)
 

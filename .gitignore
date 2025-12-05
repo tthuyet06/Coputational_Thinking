@@ -35,4 +35,3 @@ node_modules/
 
 __pycache__/
 *.pyc
-backend/data/project.db

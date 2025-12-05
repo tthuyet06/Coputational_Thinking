@@ -4,7 +4,6 @@ from dataclasses import dataclass, field
 from typing import List
 from uuid import UUID
 from backend.app.domain.history import History
-from backend.app.domain.user import User as DomainUser
 from backend.app.db import models
 from sqlalchemy.orm import Session
 

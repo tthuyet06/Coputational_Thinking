@@ -1,4 +1,5 @@
 import datetime
+from datetime import date
 
 def get_current_hour(tz_name: str = "Asia/Ho_Chi_Minh") -> float:
     """Trả về số giờ hiện tại (0–23) theo timezone."""
@@ -34,3 +35,8 @@ def format_decimal_hours(decimal_time: float) -> str:
     minutes = int((decimal_time - hours) * 60)
 
     return f"{hours:02d}:{minutes:02d}"
+
+
+def get_week_day() -> int:
+    """t2 - cn: 0 - 6"""
+    return date.today().weekday() + 1

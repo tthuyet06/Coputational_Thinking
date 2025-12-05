@@ -24,14 +24,13 @@ export default function Preferences() {
         setTagsLoading(true);
         setTagsError("");
 
-        // Lấy list tag (mock / DB)
         const [options, myHobbies] = await Promise.all([
           preferenceAPI.getHobbyTags(),
           preferenceAPI.getMyHobbies(),
         ]);
 
-        setAllHobbies(options);           // [{label,value}, ...]
-        setSelectedHobbies(myHobbies);    // ["#cafe", ...]
+        setAllHobbies(options);        // [{label,value}, ...]
+        setSelectedHobbies(myHobbies); // ["#cafe", ...]
       } catch (err) {
         setTagsError(
           typeof err === "string" ? err : err?.message || "Failed to load hobbies"
@@ -46,21 +45,16 @@ export default function Preferences() {
   const handleNext = async () => {
     setError("");
 
-    if (!selectedHobbies.length) {
-      setError("Please select at least one hobby");
-      return;
-    }
-
     try {
       setSaving(true);
 
-      // lưu sở thích lên BE
-      await preferenceAPI.updateMyHobbies(selectedHobbies);
+      // BE có thể nhận [] để hiểu là không chọn / clear hobbies
+      await preferenceAPI.updateMyHobbies(selectedHobbies || []);
 
-      // lưu local để sau này cần dùng
-      localStorage.setItem("hobbies", JSON.stringify(selectedHobbies));
+      // lưu local để sau này cần dùng (cho dù rỗng vẫn lưu)
+      localStorage.setItem("hobbies", JSON.stringify(selectedHobbies || []));
 
-      // sang trang chọn thời gian rảnh
+      // sang trang chọn activity
       navigate("/activities");
     } catch (err) {
       setError(
@@ -94,7 +88,7 @@ export default function Preferences() {
         <button
           className="pref-next"
           onClick={handleNext}
-          disabled={!selectedHobbies.length || saving || tagsLoading}
+          disabled={saving || tagsLoading} 
         >
           {saving ? "Saving..." : "Next"}
         </button>
