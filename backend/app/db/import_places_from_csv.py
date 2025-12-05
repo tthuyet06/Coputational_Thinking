@@ -8,7 +8,7 @@ from backend.app.db import models
 ROOT_DIR = Path(__file__).resolve().parents[3]
 
 # CSV nằm trong backend/data/place.csv
-CSV_FILE = ROOT_DIR / "backend" / "data" / "place.csv"
+CSV_FILE = ROOT_DIR / "backend" / "data" / "places.csv"
 
 def safe_int(value):
     try:
