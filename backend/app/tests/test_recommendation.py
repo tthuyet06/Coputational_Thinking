@@ -96,8 +96,8 @@ def test_db_driven_recommendation():
         mock_criteria = MockCriteria(
             location=user_location,
             duration_tag="#long_time",
-            activities=["#vegetarian", "#food", "#work_cafe"],
-            extra_tags=["#coffee", "#chill", "#quiet"]
+            activities=["#takeaway", "#cheap_eats"],
+            extra_tags=["#coffee", "#chill", "#quiet", "milk_tea"]
         )
         mock_user = MockUser(id=1, hobbies=mock_criteria.extra_tags)
 

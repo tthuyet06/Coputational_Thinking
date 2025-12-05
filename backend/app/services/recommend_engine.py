@@ -197,7 +197,7 @@ def _filter_by_weather(criteria: RecommendationCriteria, places: list[DomainPlac
 UNSAFE_BY_TIME_TAG = {
     "morning": {"#bar", "#pub", "#buffet", "#bbq", "#seafood", "#late_night_food", "#late_cafe"},
     "noon": {"#hotpot", "#bbq", "#buffet", "#bar", "#pub", "#late_night_food"},
-    "night": {"#brunch", "#work_cafe", "#healthy", "#cultural_visit", "#streetfood", "#snack", "#takeaway"}
+    "night": {"#brunch", "#work_cafe", "#healthy", "#streetfood", "#snack"}
 }
 
 
