@@ -9,8 +9,8 @@ import activitiesAPI from "../services/activitiesAPI";
 export default function Activities() {
   const navigate = useNavigate();
 
-  const [allActivities, setAllActivities] = useState([]);          // [{label,value}, ...]
-  const [selectedActivities, setSelectedActivities] = useState([]); // ["eating_out", ...]
+  const [allActivities, setAllActivities] = useState([]);        // [{label,value}, ...]
+  const [selectedActivities, setSelectedActivities] = useState([]); // ["#cafe", "#movie", ...]
 
   const [tagsLoading, setTagsLoading] = useState(true);
   const [tagsError, setTagsError] = useState("");
@@ -27,11 +27,13 @@ export default function Activities() {
         const options = await activitiesAPI.getActivityTags();
         setAllActivities(options);
 
-        // nếu muốn load lại từ localStorage (optional)
+        // Nếu có lưu local thì load lại (optional)
         const stored = localStorage.getItem("activities");
         if (stored) {
           const arr = JSON.parse(stored);
-          if (Array.isArray(arr)) setSelectedActivities(arr);
+          if (Array.isArray(arr)) {
+            setSelectedActivities(arr);
+          }
         }
       } catch (err) {
         setTagsError(
@@ -49,20 +51,16 @@ export default function Activities() {
   const handleNext = async () => {
     setError("");
 
-    if (!selectedActivities.length) {
-      setError("Please select at least one activity");
-      return;
-    }
-
     try {
       setSaving(true);
 
-      // BE không có API lưu activities ⇒ chỉ lưu local
+      // lưu local: list có thể rỗng, BE vẫn handle được (engine cho phép thiếu activity)
       localStorage.setItem(
         "activities",
-        JSON.stringify(selectedActivities)
+        JSON.stringify(selectedActivities || [])
       );
 
+      // tùy flow: nếu muốn sang results luôn thì "/results"
       navigate("/home");
     } catch (err) {
       setError(
@@ -80,7 +78,7 @@ export default function Activities() {
       <Navbar />
       <main className="pref-wrap">
         <h1 className="pref-title">CHOOSE YOUR ACTIVITY</h1>
-        <p className="pref-sub">Share with us your thought</p>
+        <p className="pref-sub">Share with us your thoughts</p>
 
         {tagsLoading && <p>Loading activities...</p>}
         {tagsError && <p className="text-red-500 text-sm">{tagsError}</p>}
@@ -98,7 +96,7 @@ export default function Activities() {
         <button
           className="pref-next"
           onClick={handleNext}
-          disabled={!selectedActivities.length || saving || tagsLoading}
+          disabled={saving || tagsLoading} 
         >
           {saving ? "Saving..." : "Next"}
         </button>
