@@ -5,6 +5,6 @@ from backend.app.db import models  # noqa: F401
 def create_all():
     Base.metadata.create_all(bind=engine)
 
-# if __name__ == "__main__":
-#     create_all()
-#     print("✅ Tables created")
+if __name__ == "__main__":
+    create_all()
+    print("✅ Tables created")
