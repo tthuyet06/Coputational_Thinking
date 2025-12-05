@@ -29,7 +29,7 @@ class PlaceRepository:
     def to_domain(self, place: models.Place) -> DomainPlace:
         tags: list[str] = []
         if place.tags:
-            for token in place.tags.split(" "):
+            for token in place.tags.split(", "):
                 t = token.strip()
                 if t:
                     tags.append(t)
@@ -42,6 +42,7 @@ class PlaceRepository:
             lat=place.lat,
             lon=place.lon,
             overview=place.overview,
+            summarization=place.summarization,
             image=place.image,
             tags=tags,
             rating=place.rating,
