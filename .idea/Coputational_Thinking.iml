@@ -8,8 +8,12 @@
     <content url="file://$MODULE_DIR$">
       <excludeFolder url="file://$MODULE_DIR$/venv" />
     </content>
+<<<<<<< HEAD
+    <orderEntry type="jdk" jdkName="Python 3.13" jdkType="Python SDK" />
+=======
     <orderEntry type="jdk" jdkName="Python 3.14 (Project)" jdkType="Python SDK" />
 >>>>>>> origin/main
+>>>>>>> efa9fd7ce0594cd096b38c9a0700ac5b97326e81
     <orderEntry type="sourceFolder" forTests="false" />
   </component>
 </module>

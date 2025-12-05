@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Header
-from backend.app.schemas.location import (
+from backend.app.schemas.schemas import (
     RecommendationRequest,
     RecommendationResponse,
     RecommendationErrorResponse
@@ -29,8 +29,6 @@ async def recommend_places(
         activities=payload.activity,
         user=current_user
     )
-
-
 
     if not results:
         raise HTTPException(

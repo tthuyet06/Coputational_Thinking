@@ -1,14 +1,14 @@
 # backend/app/repositories/place_repository.py
 from __future__ import annotations
 
-from typing import List, Optional, Tuple
+from typing import List, Optional
 
 from sqlalchemy.orm import Session
 
 from backend.app.db import models
 from backend.app.domain.place import Place as DomainPlace
 
-from backend.app.domain.object_value import OpeningRange, SpecialOpeningRuleDomain
+
 class PlaceRepository:
     """
     Repository cho bảng places.
@@ -45,7 +45,7 @@ class PlaceRepository:
             image=place.image,
             tags=tags,
             rating=place.rating,
-            open=place.open,
+            # open=place.open,
             # close=close,
         )
 
@@ -55,9 +55,9 @@ class PlaceRepository:
     # ------------------------------
     # Lấy Place + toàn bộ giờ mở cửa
     # ------------------------------
-    def get_place_with_schedule(
-        self, place_id: int, db: Session
-    ) -> Tuple[DomainPlace, List[OpeningRange], List[SpecialOpeningRuleDomain]]:
+#    def get_place_with_schedule(
+#        self, place_id: int, db: Session
+#    ) -> Tuple[DomainPlace, List[OpeningRange], List[SpecialOpeningRuleDomain]]:
 
         orm_place = (
             db.query(models.Place)
