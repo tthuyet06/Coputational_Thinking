@@ -1,15 +1,14 @@
 id,name,tag_code,describe
-1,Work Cafe,#work_cafe,"Great for work: has power outlets, quiet, spacious tables."
-2,Streetfood,#streetfood,"Street-style, casual, local comfort food."
-3,Cheap Eats,#cheap_eats,"Affordable, budget-friendly meals."
-4,Quick Bite,#quick_bite,"Fast, convenient, perfect for a short meal."
-5,Late Night Food,#late_night_food,"Open late, great for midnight cravings."
-6,Takeaway,#takeaway,"Takeout available, easy and convenient."
-7,Vegetarian,#vegetarian,Offers vegetarian or vegan options.
-8,Light Meal,#light_meal,"Light dishes, not too heavy or filling."
-9,Brunch,#brunch,Perfect spot for brunch with friends or solo.
-10,Spicy Food,#spicy_food,Known for its spicy dishes.
-11,Signature Dish,#signature_dish,"Must-try, specialty dish of the place."
-12,Food ,#food,"A place offering unique, exciting, or experimental food experiences — ideal for people who love trying new or unconventional dishes."
-13,Cafe,#cafe,"Interest in visiting coffee shops, enjoying drinks, and exploring different café atmospheres."
-14,Sweet,#sweet,"Preference for desserts, pastries, and sugary treats; ideal for users who enjoy sweet flavors."
+1,Coffee,#cafe,"Go to a café to relax, chat, or enjoy drinks."
+2,Food,#eat,"Go out to eat — restaurants, street food, casual dining."
+3,Movie,#movie,Watch a movie at the cinema.
+4,Shopping,#shopping,Visit malls or stores to browse or shop.
+5,Entertainment,#entertainment,"Activities like karaoke, bowling, arcade games, etc."
+6,Outdoor,#outdoor,"Walking in parks, strolling outside, scenery spots."
+7,Indoor,#indoor,"Indoor activities like museums, libraries, exhibitions."
+8,Walking,#walking,Casual walk outside.
+9,Studying,#study,Studying or working at a place.
+10,Photos,#photo,Taking pictures.
+11,Drinks,#drinks,"Bars, pubs, cocktail places."
+12,Nightlife,#nightlife,Going out at night.
+13,Dating,#dating,A date activity — cozy spots for couples.

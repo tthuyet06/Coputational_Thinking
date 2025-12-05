@@ -1,13 +1,4 @@
-frontend/node_modules/
-.idea/inspectionProfiles/
-
-__pycache__/
-*.pyc
-.idea/
-node_modules/
-dist/
-.venv/
-venv/# Logs
+# Logs
 logs
 *.log
 npm-debug.log*
@@ -33,7 +24,6 @@ dist-ssr
 *.sw?
 node_modules/
 
-__pycache__/*
-.idea/*
+**/__pycache__/
 *.pyc
-backend/data/project.db
+.idea/
