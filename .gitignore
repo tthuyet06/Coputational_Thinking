@@ -33,6 +33,14 @@ dist-ssr
 *.sw?
 node_modules/
 
-__pycache__/
+backend/app/api/v1/__pycache__/*
+backend/app/core/__pycache__/*
+backend/app/db/__pycache__/*
+backend/app/domain/__pycache__/*
+backend/app/repositories/__pycache__/*
+backend/app/schemas/__pycache__/*
+backend/app/services/__pycache__/*
+backend/app/utils/__pycache__/*
+backend/app/__pycache__/*
+.idea/*
 *.pyc
-backend/data/project.db
