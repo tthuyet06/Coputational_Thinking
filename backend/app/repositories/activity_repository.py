@@ -43,7 +43,7 @@ class ActivityRepository:
         """
         records: List[Activity] = (
             self._session.query(Activity)
-            .order_by(Activity.label_en.asc())
+            .order_by(Activity.name.asc())
             .all()
         )
         return [self._to_domain(r) for r in records]

@@ -26,7 +26,7 @@ export default function Navbar() {
           // Khi ở login/signup: chỉ là chữ, không bấm được
           <span className="navbar-logo disabled">MOODYTRIP</span>
         ) : (
-          <Link to="/home" className="navbar-logo">
+          <Link to="/activities" className="navbar-logo">
             MOODYTRIP
           </Link>
         )}
@@ -34,7 +34,7 @@ export default function Navbar() {
         {!isAuthPage && (
           <div className="navbar-actions" ref={ref}>
             {isProfilePage ? (
-              <Link to="/home" className="home-pill" aria-label="Go Home">
+              <Link to="/activities" className="home-pill" aria-label="Go Home">
               <svg width="30" height="30" viewBox="0 0 24 24">
                 <path
                   d="M4 10.5 12 4l8 6.5V20a1 1 0 0 1-1 1h-5v-6H10v6H5a1 1 0 0 1-1-1z"

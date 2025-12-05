@@ -66,11 +66,14 @@ class DurationTagResponse(BaseModel):
     duration_tags: List[DurationTag]
 
 
-class RecommendRequest(BaseModel):
+class RecommendationRequest(BaseModel):
     latitude: float
     longitude: float
     duration_tag: str
+    activity: List[str] | None = None
 
+class RecommendationErrorResponse(BaseModel):
+    error: str
 
 class Place(BaseModel):
     id: int
@@ -90,7 +93,7 @@ class Place(BaseModel):
         from_attributes = True
 
 
-class RecommendResponse(BaseModel):
+class RecommendationResponse(BaseModel):
     recommendations: List[Place]
 
 
@@ -122,6 +125,8 @@ class ActivityItem(BaseModel):
     class Config:
         from_attributes = True
 
+class ActivityCodesResponse(BaseModel):
+    activities: List[str]
+
 class ActivityTagsResponse(BaseModel):
-    """Response trả về danh sách activity với cấu trúc object đầy đủ"""
     activities: List[ActivityItem]
