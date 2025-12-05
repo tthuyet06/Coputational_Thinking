@@ -1,14 +1,14 @@
 # backend/app/repositories/place_repository.py
 from __future__ import annotations
 
-from typing import List, Optional
+from typing import List, Optional, Tuple
 
 from sqlalchemy.orm import Session
 
 from backend.app.db import models
 from backend.app.domain.place import Place as DomainPlace
 
-
+from backend.app.domain.object_value import OpeningRange, SpecialOpeningRuleDomain
 class PlaceRepository:
     """
     Repository cho bảng places.
