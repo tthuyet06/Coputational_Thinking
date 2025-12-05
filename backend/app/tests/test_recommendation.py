@@ -3,6 +3,8 @@ import os
 from typing import List, Any
 from dataclasses import dataclass
 
+from sklearn.metrics.pairwise import haversine_distances
+
 # =========================================================
 # PHẦN 1: SỬA LỖI ĐƯỜNG DẪN (BẮT BUỘC Ở DÒNG ĐẦU TIÊN)
 # =========================================================
@@ -25,6 +27,7 @@ from backend.app.db.db_connection import SessionLocal
 # Import Repository (Giữ lại để khởi tạo)
 from backend.app.repositories.place_repository import PlaceRepository
 from backend.app.repositories.tag_repository import TagRepositoryImpl
+from backend.app.utils.geo_utils import haversine_distance
 
 # Import hàm _recommend_core chính
 from backend.app.services.recommend_engine import (
@@ -86,18 +89,17 @@ def test_db_driven_recommendation():
     db: SessionLocal | None = None
     try:
         db = SessionLocal()
-        # print("11")
         # Khởi tạo Repository (Không cần thiết cho _recommend_core, nhưng giữ lại nếu cần debug)
         # place_repo = PlaceRepository()
         # tag_repo = TagRepositoryImpl()
 
         # 2. TẠO CRITERIA VÀ USER (Được sử dụng làm input cho _recommend_core)
-        user_location = MockLocation(latitude=10.7750, longitude=106.6950)
+        user_location = MockLocation(latitude=10.7750, longitude= 106.6950)
         mock_criteria = MockCriteria(
             location=user_location,
             duration_tag="#long_time",
-            activities=["#takeaway", "#cheap_eats"],
-            extra_tags=["#coffee", "#chill", "#quiet", "milk_tea"]
+            activities=["#work_cafe"],
+            extra_tags=["#coffee", "#chill"]
         )
         mock_user = MockUser(id=1, hobbies=mock_criteria.extra_tags)
 
@@ -114,8 +116,8 @@ def test_db_driven_recommendation():
 
         # 4. IN KẾT QUẢ
         print(f"\n--- KẾT QUẢ GỢI Ý TOP {len(top_places)} (Từ _recommend_core) ---")
-
         for i, place in enumerate(top_places):
+
 
             # LƯU Ý: Điểm số không được trả về bởi _recommend_core, nên ta chỉ in thông tin địa điểm
             print(f"Top {i + 1}")
