@@ -77,31 +77,31 @@ def _recommend_core(db: Session, user: DomainUser, criteria: RecommendationCrite
         return RecommendationResult(places=[])
 
     # 2. Loại cứng theo Hobby
-    places = _filter_by_hobby(places, user.hobbies)
+    places = _filter_by_hobby(places, criteria.extra_tags)
 
     if not places:
         return RecommendationResult(places=[])
 
-    # 2. Loại cứng theo khoảng cách tối đa tùy vào duration_tag
+    # 3. Loại cứng theo khoảng cách tối đa tùy vào duration_tag
     places = _filter_by_gps(places, criteria.location, criteria.duration_tag)
 
     if not places:
         return RecommendationResult(places=[])
 
-    # 3. Lọc theo thời tiết
+    # 4. Lọc theo thời tiết
     places = _filter_by_weather(criteria, places)
 
-    # 4. Lọc theo thời gian: lọc các địa điểm không phù hợp thời gian(khi user kh chọn activity)
+    # 5. Lọc theo thời gian: lọc các địa điểm không phù hợp thời gian(khi user kh chọn activity)
     if not criteria.activities:
         places = _filter_by_current_time(places)
 
     if not places:
         return RecommendationResult(places=[])
 
-    # 5. Loại cứng theo giờ hoạt động
+    # 6. Loại cứng theo giờ hoạt động
     # places = _filter_by_opening_hours(criteria, places)
 
-    # 6. Tính điểm từng địa điểm
+    # 7. Tính điểm từng địa điểm
     tags = tag_repo.get_all(db)
     scored: list[tuple[float, DomainPlace]] = []
 
@@ -132,8 +132,6 @@ def _filter_by_activity(places: list[DomainPlace], activities: List[str]):
     return [p for p in places if p.match_any_tags(activities)]
 
 def _filter_by_hobby(places: list[DomainPlace], hobbies: list[str]):
-    """Loại bỏ địa điểm không có bất kỳ tag nào trùng với sở thích người dùng.
-    - hobbies rỗng -> không lọc."""
     if not hobbies:
         return places
 
@@ -292,10 +290,10 @@ TAG_TYPE_WEIGHT = {
 }
 
 def _score_hobbies(criteria: RecommendationCriteria, place: DomainPlace, tags: List[Tag]) -> float:
-    user_hobbies = criteria.extra_tags or []
+    hobbies = criteria.extra_tags or []
     place_tags = place.tags or []
 
-    if not user_hobbies:
+    if not hobbies:
         return 0.0
 
     # 1. Tạo bảng tra cứu Tag -> Group bằng Dictionary Comprehension
@@ -303,7 +301,7 @@ def _score_hobbies(criteria: RecommendationCriteria, place: DomainPlace, tags: L
 
     # 2. Gom sở thích người dùng theo nhóm (User Hobbies by Group)
     user_by_group: dict[str, set[str]] = {}
-    for code in user_hobbies:
+    for code in hobbies:
         group = tag_group_map.get(code)
         if group and TAG_TYPE_WEIGHT.get(group, 0) > 0:  # Chỉ gom nhóm có trọng số > 0
             user_by_group.setdefault(group, set()).add(code)
@@ -382,7 +380,7 @@ def _score_time_relevance(criteria: RecommendationCriteria, place: DomainPlace) 
     min_stay_time = Duration_Data.get(criteria.duration_tag).get("min_stay_time")
 
     # close_time = .... # get close time sau
-    close_time = 0.0 # Mock taị chưa có data
+    close_time = 25 # Mock taị chưa có data
     if current_time + min_stay_time > close_time:
         return 0.0
 
@@ -408,10 +406,9 @@ def _to_api_dict(place: DomainPlace) -> dict:
         # "longitude": place.lon,
         "address": place.address or "",
         "image": place.image or "",
-        "overview": place.overview or "",
+        "description": place.overview or "",
         "tags": place.tags,
         "rating": place.rating or "",
-        "summarization" : place.summarization or "",
         # "open": place.open or "",
         # "close": place.close or "",
     }
