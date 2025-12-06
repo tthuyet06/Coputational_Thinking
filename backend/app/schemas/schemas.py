@@ -130,4 +130,4 @@ class ActivityCodesResponse(BaseModel):
     activities: List[str]
 
 class ActivityTagsResponse(BaseModel):
-    activities: List[str]
+    activities: List[ActivityItem]
