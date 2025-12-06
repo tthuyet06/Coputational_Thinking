@@ -207,6 +207,7 @@ def list_favorites(db: Session, user: models.User) -> List[Dict[str, Any]]:
                 "address": domain_place.address or "",
                 "image": getattr(domain_place, "image", "") or getattr(domain_place, "image_url", "") or "",
                 "overview": getattr(domain_place, "overview", "") or getattr(domain_place, "description", "") or "",
+                "summarization": getattr(domain_place, "summarization", "") or "", #thieu truong
                 "tags": domain_place.tags,
             }
         )
