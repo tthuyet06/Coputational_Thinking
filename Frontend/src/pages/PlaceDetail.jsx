@@ -84,7 +84,7 @@ export default function PlaceDetail() {
             <div className="meta-row">
               <dt>Hashtags:</dt>
               {/* Sử dụng place.hashtags */}
-              <dd className="tags">{place.hashtags.map((t) => `${t}`).join(" ")}</dd>
+              <dd className="tags">{place.hashtags.map((t) => `#${t}`).join(" ")}</dd>
             </div>
             
             <div className="meta-row">

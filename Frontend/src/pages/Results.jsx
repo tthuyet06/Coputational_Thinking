@@ -52,7 +52,7 @@ function ResultCard({ item, onToggleFav }) {
         </p>
         <p className="result-tags">
           {(item.hashtags || []).map((t, idx) => (
-            <span key={`${item.id}-${idx}`}>{t} </span>
+            <span key={`${item.id}-${idx}`}>#{t} </span>
           ))}
         </p>
       </div>
