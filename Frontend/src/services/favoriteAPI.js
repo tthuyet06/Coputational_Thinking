@@ -1,22 +1,27 @@
 // services/favoriteAPI.js
-import axiosClient from "../api"; // Đảm bảo đường dẫn import đúng với cấu trúc dự án của bạn
+import axiosClient from "../api"; // Đảm bảo đường dẫn import đúng
 
 const favoriteAPI = {
-  /**
-   * Lấy danh sách địa điểm yêu thích của user hiện tại.
-   * Response schema: [{ id, name, address, image, overview, tags: [] }]
-   */
   getMyFavorites: () => {
-    return axiosClient.get("api/v1/favorites"); // Thay đổi endpoint cho phù hợp với backend của bạn
+    return axiosClient.get("/api/v1/favorites/");
   },
 
-  /**
-   * Toggle favorite (Like/Unlike) một địa điểm.
-   * @param {number} placeId ID của địa điểm
-   */
-  toggleFavorite: (placeId) => {
-    // Giả sử backend dùng POST để toggle hoặc DELETE để xóa
-    return axiosClient.post(`/favorites/${placeId}/toggle`);
+  addFavorite: (placeId) => {
+    return axiosClient.post(`/api/v1/favorites/${placeId}`);
+  },
+
+  removeFavorite: (placeId) => {
+    return axiosClient.delete(`/api/v1/favorites/${placeId}`);
+  },
+
+  updateFavoriteStatus: (placeId, isFavorite) => {
+    if (isFavorite) {
+      // Nếu UI chốt là "Thích" -> Gọi API POST
+      return favoriteAPI.addFavorite(placeId);
+    } else {
+      // Nếu UI chốt là "Không thích" -> Gọi API DELETE
+      return favoriteAPI.removeFavorite(placeId);
+    }
   }
 };
 
