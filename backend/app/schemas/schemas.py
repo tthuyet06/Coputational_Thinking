@@ -70,6 +70,7 @@ class RecommendationRequest(BaseModel):
     latitude: float
     longitude: float
     duration_tag: str
+    hobby: List[str] | None = None
     activity: List[str] | None = None
 
 class RecommendationErrorResponse(BaseModel):
@@ -130,4 +131,4 @@ class ActivityCodesResponse(BaseModel):
     activities: List[str]
 
 class ActivityTagsResponse(BaseModel):
-    activities: List[ActivityItem]
+    activities: List[str]

@@ -6,6 +6,7 @@ import suggestionAPI from "../services/suggestionAPI";
 import LoadingScreen from "./LoadingScreen";
 import EmptyState from "./EmptyState";
 import useGeolocation from "../hooks/useGeolocation";
+import useWeather from "../hooks/useWeather"; // Import hook
 import toErrorMessage from "../utils/toErrorMessage";
 import {
   DirectionButton,
@@ -64,6 +65,7 @@ export default function Results() {
   const location = useLocation();
   const navigate = useNavigate();
 
+  // 1. Hook Geolocation
   const {
     location: geoLoc,
     error: geoError,
@@ -71,13 +73,16 @@ export default function Results() {
     getLocation,
   } = useGeolocation();
 
+  // 2. Hook Weather
+  const { weatherData, fetchWeather } = useWeather();
+
   const showLoading = !!location.state?.showLoading;
 
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(showLoading);
   const [error, setError] = useState("");
 
-  // 1. Khởi động Geolocation và xóa state lịch sử
+  // 3. Khởi động Geolocation
   useEffect(() => {
     if (location.state) {
       navigate(".", { replace: true, state: null });
@@ -85,18 +90,36 @@ export default function Results() {
     getLocation();
   }, [location.state, navigate, getLocation]);
 
-  // 2. Logic gọi API đề xuất
+  // 4. [MỚI] Effect riêng để gọi API Thời tiết
+  useEffect(() => {
+    // Nếu đang loading GPS thì bỏ qua
+    if (geoLoading) return;
+
+    // 🛑 LOGIC CHẶN GỌI SỚM:
+    if (!geoLoc && !geoError) {
+        return; 
+    }
+
+    // Chỉ khi nào có GeoLoc (thành công) HOẶC có GeoError (thất bại -> dùng default) thì mới chạy xuống dưới
+    const lat = geoLoc?.lat ?? DEFAULT_LATITUDE;
+    const lng = geoLoc?.lng ?? DEFAULT_LONGITUDE;
+
+    console.log("🌤 Fetching weather for:", lat, lng);
+    fetchWeather(lat, lng);
+    
+  }, [geoLoading, geoLoc, geoError, fetchWeather]);
+
+
+  // 5. Logic gọi API đề xuất (Đã bỏ fetchWeather ra khỏi đây)
   const loadRecommendations = useCallback(async () => {
     try {
       setLoading(true);
       setError("");
 
-      // duration_tag bắt buộc
       const storedDuration = localStorage.getItem("durationTag");
       const parsedDuration = storedDuration ? JSON.parse(storedDuration) : null;
       const duration_tag = parsedDuration?.tag_id;
 
-      // activities: có thể rỗng
       const storedActs = localStorage.getItem("activities");
       const parsedActs = storedActs ? JSON.parse(storedActs) : [];
       const activities = Array.isArray(parsedActs) ? parsedActs : [];
@@ -114,33 +137,42 @@ export default function Results() {
 
       if (!geoLoc && geoError) {
         console.warn(
-          `Using default location (${latitude}, ${longitude}) due to Geolocation error: ${geoError}`
+          `Using default location due to Geolocation error: ${geoError}`
         );
       }
 
+      // Gọi API Suggestion
       const places = await suggestionAPI.getRecommendations({
         latitude,
         longitude,
         duration_tag,
-        activity: activities, // BE nhận List[str], có thể rỗng
+        activity: activities,
       });
 
-      console.log("places from API:", places);
+      const mapped = places.map((p) => {
+        // ---------------------------------------------------------
+        // 🛠 DEBUG: In ra dữ liệu của từng địa điểm để soi tên Key
+        // ---------------------------------------------------------
+        console.log(`[${p.name}] Sum:`, p.summarization, "| Over:", p.overview);
 
-      const mapped = places.map((p) => ({
-        id: p.id,
-        title: p.name,
-        image: p.image || p.image_url || "",
-        image_url: p.image_url || "",
-        description: p.description || p.overview || "",
-        address: p.address || "",
-        tags: Array.isArray(p.tags) ? p.tags : [],
-        hashtags: Array.isArray(p.tags) ? p.tags : [],
-        fav: false,
-        // Nếu DirectionButton cần lat/lon thì thêm:
-        lat: p.latitude || p.lat,
-        lon: p.longitude || p.lon,
-      }));
+        return {
+          id: p.id,
+          title: p.name,
+          image: p.image || p.image_url || "",
+          image_url: p.image_url || "",
+          
+          // Thử lấy lần lượt các trường, nếu không có thì dùng text mặc định
+          description: p.summarization || "Chưa có mô tả chi tiết.",
+          overview: p.overview || "",
+          
+          address: p.address || "",
+          tags: Array.isArray(p.tags) ? p.tags : [],
+          hashtags: Array.isArray(p.tags) ? p.tags : [],
+          fav: false,
+          lat: p.latitude || p.lat,
+          lon: p.longitude || p.lon,
+        };
+      });
 
       setItems(mapped.slice(0, 4));
     } catch (err) {
@@ -149,9 +181,9 @@ export default function Results() {
     } finally {
       setLoading(false);
     }
-  }, [geoLoc, geoError]);
+  }, [geoLoc, geoError]); // Bỏ fetchWeather khỏi dependency
 
-  // 3. Effect gọi API khi Geolocation đã hoàn tất
+  // 6. Effect kích hoạt loadRecommendations
   useEffect(() => {
     if (!geoLoading && (geoLoc || geoError)) {
       const delay = showLoading ? 800 : 0;
@@ -165,7 +197,8 @@ export default function Results() {
       prev.map((it) => (it.id === id ? { ...it, fav: !it.fav } : it))
     );
 
-  // 4. Loading
+  // --- RENDER ---
+
   const finalLoading = loading || (geoLoading && !geoLoc && !geoError);
 
   if (finalLoading) {
@@ -183,7 +216,6 @@ export default function Results() {
     );
   }
 
-  // 5. Nếu KHÔNG có item nào → mới xét error & EmptyState
   const finalError = error || geoError || "";
 
   if (!items.length) {
@@ -202,7 +234,6 @@ export default function Results() {
     );
   }
 
-  // 6. Có items rồi → LUÔN hiển thị kết quả, bỏ qua error cũ
   return (
     <>
       <Navbar />
@@ -213,6 +244,38 @@ export default function Results() {
             <br />
             Matches Your Vibe!
           </h1>
+
+          {/* HIỂN THỊ THỜI TIẾT */}
+          {weatherData && (
+            <div className="weather-info" style={{ 
+                marginBottom: '20px', 
+                padding: '12px 20px', 
+                backgroundColor: 'rgba(255, 255, 255, 0.9)', 
+                borderRadius: '50px',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '10px',
+                boxShadow: '0 2px 10px rgba(0,0,0,0.05)',
+                fontSize: '0.95rem',
+                color: '#333'
+            }}>
+                <span style={{ fontSize: '1.2rem' }}>🌤</span>
+                <span style={{ fontWeight: '600' }}>
+                    {/* Kiểm tra key trả về từ API backend */}
+                    {weatherData.temperature ?? weatherData.temp}°C
+                </span>
+                {weatherData.description && (
+                   <span style={{ textTransform: 'capitalize', color: '#666' }}>
+                     - {weatherData.description}
+                   </span>
+                )}
+                {weatherData.city && (
+                    <span style={{ color: '#888' }}>
+                       (at {weatherData.city})
+                    </span>
+                )}
+            </div>
+          )}
 
           <section className="results-list">
             {items.map((it) => (
