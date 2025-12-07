@@ -2,37 +2,37 @@ import React, { useState } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import Navbar from "../components/layouts/Navbar";
 import "../styles/PlaceDetail.css";
-// 💡 IMPORT COMPONENTS MỚI
 import { DirectionButton, FavoriteButton } from "../components/common/ActionButtons"; 
 
-
 export default function PlaceDetail() {
-  const { id } = useParams(); // Lấy ID từ URL
+  const { id } = useParams(); 
   const location = useLocation();
   const navigate = useNavigate();
   
-  // ⬅️ LẤY DATA TRUYỀN TỪ RESULTS (data tóm tắt)
   const data = location.state?.place;
 
-  // ⬅️ KHÔNG CÓ DATA → F5 → TRẢ VỀ RESULTS
   if (!data) {
     navigate("/results");
     return null;
   }
   
-  // Mặc định cho các trường chi tiết chưa có trong data
-  // Giả định tên trường API trả về: title, image, description, hashtags, address, fav
+  // -------------------------------------------------------------
+  // 1️⃣ BƯỚC 1: CẬP NHẬT OBJECT PLACE
+  // -------------------------------------------------------------
   const place = {
-      // 💡 Lưu ý: DirectionButton cần place.name hoặc place.address, 
-      // ta thêm trường name và dùng title làm name tạm thời
-      name: data.title, 
+      id: data.id, 
+      lat: data.lat, 
+      lon: data.lon,
+      name: data.title,
       title: data.title || "Tên địa điểm",
       image: data.image || data.hero, 
       description: data.overview || "Chưa có mô tả chi tiết.", 
       hashtags: Array.isArray(data.hashtags) ? data.hashtags : [],
       address: data.address,
-      coords: data.coords, // Giữ lại nếu bạn có tọa độ chi tiết hơn
-      // CÁC TRƯỜNG API CHƯA CUNG CẤP (để trống/N/A)
+      
+      // 👇 THÊM DÒNG NÀY: Lấy rating từ data, mặc định là 0 nếu không có
+      rating: data.rating ? Number(data.rating) : 0,
+
       openingHours: "", 
       setting: "",
       priceRange: "",
@@ -42,7 +42,16 @@ export default function PlaceDetail() {
 
   const [fav, setFav] = useState(place.fav);
   
-  // 💡 openDirections không cần thiết nữa
+  // Hàm render số sao (Vẽ ngôi sao vàng)
+  const renderStars = (score) => {
+    return (
+      <span style={{ display: "flex", alignItems: "center", gap: "5px", fontWeight: "bold", color: "#333" }}>
+        <span style={{ color: "#fbbf24", fontSize: "1.2rem" }}>★</span>
+        <span>{score > 0 ? score.toFixed(1) : "N/A"}</span>
+        <span style={{ fontSize: "0.85rem", color: "#888", fontWeight: "normal" }}>/ 5.0</span>
+      </span>
+    );
+  };
 
   return (
     <>
@@ -54,66 +63,49 @@ export default function PlaceDetail() {
               <path d="M15 18 9 12l6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           </button>
-          {/* Sửa data.hero thành place.image */}
           <img src={place.image} alt={place.title} />
         </div>
 
         <article className="detail-card">
           <header className="detail-header">
-            {/* ✅ Title */}
             <h1 className="detail-title">{place.title}</h1>
 
             <div className="detail-actions">
-              
-              {/* 💡 THAY THẾ NÚT CHỈ ĐƯỜNG */}
-              {/* Lưu ý: DirectionButton sử dụng buildDirectionsUrl đã chuyển, nó cần place object */}
               <DirectionButton place={place} /> 
-
-              {/* 💡 THAY THẾ NÚT YÊU THÍCH */}
               <FavoriteButton 
+                placeId={place.id}
                 isFav={fav}
-                onToggle={() => setFav((v) => !v)}
+                onToggle={(newStatus) => setFav(newStatus)}
               />
             </div>
           </header>
 
-          {/* Sửa data.detail thành place.description (nếu muốn hiển thị mô tả tóm tắt) */}
           <p className="detail-desc">{place.description}</p>
 
           <dl className="detail-meta">
+            
+            {/* 2️⃣ BƯỚC 2: THÊM DÒNG HIỂN THỊ RATING TẠI ĐÂY */}
+            <div className="meta-row">
+              <dt>Rating:</dt>
+              <dd>{renderStars(place.rating)}</dd>
+            </div>
+
             <div className="meta-row">
               <dt>Hashtags:</dt>
-              {/* Sử dụng place.hashtags */}
               <dd className="tags">{place.hashtags.map((t) => `${t}`).join(" ")}</dd>
             </div>
             
             <div className="meta-row">
-              <dt>Opening Hours:</dt>
-              {/* Trường thiếu: sẽ hiển thị trống */}
-              <dd>{place.openingHours}</dd>
-            </div>
-            <div className="meta-row">
-              <dt>Setting:</dt>
-              {/* Trường thiếu: sẽ hiển thị trống */}
-              <dd>{place.setting}</dd>
-            </div>
-            <div className="meta-row">
-              <dt>Price Range:</dt>
-              {/* Trường thiếu: sẽ hiển thị trống */}
-              <dd>{place.priceRange}</dd>
-            </div>
-            <div className="meta-row">
               <dt>Address:</dt>
-              {/* Trường có sẵn: sẽ hiển thị địa chỉ */}
               <dd><span className="pin">📍</span>{place.address}</dd>
+            </div>
+
+            <div className="meta-row">
+              <dt>Opening Hours:</dt>
+              <dd>{place.openingHours || "N/A"}</dd>
             </div>
           </dl>
           
-          {/* Nếu bạn có một section dài hơn cho mô tả chi tiết, nhưng hiện tại dùng description */}
-          {/* <section className="detail-long-text">
-            {place.detail} 
-          </section> */}
-
         </article>
       </main>
     </>
