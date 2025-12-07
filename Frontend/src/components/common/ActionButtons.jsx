@@ -2,6 +2,8 @@
 import React from 'react';
 // 💡 IMPORT FILE CSS MỚI
 import '../../styles/ActionButtons.css'; 
+import { useState, useEffect, useRef } from "react";
+import favoriteAPI from "../../services/favoriteAPI"; // Import API đã viết ở bước trước
 
 /**
  * Hàm tiện ích để xây dựng URL Google Maps cho Chỉ đường.
@@ -65,29 +67,67 @@ export function DirectionButton({ place }) {
   );
 }
 
-/**
- * Component Nút yêu thích/Trái tim (Favorite Button)
- * @param {object} props
- * @param {boolean} props.isFav - Trạng thái yêu thích
- * @param {function} props.onToggle - Hàm xử lý khi click
- */
-export function FavoriteButton({ isFav, onToggle }) {
-  const handleClick = (e) => {
-    e.stopPropagation(); // Ngăn chặn sự kiện click lan ra ResultCard
-    onToggle();
+
+
+// ... DirectionButton giữ nguyên ...
+
+export function FavoriteButton({ placeId, isFav, onToggle }) {
+  const [isFavorited, setIsFavorited] = useState(isFav);
+  const debounceTimer = useRef(null);
+
+  useEffect(() => {
+    setIsFavorited(isFav);
+  }, [isFav]);
+
+  const executeApiCall = async (currentId, status) => {
+    // 🛡️ 1. Ép kiểu và kiểm tra kỹ càng
+    const validId = parseInt(currentId);
+    
+    // Nếu ID không phải số hoặc bị NaN -> DỪNG NGAY
+    if (!currentId || isNaN(validId)) {
+        console.error("⛔ [FavoriteButton] Blocked invalid call. ID:", currentId);
+        return; 
+    }
+
+    try {
+      // 🛡️ 2. Gọi API thông qua hàm cập nhật
+      await favoriteAPI.updateFavoriteStatus(validId, status);
+    } catch (error) {
+      console.error("Failed to update favorite:", error);
+      // Nếu muốn chặt chẽ: Revert UI nếu lỗi
+      // setIsFavorited(!status); 
+    }
   };
-  
+
+  const handleClick = (e) => {
+    e.stopPropagation();
+    e.preventDefault();
+
+    // Optimistic UI
+    const newStatus = !isFavorited;
+    setIsFavorited(newStatus);
+    
+    if (onToggle) onToggle(newStatus);
+
+    // Debounce
+    if (debounceTimer.current) {
+      clearTimeout(debounceTimer.current);
+    }
+
+    debounceTimer.current = setTimeout(() => {
+      // Truyền đúng placeId từ props vào đây
+      executeApiCall(placeId, newStatus);
+    }, 500);
+  };
+
   return (
     <button
-      className={`fav-btn ${isFav ? "is-fav" : ""}`}
-      aria-label={isFav ? "Unfavorite" : "Favorite"}
+      className={`fav-btn ${isFavorited ? "is-fav" : ""}`}
       onClick={handleClick}
-      title={isFav ? "Remove from favorites" : "Add to favorites"}
+      // ... giữ nguyên phần svg
     >
-      {/* SVG icon cho Heart */}
-      <svg width="22" height="22" viewBox="0 0 24 24">
-        {/* Fill không cần thiết ở đây vì đã có CSS .fav-btn svg path { fill: currentColor !important; } */}
-        <path d="M12 21s-6.7-4.1-9.6-7.6A6.1 6.1 0 0 1 12 5.3a6.1 6.1 0 0 1 9.6 8.1C18.7 16.9 12 21 12 21z" />
+      <svg width="22" height="22" viewBox="0 0 24 24" fill={isFavorited ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2">
+        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
       </svg>
     </button>
   );
