@@ -3,6 +3,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../components/layouts/Navbar";
 import TagSelector from "../components/common/TagSelector";
+import ClearAllButton from "../components/common/ClearAllButton";  
 import "../styles/Preferences.css";
 import activitiesAPI from "../services/activitiesAPI";
 import BackButton from "../components/common/BackButton";
@@ -18,7 +19,6 @@ export default function Activities() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
-  // Load activities
   useEffect(() => {
     const load = async () => {
       try {
@@ -48,9 +48,11 @@ export default function Activities() {
     try {
       setSaving(true);
 
-      localStorage.setItem("activities", JSON.stringify(selectedActivities || []));
+      localStorage.setItem(
+        "activities",
+        JSON.stringify(selectedActivities || [])
+      );
 
-      // tùy flow: nếu muốn sang results luôn thì "/results"
       navigate("/home");
     } catch (err) {
       setError(err?.message || "Failed to save activities");
@@ -59,10 +61,14 @@ export default function Activities() {
     }
   };
 
+  const handleClear = () => {
+    setSelectedActivities([]);
+  };
+
   return (
     <>
       <Navbar />
-      <BackButton to="/preferences"/>
+      <BackButton to="/preferences" />
 
       <main className="pref-wrap">
         <h1 className="pref-title">CHOOSE YOUR ACTIVITY</h1>
@@ -72,11 +78,20 @@ export default function Activities() {
         {tagsError && <p className="text-red-500 text-sm">{tagsError}</p>}
 
         {!tagsLoading && !tagsError && (
-          <TagSelector
-            tags={allActivities}
-            defaultSelected={selectedActivities}
-            onChange={setSelectedActivities}
-          />
+          <div className="tag-wrapper">
+            <div className="tag-header">
+              <ClearAllButton
+                onClear={handleClear}
+                disabled={!selectedActivities.length}
+              />
+            </div>
+
+            <TagSelector
+              tags={allActivities}
+              defaultSelected={selectedActivities}
+              onChange={setSelectedActivities}
+            />
+          </div>
         )}
 
         {error && <p className="text-red-500 text-sm mt-2">{error}</p>}
