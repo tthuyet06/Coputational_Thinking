@@ -7,7 +7,7 @@ from backend.app.api.v1.endpoints.auth import router as auth_router
 from backend.app.api.v1.endpoints.recommend import router as  recommend_router
 from backend.app.api.v1.endpoints.weather import router as weather_router
 from backend.app.api.v1.endpoints.favorites import router as favorites_router
-
+from backend.app.api.v1.endpoints.distance import router as distance_router
 
 api_router = APIRouter(prefix="/api/v1")
 api_router.include_router(auth_router)
@@ -17,6 +17,7 @@ api_router.include_router(recommend_router) # /api/v1/recommend/*
 api_router.include_router(tags_router)    # /api/v1/tags/*
 api_router.include_router(weather_router) # /api/v1/weather/*
 api_router.include_router(favorites_router) # /api/v1/favorites/*
+api_router.include_router(distance_router) # /api/v1/distance/*
 
 
 

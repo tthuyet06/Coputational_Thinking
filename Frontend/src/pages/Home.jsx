@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import Navbar from "../components/layouts/Navbar";
 import "../styles/Home.css";
 import preferenceAPI from "../services/preferenceAPI";
+import BackButton from "../components/common/BackButton";
 
 export default function Home() {
   const navigate = useNavigate();
@@ -56,6 +57,7 @@ export default function Home() {
   return (
     <>
       <Navbar />
+      <BackButton to="/activities"/>
       <main className="home-wrap">
         <h1 className="home-title">
           ⏰ How much free time

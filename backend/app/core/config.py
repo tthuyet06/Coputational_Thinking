@@ -23,3 +23,9 @@ REFRESH_TOKEN_EXPIRE_DAYS = 1
 # ☁️ OPENWEATHER CONFIG
 # ==========================
 OPENWEATHER_API_KEY = "2ab54102a7b4fcd1c91f89a1fae1e132"
+
+# ==========================
+# 🚗 OSRM CONFIG (Thay cho Google Maps)
+# ==========================
+# Sử dụng server public demo của OSRM
+OSRM_API_URL = "http://router.project-osrm.org/route/v1/driving"
