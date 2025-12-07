@@ -1,15 +1,13 @@
-from datetime import datetime, date
+from time_utils import get_current_time, get_current_hours
+from datetime import datetime, time
+from time_utils import to_decimal_hours, from_decimal_hours
 
 # Lấy ngày hiện tại
-today = date.today()
-# Hoặc nếu bạn có một đối tượng datetime cụ thể:
-# specific_date = datetime(2025, 12, 25) # Ví dụ: Thứ Tư
+a = []
 
-# Sử dụng phương thức .weekday()
-day_number = today.weekday()
+now = datetime.now()
 
-print(f"Hôm nay là: {today}")
-print(f"Thứ tự trong tuần (0=T2, 6=CN): {day_number}")
+print(now.weekday())
 
 # Kết quả (Dựa trên ngày hiện tại là Thứ Tư, 3/12/2025):
 # Thứ tự trong tuần (0=T2, 6=CN): 2

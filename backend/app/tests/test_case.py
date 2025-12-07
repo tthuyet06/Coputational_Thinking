@@ -31,7 +31,6 @@ from backend.app.utils.geo_utils import haversine_distance
 from backend.app.services.recommend_engine_for_test import (
     _recommend_core,
     # Cần thêm các hàm con được sử dụng trong _recommend_core
-    # Nếu không, bạn sẽ gặp lỗi NameError
 )
 
 
@@ -63,42 +62,38 @@ class MockUser:
 @dataclass
 class MockCriteria:
     location: MockLocation
-    duration_tag: str
-    activities: List[str]
+    duration_tag: str | None = None
+    activities: List[str] | None = None
     extra_tags: List[str] | None = None
 
 
+# Sửa lỗi: Cần import field từ dataclasses
+from dataclasses import field
+
+
+@dataclass
+class TestCase:
+    test_case_name: str
+    criteria: MockCriteria
+    # User mặc định sẽ sử dụng hobbies từ criteria nếu không được cung cấp rõ ràng
+    user: MockUser
+
+
 # =========================================================
-# PHẦN 4: HÀM TEST VỚI DỮ LIỆU DB THẬT ĐÃ CHỈNH SỬA
+# PHẦN 4: HÀM TEST (ĐÃ SỬA LỖI SYNTAX)
 # =========================================================
 
-# SỬA LẠI KHỐI NÀY TRONG FILE test_recommendation.py
-
-def test_db_driven_recommendation():
-    """
-    Test quy trình gợi ý sử dụng dữ liệu thật từ DB bằng hàm _recommend_core.
-    Kiểm tra chức năng trả về Top N.
-    """
-    print("--- Bắt đầu Test Gợi ý với Dữ liệu DB Thật (Dùng _recommend_core) ---")
+def run_test_case(testcase: TestCase, n_results: int = 2):
+    print(f"--- Bắt đầu Test Gợi ý với Dữ liệu Thật từ thông tin của test case: {testcase.test_case_name} ---")
 
     # 1. KHỞI TẠO DB SESSION
     db: SessionLocal | None = None
-    try:
+    try:  # <--- Bắt đầu khối TRY
         db = SessionLocal()
 
-        # 2. CẤU HÌNH N VÀ CRITERIA
-        user_location = MockLocation(latitude=10.7750, longitude=106.6950)
-        mock_criteria = MockCriteria(
-            location=user_location,
-            duration_tag="#long_time",
-            activities=["#cafe"],
-            extra_tags=["#afternoon", "#windy", "#outdoor"]
-        )
-        mock_user = MockUser(id=1, hobbies=mock_criteria.extra_tags)
-
-        # 3. THỰC HIỆN GỢI Ý (Truyền tham số n_results)
         # scored_places là List[tuple[float, float, DomainPlace]]
-        scored_places = _recommend_core(db, mock_user, mock_criteria,)
+        # Truyền tham số n_results để giới hạn kết quả
+        scored_places = _recommend_core(db, testcase.user, testcase.criteria, n_results=n_results)
 
         if not scored_places:
             print("❌ Lỗi: Không có gợi ý nào được tìm thấy. Kiểm tra logic lọc trong _recommend_core.")
@@ -122,10 +117,21 @@ def test_db_driven_recommendation():
             print(f"  Địa chỉ: {place.address} 📍")
             print("---------------------------------------")
 
-    finally:
+    finally:  # <--- Thêm khối FINALLY để đóng DB Session (Fix SyntaxError)
         if db:
             db.close()
 
 
+# =========================================================
+# PHẦN 5: CHẠY TEST (ĐÃ SỬA LỖI NAMEERROR)
+# =========================================================
+
 if __name__ == "__main__":
-    test_db_driven_recommendation()
+    # Định nghĩa criteria trước để có thể dùng hobbies cho user
+    criteria_1 = MockCriteria(location=MockLocation(latitude=10.7750, longitude=106.6950), duration_tag="#long_time", activities=[], extra_tags=[])
+    testcase_1 = TestCase(test_case_name="Test 1: ",criteria=criteria_1, user=MockUser(id=1, hobbies=criteria_1.extra_tags))
+
+    criteria_2 = MockCriteria(location=MockLocation(latitude=10.753467149192835, longitude=106.65386489099524), duration_tag="#")
+    testcase_2 = TestCase(test_case_name="Test 2:")
+
+    run_test_case(testcase_1)  # Giới hạn kết quả để dễ xem hơn
