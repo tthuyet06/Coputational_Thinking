@@ -10,62 +10,16 @@ import favoriteAPI from "../services/favoriteAPI";
 // Import Components
 import LoadingScreen from "./LoadingScreen";
 import EmptyState from "./EmptyState";
-import {
-  DirectionButton,
-  FavoriteButton,
-} from "../components/common/ActionButtons";
 
 // Import Hooks & Utils
 import useGeolocation from "../hooks/useGeolocation";
 import useWeather from "../hooks/useWeather";
 import toErrorMessage from "../utils/toErrorMessage";
+import PlaceCard from "../components/common/PlaceCard";
+import BackButton from "../components/common/BackButton";
 
 const DEFAULT_LATITUDE = 10.776;
 const DEFAULT_LONGITUDE = 106.7;
-
-// ---------------- ResultCard (Đã kiểm tra: Props truyền ĐÚNG) ----------------
-function ResultCard({ item, onToggleFav }) {
-  const navigate = useNavigate();
-
-  const goToDetail = () => {
-    navigate(`/details/${item.id}`, { state: { place: item } });
-  };
-
-  const DEFAULT_IMAGE =
-    "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=800&q=80";
-  const imageSrc = item.image || item.image_url || DEFAULT_IMAGE;
-
-  return (
-    <article className="result-card" onClick={goToDetail}>
-      <img className="result-img" src={imageSrc} alt={item.title} />
-      <div className="result-body">
-        <header className="result-header">
-          <h3 className="result-title">{item.title}</h3>
-          <div className="result-actions">
-            <DirectionButton place={item} />
-            {/* ✅ Đã truyền đúng placeId để tránh lỗi 422 */}
-            <FavoriteButton
-              placeId={item.id}         
-              isFav={item.fav}          
-              onToggle={() => onToggleFav(item.id)} 
-            />
-          </div>
-        </header>
-
-        <p className="result-desc">{item.description}</p>
-        <p className="result-addr">
-          <span className="pin">📍</span>
-          {item.address}
-        </p>
-        <p className="result-tags">
-          {(item.hashtags || []).map((t, idx) => (
-            <span key={`${item.id}-${idx}`}>{t} </span>
-          ))}
-        </p>
-      </div>
-    </article>
-  );
-}
 
 // ---------------- Results Page ----------------
 export default function Results() {
@@ -206,9 +160,17 @@ export default function Results() {
       address: p.address || "",
       tags: Array.isArray(p.tags) ? p.tags : [],
       hashtags: Array.isArray(p.tags) ? p.tags : [],
-      
+      rating:
+        typeof p.rating === "number"
+          ? p.rating
+          : p.rating != null
+          ? Number(p.rating)
+          : 0,
+      openingHours: p.open || p.opening_hours || "N/A",  // ✅
       // ✅ So sánh ID của Place với Set ID trong Favorites
       fav: favSet.has(p.id),
+
+
       
       lat: p.latitude || p.lat,
       lon: p.longitude || p.lon,
@@ -240,10 +202,10 @@ export default function Results() {
     }
   }, [geoLoc, geoError, geoLoading, showLoading, loadRecommendations]);
 
-  const toggleFav = (id) =>
+  const toggleFav = (id, newStatus) =>
     setItems((prev) =>
-      prev.map((it) => (it.id === id ? { ...it, fav: !it.fav } : it))
-    );
+      prev.map((it) => (it.id === id ? { ...it, fav: newStatus } : it))
+    );  
 
   // --- RENDER ---
   const finalLoading = loading || (geoLoading && !geoLoc && !geoError);
@@ -281,6 +243,7 @@ export default function Results() {
   return (
     <>
       <Navbar />
+      <BackButton to="/home"/>
       <main className="results-wrap">
         <div className="results-inner">
           <h1 className="results-title">
@@ -303,10 +266,9 @@ export default function Results() {
                 {weatherData.description && <span>- {weatherData.description}</span>}
             </div>
           )}
-
           <section className="results-list">
             {items.map((it) => (
-              <ResultCard key={it.id} item={it} onToggleFav={toggleFav} />
+              <PlaceCard key={it.id} place={it} onToggleFav={toggleFav} />
             ))}
           </section>
         </div>
