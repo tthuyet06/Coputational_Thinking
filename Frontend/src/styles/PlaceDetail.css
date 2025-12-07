@@ -20,21 +20,6 @@
     object-fit: cover;
   }
   
-  .back-btn {
-    position: absolute;
-    top: 16px;
-    left: 12px;
-    width: 40px;
-    height: 40px;
-    border: none;
-    border-radius: 999px;
-    background: rgba(255,255,255,.9);
-    display: grid;
-    place-items: center;
-    cursor: pointer;
-    box-shadow: 0 4px 12px rgba(0,0,0,.15);
-  }
-  
   .detail-card {
     background: #fff;
     border: 1px solid #ececec;
