@@ -128,11 +128,6 @@ export default function PlaceDetail() {
             </div>
 
             <div className="meta-row">
-              <dt>Rating:</dt>
-              <dd>{renderStars(place.rating)}</dd>
-            </div>
-
-            <div className="meta-row">
               <dt>Hashtags:</dt>
               <dd className="tags">
                 {place.hashtags.map((t) => `${t}`).join(" ")}
@@ -152,10 +147,6 @@ export default function PlaceDetail() {
               <dd>{place.openingHours || "N/A"}</dd>
             </div>
 
-            <div className="meta-row">
-              <dt>Opening Hours:</dt>
-              <dd>{place.openingHours || "N/A"}</dd>
-            </div>
           </dl>
         </article>
       </main>
