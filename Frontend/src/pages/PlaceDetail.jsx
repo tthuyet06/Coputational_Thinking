@@ -120,6 +120,13 @@ export default function PlaceDetail() {
           <p className="detail-desc">{place.description}</p>
 
           <dl className="detail-meta">
+            
+            {/* 2️⃣ BƯỚC 2: THÊM DÒNG HIỂN THỊ RATING TẠI ĐÂY */}
+            <div className="meta-row">
+              <dt>Rating:</dt>
+              <dd>{renderStars(place.rating)}</dd>
+            </div>
+
             <div className="meta-row">
               <dt>Rating:</dt>
               <dd>{renderStars(place.rating)}</dd>
@@ -138,6 +145,11 @@ export default function PlaceDetail() {
                 <span className="pin">📍</span>
                 {place.address}
               </dd>
+            </div>
+
+            <div className="meta-row">
+              <dt>Opening Hours:</dt>
+              <dd>{place.openingHours || "N/A"}</dd>
             </div>
 
             <div className="meta-row">

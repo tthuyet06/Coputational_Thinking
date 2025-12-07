@@ -42,7 +42,7 @@ export default function Activities() {
     load();
   }, []);
 
-  const handleNext = () => {
+  const handleNext = async () => {
     setError("");
 
     try {
@@ -50,6 +50,7 @@ export default function Activities() {
 
       localStorage.setItem("activities", JSON.stringify(selectedActivities || []));
 
+      // tùy flow: nếu muốn sang results luôn thì "/results"
       navigate("/home");
     } catch (err) {
       setError(err?.message || "Failed to save activities");

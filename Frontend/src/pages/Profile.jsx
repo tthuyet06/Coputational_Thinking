@@ -347,9 +347,7 @@ export default function Profile() {
               </p>
 
               {hobbyLoading && <p>Loading vibes...</p>}
-              {hobbyError && (
-                <p className="text-red-500 text-sm mb-2">{hobbyError}</p>
-              )}
+              {hobbyError && <p className="text-red-500 text-sm mb-2">{hobbyError}</p>}
 
               {!hobbyLoading && (
                 <>
