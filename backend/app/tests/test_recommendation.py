@@ -91,8 +91,8 @@ def test_db_driven_recommendation():
         mock_criteria = MockCriteria(
             location=user_location,
             duration_tag="#long_time",
-            activities=["#cafe"],
-            extra_tags=["#afternoon", "#windy", "#outdoor"]
+            activities=["#movie"],
+            extra_tags=["#music"]
         )
         mock_user = MockUser(id=1, hobbies=mock_criteria.extra_tags)
 
@@ -114,7 +114,7 @@ def test_db_driven_recommendation():
 
             print(f" Top {i + 1}🥇")
             print(f"  Total Score: {total_score:.4f} ✨")
-            print(f"  Distance: {distance:.2f} km 🧭")
+            print(f"  Haversine Distance: {distance:.2f} km 🧭")
             print(f"  Tên: {place.name} 🏠")
             print(f"  ID: {place.id} 🆔")
             print(f"  Rating: {place.rating}/5.0 ⭐")

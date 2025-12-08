@@ -3,7 +3,7 @@ import math
 from pytz import timezone
 from datetime import date, time, datetime, timedelta
 
-def get_current_time(tz_name: str = "Asia/Ho_Chi_Minh") -> datetime:
+def get_current_datetime(tz_name: str = "Asia/Ho_Chi_Minh") -> datetime:
     """Trả về đối tượng datetime có nhận thức về múi giờ (timezone-aware datetime)
     cho múi giờ được chỉ định. Mặc định là "Asia/Ho_Chi_Minh"."""
     try:
@@ -14,21 +14,6 @@ def get_current_time(tz_name: str = "Asia/Ho_Chi_Minh") -> datetime:
 
     now_tz = datetime.now(tz=tz)
     return now_tz
-
-def get_current_hours(tz_name: str = "Asia/Ho_Chi_Minh") -> time:
-    """Trả về thời điểm hiện tại (datetime.time) theo timezone được chỉ định.
-    Mặc định là "Asia/Ho_Chi_Minh"."""
-
-    try:
-        tz = timezone(tz_name)
-    except pytz.exceptions.UnknownTimeZoneError:
-        # Xử lý nếu tên múi giờ không hợp lệ
-        print(f"Warning: Timezone '{tz_name}' not found. Using local time instead.")
-        return datetime.now().time()
-
-    now_tz = datetime.now(tz=tz)
-
-    return now_tz.time()
 
 def to_decimal_hours(time_t: time) -> float:
     """Chuyển đổi đối tượng datetime.time thành giá trị số thập phân biểu thị
