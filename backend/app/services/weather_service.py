@@ -70,9 +70,7 @@ def normalize_weather_tag(main_weather: str) -> str:
             return "#sunny"
         case "clouds":
             return "#cloudy"
-        case "rain":
-            return "#rain"
-        case "drizzle":
+        case "rain" | "drizzle":
             return "#rain"
         case "thunderstorm":
             return "#storm"
