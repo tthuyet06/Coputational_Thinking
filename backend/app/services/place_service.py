@@ -8,10 +8,8 @@ from backend.app.domain.object_value import OpeningRange, SpecialOpeningRuleDoma
 
 
 def _parse_time_str(t: str | None) -> time | None:
-    """
-    Chuyển 'HH:MM' thành datetime.time.
-    Trả về None nếu chuỗi rỗng / None.
-    """
+    """Chuyển 'HH:MM' thành datetime.time.
+    Trả về None nếu chuỗi rỗng / None."""
     if not t:
         return None
     t = t.strip()
@@ -20,15 +18,12 @@ def _parse_time_str(t: str | None) -> time | None:
     hour, minute = map(int, t.split(":"))
     return time(hour=hour, minute=minute)
 
-
 def _is_time_in_range(now_t: time, start: time, end: time) -> bool:
-    """
-    Kiểm tra now_t có nằm trong khoảng [start, end] hay không.
+    """Kiểm tra now_t có nằm trong khoảng [start, end] hay không.
 
     - Nếu end >= start: khung giờ trong cùng 1 ngày (vd 08:00–17:00)
     - Nếu end < start: khung giờ qua ngày hôm sau (vd 18:00–02:00)
-      => Mở từ start -> 23:59 và 00:00 -> end
-    """
+      => Mở từ start -> 23:59 và 00:00 -> end"""
     if end >= start:
         return start <= now_t <= end
     # trường hợp qua ngày
