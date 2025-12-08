@@ -44,7 +44,6 @@ class MockLocation:
     latitude: float
     longitude: float
 
-
 @dataclass
 class MockUser:
     id: int
