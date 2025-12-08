@@ -1,5 +1,3 @@
-# backend/app/repositories/tag_repository.py
-
 # backend/app/repositories/hobby_repository.py
 from __future__ import annotations
 
