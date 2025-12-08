@@ -120,6 +120,9 @@ def _recommend_core(db: Session, user: DomainUser, criteria: RecommendationCrite
     if not places:
         return RecommendationResult(places=[])
 
+    if len(places) == 1:
+        return RecommendationResult(places=places)
+
     # 7. Tính điểm từng địa điểm
     tags = tag_repo.get_all(db)
     scored: list[tuple[float, DomainPlace]] = []

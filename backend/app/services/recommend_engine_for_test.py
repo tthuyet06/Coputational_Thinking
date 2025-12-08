@@ -140,13 +140,8 @@ def _recommend_core(db: Session, user: DomainUser, criteria: RecommendationCrite
         return scored
     print(f"distance success✅")
 
-    if len(places) == 1:
-        scored.append((_score_place(places[0], criteria, db, user), 0.0, places[0]))
-        return scored
-
     # 7. Tính điểm từng địa điểm
     # Định nghĩa: (total_score, distance, DomainPlace)
-
     for place in places:
         distance = haversine_distance(criteria.location.latitude, criteria.location.longitude, place.lat, place.lon)
         total_score = _score_place(place, criteria, db, user)
@@ -214,10 +209,8 @@ UNSAFE_SPACES_IN_EXTREME_WEATHER = {"#outdoor", "#rooftop"}
 
 def _filter_by_weather(criteria: RecommendationCriteria, places: list[DomainPlace]):
     """Loại bỏ các địa điểm không phù hợp trong thời tiết cực đoan.
-    - Nếu thời tiết thuộc EXTREME_WEATHER_TAGS -> loại mọi place chứa tag trong UNSAFE_SPACES_IN_EXTREME_WEATHER."""
-    weather_js = get_current_weather_data(criteria.location.latitude, criteria.location.longitude)
-    weather = get_main_weather(weather_js)
-    weather_tag = normalize_weather_tag(weather)
+        - Nếu thời tiết thuộc EXTREME_WEATHER_TAGS -> loại mọi place chứa tag trong UNSAFE_SPACES_IN_EXTREME_WEATHER."""
+    weather_tag = get_main_weather(criteria.location.latitude, criteria.location.longitude)
 
     if weather_tag in EXTREME_WEATHER_TAGS:
         return [
