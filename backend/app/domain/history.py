@@ -10,8 +10,8 @@ def get_naive_utc7_now():
 class History:
     place_id: int | None = None
     reco_count: int | None = None # chạy từ 7- 0 rồi nhảy đến 7
-
     time: datetime = field(default_factory=get_naive_utc7_now)
+
     def update_rec_counter(self):
         if self.reco_count == 0:
             self.reco_count = 7
@@ -20,4 +20,3 @@ class History:
         self.reco_count -= 1
 
         self.time = get_naive_utc7_now()
-

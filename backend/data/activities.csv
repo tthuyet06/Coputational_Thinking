@@ -1,14 +1,18 @@
-id,name,tag_code,describe
-1,Coffee,#cafe,"Go to a café to relax, chat, or enjoy drinks."
-2,Food,#eat,"Go out to eat — restaurants, street food, casual dining."
-3,Movie,#movie,Watch a movie at the cinema.
-4,Shopping,#shopping,Visit malls or stores to browse or shop.
-5,Entertainment,#entertainment,"Activities like karaoke, bowling, arcade games, etc."
-6,Outdoor,#outdoor,"Walking in parks, strolling outside, scenery spots."
-7,Indoor,#indoor,"Indoor activities like museums, libraries, exhibitions."
-8,Walking,#walking,Casual walk outside.
-9,Studying,#study,Studying or working at a place.
-10,Photos,#photo,Taking pictures.
-11,Drinks,#drinks,"Bars, pubs, cocktail places."
-12,Nightlife,#nightlife,Going out at night.
-13,Dating,#dating,A date activity — cozy spots for couples.
+id,tag_code,name,describe
+1,#cafe,Coffee,"Go to a café to relax, chat, or enjoy drinks."
+2,#food,Food,"Go out to eat — restaurants, street food, casual dining."
+3,#movie,Movie,Watch a movie at the cinema.
+4,#shopping,Shopping,Enjoy going shopping as a leisure activity.
+5,#entertainment,Entertainment,"Activities like karaoke, bowling, arcade games, etc."
+6,#study,Studying,Studying or working at a place.
+7,#photo,Photos,Taking pictures.
+8,#drinks,Drinks,Enjoy drinking 
+9,#dating,Dating,A date activity — cozy spots for couples.
+10,#takeaway,Takeaway,Sharing quick and convenient food to-go
+11,#snacks,Snacks,Small bites for anytime hunger.
+12,#walking,Walking,Casual walk outside.
+13,#workshop,Workshop,A place hosting creative workshops.
+14,#karaoke,Karaoke,A place for singing and group fun.
+15,#streetfood,Streetfood,Local food from small stalls.
+16,#visit,Visit,Discover places through activities.
+17,#bar,Bar,Cheers to good moments.

@@ -78,76 +78,99 @@ def get_recommendations(
 
     return [_to_api_dict(jt) for jt in json_datas]
 
-def _recommend_core(db: Session, user: DomainUser, criteria: RecommendationCriteria) -> RecommendationResult:
+def _recommend_core(db: Session, user: DomainUser, criteria: RecommendationCriteria, n_results: int = 2):
     all_places: List[DomainPlace] = place_repo.get_all_as_domain(db)
     places = [p for p in all_places if p.lat is not None and p.lon is not None]
 
-    if not places:
-        return RecommendationResult(places=[])
+    scored: list[tuple[float, float, DomainPlace]] = []
 
-    # 1. Loại cứng theo Activity
+    # 0. Kiểm tra đầu vào ban đầu
+    if not places:
+        print("[INIT] FAIL ❌ — No places loaded.")
+        return scored
+    print(f"[INIT] OK ✅ — Loaded {len(places)} places.")
+
+    # 1. Lọc theo Activity
     places = _filter_by_activity(places, criteria.activities)
 
     if not places:
-        return RecommendationResult(places=[])
+        print("[ACTIVITY] FAIL ❌ — No places match the selected activities.")
+        return scored
+    print(f"[ACTIVITY] OK ✅ — {len(places)} places remain.")
 
-    # 2. Loại cứng theo Hobby
+    # 2. Lọc theo Hobby
     places = _filter_by_hobby(places, criteria.extra_tags)
 
     if not places:
-        return RecommendationResult(places=[])
+        print("[HOBBY] FAIL ❌ — No places match the selected hobbies.")
+        return scored
+    print(f"[HOBBY] OK ✅ — {len(places)} places remain.")
 
-    # 3. Lọc theo thời tiết
+    # 3. Lọc theo Weather
     places = _filter_by_weather(criteria, places)
 
     if not places:
-        return RecommendationResult(places=[])
+        print("[WEATHER] FAIL ❌ — No places are suitable for current weather.")
+        return scored
+    print(f"[WEATHER] OK ✅ — {len(places)} places remain.")
 
-    # 4. Lọc theo thời gian và địa điểm trùng activity đang đứng
+    # 4. Khi user không chọn Activity
     if not criteria.activities:
+        print("[NO_ACTIVITY] INFO — Filtering by time of day + current location")
+
+        # Time of day
         places = _filter_by_time_of_day(places)
         if not places:
-            return RecommendationResult(places=[])
+            print("[TIME_OF_DAY] FAIL ❌ — No places match time of day.")
+            return scored
+        print(f"[TIME_OF_DAY] OK ✅ — {len(places)} places remain.")
+
+        # Current Location
         places = _filter_out_current_location(db, criteria, places)
         if not places:
-            return RecommendationResult(places=[])
+            print("[CURRENT_LOCATION] FAIL ❌ — All places filtered out.")
+            return scored
+        print(f"[CURRENT_LOCATION] OK ✅ — {len(places)} places remain.")
+    else:
+        print("[ACTIVITY] INFO — Activities provided -> skipping fallback flow.")
 
-    # 6. Loại cứng theo thời gian hoạt động
+    # 5. Lọc theo Opening Time
     places = _filter_by_opening_time(db, places)
 
     if not places:
-        return RecommendationResult(places=[])
+        print("[OPENING_TIME] FAIL ❌ — No places open at this time.")
+        return scored
+    print(f"[OPENING_TIME] OK ✅ — {len(places)} places remain.")
 
-    # 3. Loại cứng theo khoảng cách tối đa tùy vào duration_tag
+    # 6. Lọc theo Distance (GPS)
     places = _filter_by_gps(places, criteria.location, criteria.duration_tag)
 
     if not places:
-        return RecommendationResult(places=[])
+        print("[DISTANCE] FAIL ❌ — No places within allowed travel distance.")
+        return scored
+    print(f"[DISTANCE] OK ✅ — {len(places)} places remain.")
 
     if len(places) == 1:
-        return RecommendationResult(places=places)
+        scored.append((_score_place(places[0], criteria, db, user), 0.0, places[0]))
+        return scored
 
     # 7. Tính điểm từng địa điểm
-    scored: list[tuple[float, DomainPlace]] = []
+    print(f"waiting for scoring....")
 
     for place in places:
+        distance = get_distance_sync(criteria.location.latitude, criteria.location.longitude, place.lat, place.lon)
         total_score = _score_place(place, criteria, db, user)
-        scored.append((total_score, place))
+        scored.append((total_score, distance, place))
 
+    print(f"[{len(places)}] Counting Score success✅")
     # Sắp xếp giảm dần theo điểm
     scored.sort(key=lambda x: x[0], reverse=True)
 
-    # Chỉ lấy danh sách place (bỏ điểm)
-    top_places = [place for _, place in scored[:2]]
+    # Cắt (slice) danh sách để chỉ lấy N kết quả hàng đầu
+    top_n_scored_data = scored[:n_results]
 
-    # Cập nhật history của user
-    for p in top_places:
-        user.update_history(p.id)
-
-    # Lưu lịch sử vào db
-    user.save(db, user)
-
-    return RecommendationResult(places=top_places)
+    # Trả về Top N kết quả đã sắp xếp
+    return top_n_scored_data
 
 def _filter_by_activity(places: list[DomainPlace], activities: List[str]) -> list[DomainPlace]:
     if not activities:
@@ -189,7 +212,6 @@ def _filter_by_gps(places: list[DomainPlace], loc: Location, duration_tag: str):
         return places
 
     out = []
-
     for p in places:
         d = get_distance_sync(loc.latitude, loc.longitude, p.lat, p.lon)
         if d <= max_distance_by_duration:
@@ -213,23 +235,25 @@ def _filter_by_weather(criteria: RecommendationCriteria, places: list[DomainPlac
     return places
 
 UNSAFE_BY_TIME_TAG = {
-    # 1. Sáng: Cấm nơi quá tĩnh lặng, ít người. (Yêu cầu sự năng động, sôi nổi)
+    # Sáng: Cấm các vibe/không gian quá tĩnh lặng hoặc quá sôi động/chỉ dành cho buổi tối
     "#morning": {
-        "#quiet",      # Quá tĩnh lặng (A calm place with low noise).
-        "#dreamy",     # Vibe mơ màng, tĩnh lặng (Soft, whimsical, and magical feeling).
-        "#romantic",   # Thường ưu tiên sự riêng tư/ít người (Warm and lovely atmosphere).
+        "#quiet",  # Thường không phù hợp với nhu cầu năng động buổi sáng
+        "#romantic",  # Vibe thường dành cho buổi tối
+        "#late_night",  # (Nếu có tag này)
+        "#dramatic",  # Vibe quá mạnh
+        "#sunset"  # Không phù hợp với thời điểm
     },
 
-    # 2. Trưa: Cấm nơi quá lãng mạn, ấm cúng, ồn ào. (Yêu cầu sự cân bằng, nhanh gọn)
+    # Trưa/Chiều: Cấm các vibe quá lãng mạn hoặc liên quan đến tối/ngoài trời nắng gắt
     "#noon": {
-        "#romantic",   # Quá lãng mạn (Warm and lovely atmosphere).
-        "#cozy",       # Quá ấm cúng, phù hợp buổi tối hơn (Warm and comfortable place).
-        "#vibrant",    # Quá ồn ào, sôi động quá mức (A lively and energetic atmosphere).
-        "#dramatic",   # Quá mạnh mẽ, căng thẳng (Bold, striking, and intense atmosphere).
-        "#youthful"    # Vibe trẻ trung, vui nhộn, dễ gây ồn ào (Fresh, fun, and playful vibe).
+        "#rooftop",  # Tránh nắng gắt buổi trưa
+        "#romantic",
+        "#dreamy",
+        "#quiet",  # Nếu đang cần các địa điểm cho bữa ăn trưa nhanh
+        "#luxury"  # Tránh các địa điểm yêu cầu thời gian dài và sang trọng
     },
 
-    # 3. Tối: Cấm nơi vắng vẻ. (Yêu cầu sự an toàn, đông đúc)
+    # Tối: Cấm các không gian/vibe quá sáng, ồn ào hoặc quá mộc mạc không phù hợp đi chơi đêm
     "#night": {
         "#outdoor",  # Có thể không an toàn/tiện lợi (Trừ #rooftop)
         "#natural",  # Vắng vẻ, không phù hợp đi chơi tối
@@ -441,9 +465,6 @@ def _to_api_dict(jason_data: JSON_DATA) -> dict:
         "Favorite": is_fav,
         "id": place.id,
         "name": place.name,
-        # "link_address": place.link_address,
-        # "latitude": place.lat,
-        # "longitude": place.lon,
         "address": place.address or "",
         "overview":place.overview or "",
         "image": place.image or "",

@@ -1,29 +1,24 @@
-id,name,tag_code,describe
-1,Cozy,#cozy,Warm and comfortable place.
-2,Quiet,#quiet,A calm place with low noise.
-3,Busy,#busy,Lively place with many people.
-4,Modern,#modern,Clean and stylish design.
-5,Vintage,#vintage,"Old-style, classic look."
-6,Minimal,#minimal,Simple and clean space.
-7,Luxury,#luxury,High-end and elegant feel.
-8,Rooftop,#rooftop,Place on a high floor with open air.
-9,Garden,#garden,Green space with plants or trees.
-10,Calm,#calm,Soft and relaxing feeling.
-11,Fun,#fun,Happy and exciting mood.
-12,Chill,#chill,Easy-going and relaxed vibe.
-13,Romantic,#romantic,Warm and lovely atmosphere.
-14,Aesthetic,#aesthetic,Beautiful and Instagram-friendly.
-15,Spicy,#spicy,"Food with strong, hot taste."
-16,Sweet,#sweet,Dessert or sugary flavor.
-17,Light Meal,#light,Small and easy-to-eat dishes.
-18,Healthy,#healthy,Fresh and good-for-body food.
-19,Vegetarian,#vegetarian,Plant-based meals only.
-20,Cheap Eats,#cheap,"Low-price, budget food."
-21,Streetfood,#streetfood,Local food from small stalls.
-22,Dessert,#dessert,"Cakes, ice cream, sweet treats."
-23,Brunch,#brunch,"Late breakfast, early lunch meals."
-24,Late Night,#late,Food available very late.
-25,Music,#music,You enjoy places with music.
-26,Art,#art,You like creative and art-themed spots.
-27,Books,#books,You enjoy reading or book cafés.
-28,Culture,#culture,You enjoy local culture and traditions.
+id,tag_code,name,describe
+1,#vintage,Vintage,"Old-style, classic look."
+2,#modern,Modern,Clean and stylish design.
+3,#cheap,Cheap Eats,"Low-price, budget food."
+4,#quiet,Quiet,A calm place with low noise.
+5,#chill,Chill,Easy-going and relaxed vibe.
+6,#vibrant,Vibrant,A lively and energetic atmosphere.
+7,#romantic,Romantic,Warm and lovely atmosphere.
+8,#cozy,Cozy,Warm and comfortable place.
+9,#luxury,Luxury,High-end and elegant feel.
+10,#traditional,Traditional,A traditional or culturally classic dining experience.
+11,#healthy,Healthy,Fresh and good-for-body food.
+12,#culture,Culture,You enjoy local culture and traditions.
+13,#minimalist,Minimalist,"Clean, simple, and uncluttered space."
+14,#elegant,Elegant,Sophisticated and stylish atmosphere.
+15,#dreamy,Dreamy,"Soft, whimsical, and magical feeling."
+16,#youthful,Youthful,"Fresh, fun, and playful vibe."
+17,#natural,Natural,"Inspired by nature, calming and organic."
+18,#artistic,Artistic,Creative and visually expressive space.
+19,#free_spirited,Free-spirited,"Relaxed, unconventional, and open-minded."
+20,#rustic,Rustic,"Rough, earthy, and countryside charm."
+21,#dramatic,Dramatic,"Bold, striking, and intense atmosphere."
+22,#unique,Unique,Distinctive and one-of-a-kind character.
+23,#pleasant,Pleasant,"Comfortable, enjoyable, and easy-going mood."
