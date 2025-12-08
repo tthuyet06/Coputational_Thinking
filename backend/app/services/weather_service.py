@@ -5,12 +5,20 @@ import requests
 from backend.app.core.config import OPENWEATHER_API_KEY
 from typing import Dict, Any
 
+def get_empty_weather_data() -> Dict[str, Any]:
+    """Trả về cấu trúc dữ liệu rỗng giả định để tránh lỗi KeyError/IndexError."""
+    # Giá trị 'unknow_weather' sẽ được normalize_weather_tag chuyển thành #unknow_weather
+    return {'weather': [{'main': 'unknow_weather'}]}
+
 def get_current_weather_data(lat: float, lon: float) -> Dict[str, Any]:
     """
     Gọi API OpenWeatherMap để lấy dữ liệu thời tiết hiện tại.
+    Luôn trả về Dict[str, Any]. Trả về dữ liệu rỗng giả định nếu có lỗi.
     """
+    # Xử lý lỗi cấu hình API Key và trả về dữ liệu rỗng
     if not OPENWEATHER_API_KEY:
-        raise HTTPException(status_code=500, detail="Server has not configured the API Key")
+        # Không in, chỉ trả về dữ liệu rỗng
+        return get_empty_weather_data()
 
     url = "https://api.openweathermap.org/data/2.5/weather"
     params = {
@@ -24,21 +32,34 @@ def get_current_weather_data(lat: float, lon: float) -> Dict[str, Any]:
     try:
         response = requests.get(url, params=params)
 
-        # Xử lý lỗi API
+        # Xử lý lỗi API (ví dụ: 401, 400, 503)
         if response.status_code != 200:
-            # Gửi lỗi OpenWeather lên, ví dụ: 401 Unauthorized, 400 Bad Request
-            raise HTTPException(status_code=response.status_code, detail="Error from OpenWeather API")
+            return get_empty_weather_data()  # Trả về dữ liệu rỗng khi OpenWeather báo lỗi
 
-        return response.json()
+        # Xử lý trường hợp có thể dữ liệu json trả về không hợp lệ
+        try:
+            return response.json()
+        except requests.exceptions.JSONDecodeError:
+            return get_empty_weather_data()
 
-    except requests.exceptions.RequestException as e:
+    except requests.exceptions.RequestException:
         # Lỗi kết nối mạng/timeout
-        raise HTTPException(status_code=500, detail=f"Connection error: {str(e)}")
+        return get_empty_weather_data()  # Trả về dữ liệu rỗng khi có lỗi kết nối
 
+def get_main_weather(lat: float, lon: float) -> str:
+    """
+    Lấy dữ liệu thời tiết hiện tại và trả về tag thời tiết đã chuẩn hóa.
+    Không có bất kỳ khối try/except nào.
+    """
+    # weather_data luôn là Dict[str, Any] và có cấu trúc 'weather'[0]['main']
+    weather_data = get_current_weather_data(lat, lon)
 
-def get_main_weather(weather_data: Dict[str, Any]) -> str:
-    return weather_data['weather'][0]['main']
+    # Do hàm cấp dưới đã đảm bảo dữ liệu luôn có cấu trúc này,
+    # chúng ta có thể truy cập trực tiếp mà không cần try/except.
+    main_weather_status = weather_data['weather'][0]['main']
 
+    # Chuẩn hóa và trả về tag
+    return normalize_weather_tag(main_weather_status)
 
 def normalize_weather_tag(main_weather: str) -> str:
     """Chuyển đổi giá trị 'main' của OpenWeatherMap thành tag chuẩn hóa.

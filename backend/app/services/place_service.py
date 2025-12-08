@@ -34,75 +34,72 @@ def _is_time_in_range(now_t: time, start: time, end: time) -> bool:
     # trường hợp qua ngày
     return now_t >= start or now_t <= end
 
+# def _match_special_rules_for_date(
+#     rules: Sequence[SpecialOpeningRuleDomain],
+#     now: datetime,
+# ) -> list[SpecialOpeningRuleDomain]:
+#     """
+#     Lọc ra các special rules áp dụng cho ngày hiện tại.
+#
+#     - rule_type='date': so khớp đủ (year, month, day)
+#     - rule_type='yearly': chỉ so khớp month, day (bỏ qua year)
+#     """
+#     y, m, d = now.year, now.month, now.day
+#
+#     matched: list[SpecialOpeningRuleDomain] = []
+#     for r in rules:
+#         if r.rule_type == "date":
+#             if r.year == y and r.month == m and r.day == d:
+#                 matched.append(r)
+#         elif r.rule_type == "yearly":
+#             if r.month == m and r.day == d:
+#                 matched.append(r)
+#         else:
+#             # rule_type lạ -> bỏ qua
+#             continue
+#     return matched
 
-def _match_special_rules_for_date(
-    rules: Sequence[SpecialOpeningRuleDomain],
-    now: datetime,
-) -> list[SpecialOpeningRuleDomain]:
-    """
-    Lọc ra các special rules áp dụng cho ngày hiện tại.
 
-    - rule_type='date': so khớp đủ (year, month, day)
-    - rule_type='yearly': chỉ so khớp month, day (bỏ qua year)
-    """
-    y, m, d = now.year, now.month, now.day
-
-    matched: list[SpecialOpeningRuleDomain] = []
-    for r in rules:
-        if r.rule_type == "date":
-            if r.year == y and r.month == m and r.day == d:
-                matched.append(r)
-        elif r.rule_type == "yearly":
-            if r.month == m and r.day == d:
-                matched.append(r)
-        else:
-            # rule_type lạ -> bỏ qua
-            continue
-    return matched
-
-
-def _is_open_by_special_rules(
-    rules_for_today: Sequence[SpecialOpeningRuleDomain],
-    now: datetime,
-) -> bool:
-    """
-    Xử lý logic mở cửa dựa trên các special rules của ngày hôm nay.
-    ƯU TIÊN special_rules: nếu có bất kỳ rule cho hôm nay thì
-    KHÔNG dùng weekly opening nữa.
-    """
-    if not rules_for_today:
-        # Không có special rule cho hôm nay
-        return False
-
-    now_t = now.time()
-
-    # Nếu tất cả rule đều đánh dấu đóng -> đóng cả ngày
-    if all(r.is_closed for r in rules_for_today):
-        return False
-
-    # Ngược lại: xem các rule mở cửa (is_closed == False)
-    for r in rules_for_today:
-        if r.is_closed:
-            continue
-        start = _parse_time_str(r.open_time)
-        end = _parse_time_str(r.close_time)
-        if not start or not end:
-            # Rule không đầy đủ giờ -> bỏ qua
-            continue
-        if _is_time_in_range(now_t, start, end):
-            return True
-
-    # Có rule nhưng không trùng khung giờ hiện tại
-    return False
+# def _is_open_by_special_rules(
+#     rules_for_today: Sequence[SpecialOpeningRuleDomain],
+#     now: datetime,
+# ) -> bool:
+#     """
+#     Xử lý logic mở cửa dựa trên các special rules của ngày hôm nay.
+#     ƯU TIÊN special_rules: nếu có bất kỳ rule cho hôm nay thì
+#     KHÔNG dùng weekly opening nữa.
+#     """
+#     if not rules_for_today:
+#         # Không có special rule cho hôm nay
+#         return False
+#
+#     now_t = now.time()
+#
+#     # Nếu tất cả rule đều đánh dấu đóng -> đóng cả ngày
+#     if all(r.is_closed for r in rules_for_today):
+#         return False
+#
+#     # Ngược lại: xem các rule mở cửa (is_closed == False)
+#     for r in rules_for_today:
+#         if r.is_closed:
+#             continue
+#         start = _parse_time_str(r.open_time)
+#         end = _parse_time_str(r.close_time)
+#         if not start or not end:
+#             # Rule không đầy đủ giờ -> bỏ qua
+#             continue
+#         if _is_time_in_range(now_t, start, end):
+#             return True
+#
+#     # Có rule nhưng không trùng khung giờ hiện tại
+#     return False
 
 
 def _is_open_by_weekly(
     weekly_ranges: Sequence[OpeningRange],
     now: datetime,
 ) -> bool:
-    """
-    Xử lý logic mở cửa theo các khung giờ lặp lại trong tuần (OpeningRange).
-    """
+    """Xử lý logic mở cửa theo các khung giờ lặp lại trong tuần (OpeningRange)."""
     weekday = now.weekday()  # Monday=0 ... Sunday=6
     today_ranges = [r for r in weekly_ranges if r.day_of_week == weekday]
 
@@ -125,7 +122,7 @@ def _is_open_by_weekly(
 
 def is_open_at(
     weekly_ranges: Sequence[OpeningRange],
-    special_rules: Sequence[SpecialOpeningRuleDomain],
+    # special_rules: Sequence[SpecialOpeningRuleDomain],
     at: datetime,
 ) -> bool:
     """
@@ -139,9 +136,9 @@ def is_open_at(
        - Dùng weekly_ranges (theo day_of_week)
     """
     # 1. Xử lý special rules cho ngày hiện tại
-    today_special_rules = _match_special_rules_for_date(special_rules, at)
-    if today_special_rules:
-        return _is_open_by_special_rules(today_special_rules, at)
+    # today_special_rules = _match_special_rules_for_date(special_rules, at)
+    # if today_special_rules:
+        # return _is_open_by_special_rules(today_special_rules, at)
 
     # 2. Không có special rule -> fallback qua weekly opening
     return _is_open_by_weekly(weekly_ranges, at)
@@ -149,7 +146,7 @@ def is_open_at(
 
 def is_open_now(
     weekly_ranges: Sequence[OpeningRange],
-    special_rules: Sequence[SpecialOpeningRuleDomain],
+    # special_rules: Sequence[SpecialOpeningRuleDomain],
     now: datetime | None = None,
 ) -> bool:
     """
@@ -158,4 +155,5 @@ def is_open_now(
     """
     if now is None:
         now = datetime.now()
-    return is_open_at(weekly_ranges, special_rules, now)
+    return is_open_at(weekly_ranges, now)
+
