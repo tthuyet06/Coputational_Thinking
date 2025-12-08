@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 
 import sys
 import os
+from dataclasses import dataclass # Khuyến nghị
 
 # Tính toán đường dẫn gốc của dự án (Computonal_Thinking)
 # os.path.dirname(__file__) là services/
@@ -48,6 +49,11 @@ place_repo = PlaceRepository()
 tag_repo = TagRepositoryImpl()
 fav_repo = FavoriteRepository()
 
+@dataclass
+class JSON_DATA:
+    place: DomainPlace
+    is_fav: bool
+
 def get_recommendations(
     db: Session,
     latitude: float,
@@ -68,11 +74,14 @@ def get_recommendations(
 
     result: RecommendationResult = _recommend_core(db, domain_user, criteria)
 
-    for r in result:
-        fav_repo.is_favorite(db, domain_user.id, r.id)
+    json_datas = []
 
-    # return result.places
-    return [_to_api_dict(p) for p in result.places]
+    for p in result.places:
+        if fav_repo.is_favorite(db, domain_user.id, r.id):
+            json_datas.append(JSON_DATA(place=p, is_fav=True))
+
+    return [_to_api_dict(jt) for jt in json_datas]
+
 
 def _recommend_core(db: Session, user: DomainUser, criteria: RecommendationCriteria) -> RecommendationResult:
     all_places: List[DomainPlace] = place_repo.get_all_as_domain(db)
@@ -119,6 +128,9 @@ def _recommend_core(db: Session, user: DomainUser, criteria: RecommendationCrite
 
     if not places:
         return RecommendationResult(places=[])
+
+    if len(places) == 1:
+        return RecommendationResult(places=places)
 
     # 7. Tính điểm từng địa điểm
     tags = tag_repo.get_all(db)
@@ -173,7 +185,7 @@ Duration_Data = {
     },
 
     "#long_time": {
-        "max_distance": 30.0,
+        "max_distance": 15.0,
         "min_stay_time": 3.0,
     },
 }
@@ -184,6 +196,7 @@ def _filter_by_gps(places: list[DomainPlace], loc: Location, duration_tag: str):
         return places
 
     out = []
+
     for p in places:
         d = get_distance_sync(loc.latitude, loc.longitude, p.lat, p.lon)
         if d <= max_distance_by_duration:
@@ -209,9 +222,32 @@ def _filter_by_weather(criteria: RecommendationCriteria, places: list[DomainPlac
     return places
 
 UNSAFE_BY_TIME_TAG = {
-    "#morning": {"#bar", "#pub", "#buffet", "#bbq", "#seafood", "#late_night_food", "#late_cafe"},
-    "#noon": {"#hotpot", "#bbq", "#buffet", "#bar", "#pub", "#late_night_food"},
-    "#night": {"#brunch", "#work_cafe", "#healthy", "#cultural_visit", "#streetfood", "#snack", "#takeaway"}
+    # Sáng: Cấm các vibe/không gian quá tĩnh lặng hoặc quá sôi động/chỉ dành cho buổi tối
+    "#morning": {
+        "#quiet",  # Thường không phù hợp với nhu cầu năng động buổi sáng
+        "#romantic",  # Vibe thường dành cho buổi tối
+        "#late_night",  # (Nếu có tag này)
+        "#dramatic",  # Vibe quá mạnh
+        "#sunset"  # Không phù hợp với thời điểm
+    },
+
+    # Trưa/Chiều: Cấm các vibe quá lãng mạn hoặc liên quan đến tối/ngoài trời nắng gắt
+    "#noon": {
+        "#rooftop",  # Tránh nắng gắt buổi trưa
+        "#romantic",
+        "#dreamy",
+        "#quiet",  # Nếu đang cần các địa điểm cho bữa ăn trưa nhanh
+        "#luxury"  # Tránh các địa điểm yêu cầu thời gian dài và sang trọng
+    },
+
+    # Tối: Cấm các không gian/vibe quá sáng, ồn ào hoặc quá mộc mạc không phù hợp đi chơi đêm
+    "#night": {
+        "#outdoor",  # Có thể không an toàn/tiện lợi (Trừ #rooftop)
+        "#cheap",  # Tránh địa điểm quá rẻ tiền
+        "#natural",  # Vắng vẻ, không phù hợp đi chơi tối
+        "#free_spirited",
+        "#rustic",  # Vibe quá mộc mạc
+    }
 }
 
 def _filter_by_time_of_day(places: list[DomainPlace]):
@@ -301,7 +337,6 @@ def _filter_by_opening_time(db: Session, places: list[DomainPlace]) -> list[Doma
                 at=current_time,
             )
         except Exception as e:
-            print(f"Error checking opening hours for place {place.id}: {e}")
             continue
 
         if is_open:
@@ -329,18 +364,6 @@ def _score_place(place: DomainPlace, criteria: RecommendationCriteria, db: Sessi
 
     return total_score
 
-# TAG_TYPE_WEIGHT = {
-#     "activity": 0,
-#     "duration": 0,
-#     "space": 7,
-#     "special": 5,
-#     "style": 10,
-#     "time": 5,
-#     "vibe": 10,
-#     "view": 8,
-#     "weather": 5,
-# }
-
 def _score_hobbies(criteria: RecommendationCriteria, place: DomainPlace, db: Session) -> float:
     if not criteria.extra_tags:
         return 0.0
@@ -353,52 +376,8 @@ def _score_hobbies(criteria: RecommendationCriteria, place: DomainPlace, db: Ses
             counting_match += 1
 
     score = MAX_SCORE * float(counting_match / len(criteria.extra_tags))
-    return score
 
-    # tags = tag_repo.get_all(db)
-    # hobbies = criteria.extra_tags or []
-    # place_tags = place.tags or []
-    #
-    # if not hobbies:
-    #     return 0.0
-    #
-    # # 1. Tạo bảng tra cứu Tag -> Group bằng Dictionary Comprehension
-    # tag_group_map = {t.id: t.group for t in tags if t.group}
-    #
-    # # 2. Gom sở thích người dùng theo nhóm (User Hobbies by Group)
-    # user_by_group: dict[str, set[str]] = {}
-    # for code in hobbies:
-    #     group = tag_group_map.get(code)
-    #     if group and TAG_TYPE_WEIGHT.get(group, 0) > 0:  # Chỉ gom nhóm có trọng số > 0
-    #         user_by_group.setdefault(group, set()).add(code)
-    #
-    # # 3. Gom tag địa điểm theo nhóm (Place Tags by Group)
-    # place_by_group: dict[str, set[str]] = {}
-    # for code in place_tags:
-    #     group = tag_group_map.get(code)
-    #     if group:
-    #         place_by_group.setdefault(group, set()).add(code)
-    #
-    # total_score = 0.0
-    #
-    # # 4. Tính điểm và tích lũy
-    # for group, user_codes in user_by_group.items():
-    #     # Trọng số đã được kiểm tra > 0 ở bước 2
-    #     weight = TAG_TYPE_WEIGHT[group]
-    #     place_codes = place_by_group.get(group)
-    #
-    #     if place_codes:
-    #         # Số tag trùng
-    #         match_count = len(user_codes.intersection(place_codes))
-    #
-    #         if match_count > 0:
-    #             total_user_tags = len(user_codes)
-    #
-    #             # Tính điểm: (match / total_user_hobbies_group) * weight
-    #             score = (match_count / total_user_tags) * weight
-    #             total_score += score
-    #
-    # return total_score
+    return score
 
 def _score_distance(criteria: RecommendationCriteria, place: DomainPlace) -> float:
     distance = get_distance_sync(criteria.location.latitude, criteria.location.longitude, place.lat, place.lon)
@@ -449,15 +428,13 @@ def _score_time_relevance(db: Session, criteria: RecommendationCriteria, place: 
     end_time = combine_date_time(current_date, end_hour)
     p, weekly_ranges = place_repo.get_place_with_schedule(place.id, db)
 
-    is_open = True
-
     try:
         is_open = is_open_at(
             weekly_ranges=weekly_ranges,
             at=end_time,
         )
     except Exception as e:
-        print(f"Error checking opening hours for place {place.id}: {e}")
+        return 0.0
 
     if is_open:
         return MAX_SCORE
@@ -474,18 +451,21 @@ def _penalty_by_history(place: DomainPlace, user: DomainUser) -> float:
     # Nếu count lỗi(out of range [0,7] - data lỗi thì giữ nguyên
     return 0
 
-def _to_api_dict(place: DomainPlace) -> dict:
+def _to_api_dict(jason_data: JSON_DATA) -> dict:
+    place = jason_data.place
+    is_fav = jason_data.is_fav
     return {
+        "Favorite": is_fav,
         "id": place.id,
         "name": place.name,
         # "link_address": place.link_address,
         # "latitude": place.lat,
         # "longitude": place.lon,
         "address": place.address or "",
+        "overview":place.overview or "",
         "image": place.image or "",
-        "description": place.overview or "",
+        "summarization": place.summarization or "",
         "tags": place.tags,
         "rating": place.rating or "",
         "open": place.open or "",
-        # "close": place.close or "",
     }
