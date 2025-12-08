@@ -1,15 +1,26 @@
 .empty-wrap {
-    min-height: calc(100vh - 70px);
-    padding: 80px 20px 40px;
+    /* 👇 Sửa chiều cao cho khớp với Navbar 80px */
+    min-height: calc(100vh - 80px); 
+    
+    padding: 40px 20px;
     display: grid;
     place-items: center;
     background: #fafafa;
+  
+    /* 👇 QUAN TRỌNG: Thêm cái này để đảm bảo nó nổi lên, nhận được click */
+    position: relative;
+    z-index: 1; 
   }
   
   .empty-inner {
     text-align: center;
     font-family: "Poppins", sans-serif;
     animation: fadeIn 0.25s ease;
+    
+    /* Đảm bảo nội dung căn giữa đẹp */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
   }
   
   .empty-title {
@@ -33,21 +44,33 @@
     font-weight: 700;
     color: #333;
     text-decoration: none;
-    padding: 8px 4px;
+    padding: 8px 16px; /* Tăng padding ngang xíu cho dễ bấm */
     border-radius: 8px;
     transition: transform 0.12s ease, color 0.12s ease, background 0.12s ease;
+  
+    /* 👇 QUAN TRỌNG: Reset style vì giờ nó là thẻ <button> */
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    font-family: inherit; /* Kế thừa font Poppins */
   }
   
   .empty-cta .arrow {
     font-size: 22px;
     line-height: 1;
     transform: translateY(1px);
+    display: inline-block; /* Để transform hoạt động tốt hơn */
   }
   
   .empty-cta:hover {
     color: #111;
-    background: #f3f4f6;
+    background: #e5e7eb; /* Màu xám đậm hơn chút cho rõ hover */
     transform: translateY(-1px);
+  }
+  
+  /* Active state khi nhấn xuống */
+  .empty-cta:active {
+    transform: translateY(1px);
   }
   
   @keyframes fadeIn {
@@ -60,4 +83,3 @@
       transform: translateY(0);
     }
   }
-  
