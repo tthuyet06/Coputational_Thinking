@@ -1,10 +1,11 @@
-import React, { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import "../../styles/Navbar.css";
 
 export default function Navbar() {
   const [open, setOpen] = useState(false);
-  const ref = useRef(null);
+  // ref dùng để tham chiếu đến container chứa nút mở menu và menu dropdown
+  const ref = useRef(null); 
   const navigate = useNavigate();
   const { pathname } = useLocation();
 
@@ -13,6 +14,7 @@ export default function Navbar() {
 
   useEffect(() => {
     const onClickOutside = (e) => {
+      // Nếu ref.current tồn tại và click không nằm trong ref.current (cả nút mở và menu dropdown)
       if (ref.current && !ref.current.contains(e.target)) setOpen(false);
     };
     window.addEventListener("click", onClickOutside);
@@ -23,7 +25,6 @@ export default function Navbar() {
     <header className="navbar">
       <div className="navbar-inner">
         {isAuthPage ? (
-          // Khi ở login/signup: chỉ là chữ, không bấm được
           <span className="navbar-logo disabled">MOODYTRIP</span>
         ) : (
           <Link to="/activities" className="navbar-logo">
@@ -32,6 +33,7 @@ export default function Navbar() {
         )}
 
         {!isAuthPage && (
+          // ref gắn vào navbar-actions (bao gồm nút mở và menu)
           <div className="navbar-actions" ref={ref}>
             {isProfilePage ? (
               <Link to="/activities" className="home-pill" aria-label="Go Home">
@@ -42,11 +44,12 @@ export default function Navbar() {
                 />
               </svg>
               <span>Home</span>
-            </Link>
+              </Link>
             ) : (
               <>
                 <button
                   className={`profile-pill ${open ? "is-open" : ""}`}
+                  // Chỉ cần onClick để mở/đóng menu, vì ref đã handle đóng bên ngoài
                   onClick={() => setOpen((v) => !v)}
                   aria-haspopup="menu"
                   aria-expanded={open}
@@ -70,21 +73,35 @@ export default function Navbar() {
                 </button>
 
                 {open && (
-                  <div className="profile-menu" role="menu">
+                  // Bổ sung onMouseDown/onTouchStart để chặn sự kiện cấp thấp
+                  <div 
+                    className="profile-menu" 
+                    role="menu"
+                    onMouseDown={(e) => e.stopPropagation()} 
+                    onTouchStart={(e) => e.stopPropagation()} // Chặn cảm ứng
+                  >
                     <button
                       className="menu-item"
-                      onClick={() => {
+                      // Sửa lại logic: Dùng setTimeout để tránh race condition khi navigate
+                      onClick={(e) => {
+                        e.stopPropagation(); // Vẫn chặn click để đảm bảo an toàn
                         setOpen(false);
-                        navigate("/profile");
+                        // Chuyển hướng sau 50ms để các sự kiện click đang chờ bị clear hết
+                        setTimeout(() => {
+                           navigate("/profile");
+                        }, 50); 
                       }}
                     >
                       Profile
                     </button>
                     <button
                       className="menu-item"
-                      onClick={() => {
+                      onClick={(e) => {
+                        e.stopPropagation();
                         setOpen(false);
-                        navigate("/login");
+                         setTimeout(() => {
+                           navigate("/login");
+                        }, 50);
                       }}
                     >
                       Logout
