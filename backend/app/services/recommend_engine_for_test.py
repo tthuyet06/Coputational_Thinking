@@ -224,9 +224,7 @@ UNSAFE_SPACES_IN_EXTREME_WEATHER = {"#outdoor", "#rooftop"}
 def _filter_by_weather(criteria: RecommendationCriteria, places: list[DomainPlace]):
     """Loại bỏ các địa điểm không phù hợp trong thời tiết cực đoan.
     - Nếu thời tiết thuộc EXTREME_WEATHER_TAGS -> loại mọi place chứa tag trong UNSAFE_SPACES_IN_EXTREME_WEATHER."""
-    weather_js = get_current_weather_data(criteria.location.latitude, criteria.location.longitude)
-    weather = get_main_weather(weather_js)
-    weather_tag = normalize_weather_tag(weather)
+    weather_tag = get_main_weather(criteria.location.latitude, criteria.location.longitude)
 
     if weather_tag in EXTREME_WEATHER_TAGS:
         return [
