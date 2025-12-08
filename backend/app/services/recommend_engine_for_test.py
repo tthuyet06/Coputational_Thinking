@@ -38,10 +38,10 @@ from backend.app.repositories import (
     FavoriteRepository
 )
 from backend.app.utils.geo_utils import haversine_distance
-from backend.app.services.weather_service import get_current_weather_data, get_main_weather, normalize_weather_tag
+from backend.app.services.weather_service import get_main_weather
 from backend.app.services.place_service import _is_time_in_range, is_open_at
 from backend.app.services.distance_service import  get_distance_sync
-from backend.app.utils.time_utils import get_current_datetime, to_decimal_hours, from_decimal_hours, sum_of_time, combine_date_time
+from backend.app.utils.time_utils import get_current_datetime, from_decimal_hours, sum_of_time, combine_date_time
 from datetime import time
 
 user_repo = UserRepository()

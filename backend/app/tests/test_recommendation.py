@@ -38,10 +38,13 @@ from backend.app.services.recommend_engine_for_test import (
 # =========================================================
 # PHẦN 3: MOCK DATA (Giữ nguyên)
 # =========================================================
+
+
 @dataclass
 class MockLocation:
     latitude: float
     longitude: float
+
 
 @dataclass
 class MockUser:
@@ -88,8 +91,8 @@ def test_db_driven_recommendation():
         mock_criteria = MockCriteria(
             location=user_location,
             duration_tag="#few_hours",
-            activities=["#movie"],
-            extra_tags=[]
+            activities=["#photo"],
+            extra_tags=["#traditional"]
         )
         mock_user = MockUser(id=1, hobbies=mock_criteria.extra_tags)
 
