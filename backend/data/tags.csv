@@ -1,83 +1,55 @@
 code,type,label_en,describe
 #cafe,activity,Coffee,"Go to a café to relax, chat, or enjoy drinks."
-#eat,activity,Food,"Go out to eat — restaurants, street food, casual dining."
+#food,activity,Food,"Go out to eat — restaurants, street food, casual dining."
 #movie,activity,Movie,Watch a movie at the cinema.
-#shopping,activity,Shopping,Watch a movie at the cinema.
+#shopping,activity,Shopping,Enjoy going shopping as a leisure activity.
 #entertainment,activity,Entertainment,"Activities like karaoke, bowling, arcade games, etc."
-#outdoor,activity,Outdoor,"Walking in parks, strolling outside, scenery spots."
-#indoor,activity,Indoor,"Indoor activities like museums, libraries, exhibitions."
-#walking,activity,Walking,Casual walk outside.
 #study,activity,Studying,Studying or working at a place.
 #photo,activity,Photos,Taking pictures.
-#drinks,activity,Drinks,"Bars, pubs, cocktail places."
-#nightlife,activity,Nightlife,Going out at night.
+#drinks,activity,Drinks,Enjoy drinking 
 #dating,activity,Dating,A date activity — cozy spots for couples.
-#rooftop,space,Rooftop,Place on a high floor with open air.
-#spacious,space,Spacious,"A large, open, and comfortable space."
-#small_space,space,Small Space,"A small, cozy, and intimate area."
-#coffee_in_bed,space,Coffe In Bed,"A cozy café setup with beds or soft lounging spots where guests can relax, lie down, and enjoy their drinks in a home-like, restful space."
-#live_music,special,Live Music,A place that features live performances.
-#acoustic,special,Acoustic,"Acoustic music with a soft, calm vibe."
-#workshop,special,Workshop,A place hosting creative workshops.
-#boardgame,special,Boardgame,A place where people can play board games.
-#karaoke,special,Karaoke,A place for singing and group fun.
-#pet_friendly,special,Pet Friendly,A place that welcomes pets or allows pet owners to bring animals.
-#aesthetic,style,Aesthetic,Beautiful and Instagram-friendly.
-#creative,style,Creative,"A creative, artistic, or unique atmosphere."
-#vintage,style,Vintage,"Old-style, classic look."
-#minimal,style,Minimal,Simple and clean space.
-#indie,style,Indie,"Independent, artistic, non-mainstream vibe."
-#street_style,style,Street Style,"Urban, casual, street-fashion vibe."
-#kstyle,style,K-Style,Korean-inspired style or atmosphere.
-#morning,time,Morning,Best to visit in the morning.
-#afternoon,time,Afternoon,Best to visit in the afternoon.
-#evening,time,Evening,Ideal for evening visits.
-#night,time,Night,Suitable for nighttime visits.
-#late_night,time,Late Night,Food available very late.
-#sunset,time,Sunset,Best during sunset hours.
+#takeaway,activity,Takeaway,Sharing quick and convenient food to-go
+#snacks,activity,Snacks,Small bites for anytime hunger.
+#walking,activity,Walking,Casual walk outside.
+#workshop,activity,Workshop,A place hosting creative workshops.
+#karaoke,activity,Karaoke,A place for singing and group fun.
+#streetfood,activity,Streetfood,Local food from small stalls.
+#visit,activity,Visit,Discover places through activities.
+#bar,activity,Bar,Cheers to good moments.
 #moment ,duration,Under 1 Hours,"A quick visit or short stop, usually under one hour."
 #few_hours,duration,1 Hours To 3 Hours,"A medium–length stay, suitable for relaxing, working, or enjoying a full meal."
 #long_time,duration,Over 3 Hours,"A long visit for deep relaxation, studying, hanging out, or extended activities."
+#outdoor,space,Outdoor,"Walking in parks, strolling outside, scenery spots."
+#indoor,space,Indoor,"Indoor activities like museums, libraries, exhibitions."
+#rooftop,space,Rooftop,Place on a high floor with open air.
+#morning,time,Morning,Best to visit in the morning.
+#evening,time,Evening,Ideal for evening visits.
+#late_night,time,Late Night,Food available very late.
+#sunset,time,Sunset,Best during sunset hours.
+#vintage,vibe,Vintage,"Old-style, classic look."
+#modern,vibe,Modern,Clean and stylish design.
+#cheap,vibe,Cheap Eats,"Low-price, budget food."
 #quiet,vibe,Quiet,A calm place with low noise.
 #chill,vibe,Chill,Easy-going and relaxed vibe.
 #vibrant,vibe,Vibrant,A lively and energetic atmosphere.
 #romantic,vibe,Romantic,Warm and lovely atmosphere.
 #cozy,vibe,Cozy,Warm and comfortable place.
 #luxury,vibe,Luxury,High-end and elegant feel.
-#local_spot,vibe,Local Spot,A beloved local location known by residents.
-#hidden_gem,vibe,Hidden Gem,A great place not widely known.
-#chinatown_vibe,vibe,Chinatown Vibe,Influenced by Chinatown culture and style.
-#family_friendly,vibe,Family Friendly,A friendly and comfortable place suitable for families and kids.
-#date_spot,vibe,Date Spot,A cozy and intimate spot ideal for dating.
-#solo_friendly,vibe,Solo Friendly,A comfortable place suitable for spending time alone.
-#group_friendly,vibe,Group Friendly,A place suitable for group gatherings and hanging out.
 #traditional,vibe,Traditional,A traditional or culturally classic dining experience.
-#ancient_vibe,vibe,Ancient Vibe,"A place with a classic, historical, or old–style atmosphere, often cultural or traditional"
-#photo_spot,view,Photo Spot,A place with good photo angles.
-#view_spot,view,View Spot,A location known for scenery or viewpoints.
-#river_view,view,River View,A view overlooking the river.
-#city_view,view,City View,A view overlooking city lights or skyline.
+#healthy,vibe,Healthy,Fresh and good-for-body food.
+#culture,vibe,Culture,You enjoy local culture and traditions.
+#minimalist,vibe,Minimalist,"Clean, simple, and uncluttered space."
+#elegant,vibe,Elegant,Sophisticated and stylish atmosphere.
+#dreamy,vibe,Dreamy,"Soft, whimsical, and magical feeling."
+#youthful,vibe,Youthful,"Fresh, fun, and playful vibe."
+#natural,vibe,Natural,"Inspired by nature, calming and organic."
+#artistic,vibe,Artistic,Creative and visually expressive space.
+#free_spirited,vibe,Free-spirited,"Relaxed, unconventional, and open-minded."
+#rustic,vibe,Rustic,"Rough, earthy, and countryside charm."
+#dramatic,vibe,Dramatic,"Bold, striking, and intense atmosphere."
+#unique,vibe,Unique,Distinctive and one-of-a-kind character.
+#pleasant,vibe,Pleasant,"Comfortable, enjoyable, and easy-going mood."
 #rain,weather,Rain,Suitable for rainy weather or sheltered spaces.
 #sunny,weather,Sunny,Best on sunny and bright days.
 #windy,weather,Windy,Good when the weather is breezy.
 #cloudy,weather,Cloudy,"Ideal for exploring cozy cafés or indoor spots during overcast weather, offering a calm and soft atmosphere."
-#busy,Vibe,Busy,Lively place with many people.
-#modern,style,Modern,Clean and stylish design.
-#garden,Style,Garden,Green space with plants or trees.
-#calm,Vibe,Calm,Soft and relaxing feeling.
-#fun,Vibe,Fun,Happy and exciting mood.
-#spicy,Vibe,Spicy,"Food with strong, hot taste."
-#sweet,Vibe,Sweet,Dessert or sugary flavor.
-#light,style,Light Meal,Small and easy-to-eat dishes.
-#healthy,vibe,Healthy,Fresh and good-for-body food.
-#vegetarian,vibe,Vegetarian,Plant-based meals only.
-#cheap,style,Cheap Eats,"Low-price, budget food."
-#streetfood,style,Streetfood,Local food from small stalls.
-#dessert,vibe,Dessert,"Cakes, ice cream, sweet treats."
-#brunch,vibe,Brunch,"Late breakfast, early lunch meals."
-#music,vibe,Music,You enjoy places with music.
-#art,style,Art,You like creative and art-themed spots.
-#books,style,Books,You enjoy reading or book cafés.
-#culture,vibe,Culture,You enjoy local culture and traditions.
-#takeaway,activity,Takeaway,Sharing quick and convenient food to-go
-#snacks,activity,Snacks,Small bites for anytime hunger.
