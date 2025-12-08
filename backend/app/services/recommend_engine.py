@@ -7,7 +7,7 @@ import os
 from dataclasses import dataclass # Khuyến nghị
 
 # Tính toán đường dẫn gốc của dự án (Computonal_Thinking)
-# os.path.dirname(__file__) là services/
+# os.path.dirname(_file_) là services/
 # .. là app/
 # .. là backend/
 # .. là Computonal_Thinking/ (Project Root)
@@ -24,7 +24,6 @@ from backend.app.db import models
 from backend.app.domain.user import User as DomainUser
 from backend.app.domain.place import Place as DomainPlace
 from backend.app.domain.location import Location
-from backend.app.domain.tag import Tag
 from backend.app.domain.activity import Activity
 from backend.app.domain.recommendation import (
     RecommendationCriteria,
@@ -33,20 +32,17 @@ from backend.app.domain.recommendation import (
 from backend.app.repositories import (
     UserRepository,
     PlaceRepository,
-    TagRepositoryImpl,
     ActivityRepository,
     FavoriteRepository
 )
-from backend.app.utils.geo_utils import haversine_distance
-from backend.app.services.weather_service import get_current_weather_data, get_main_weather, normalize_weather_tag
+
+from backend.app.services.weather_service import get_main_weather
 from backend.app.services.place_service import _is_time_in_range, is_open_at
 from backend.app.services.distance_service import  get_distance_sync
-from backend.app.utils.time_utils import get_current_datetime, to_decimal_hours, from_decimal_hours, sum_of_time, combine_date_time
-from datetime import time
+from backend.app.utils.time_utils import get_current_datetime, from_decimal_hours, sum_of_time, combine_date_time
 
 user_repo = UserRepository()
 place_repo = PlaceRepository()
-tag_repo = TagRepositoryImpl()
 fav_repo = FavoriteRepository()
 
 @dataclass
@@ -77,11 +73,10 @@ def get_recommendations(
     json_datas = []
 
     for p in result.places:
-        if fav_repo.is_favorite(db, domain_user.id, r.id):
+        if fav_repo.is_favorite(db, domain_user.id, p.id):
             json_datas.append(JSON_DATA(place=p, is_fav=True))
 
     return [_to_api_dict(jt) for jt in json_datas]
-
 
 def _recommend_core(db: Session, user: DomainUser, criteria: RecommendationCriteria) -> RecommendationResult:
     all_places: List[DomainPlace] = place_repo.get_all_as_domain(db)
@@ -102,13 +97,19 @@ def _recommend_core(db: Session, user: DomainUser, criteria: RecommendationCrite
     if not places:
         return RecommendationResult(places=[])
 
-    # 3. Lọc theo thời tiết
+    # 3. Loại cứng theo khoảng cách tối đa tùy vào duration_tag
+    places = _filter_by_gps(places, criteria.location, criteria.duration_tag)
+
+    if not places:
+        return RecommendationResult(places=[])
+
+    # 4. Lọc theo thời tiết
     places = _filter_by_weather(criteria, places)
 
     if not places:
         return RecommendationResult(places=[])
 
-    # 4. Lọc theo thời gian và địa điểm trùng activity đang đứng
+    # 5. Lọc theo thời gian: lọc các địa điểm không phù hợp thời gian(khi user kh chọn activity)
     if not criteria.activities:
         places = _filter_by_time_of_day(places)
         if not places:
@@ -123,21 +124,14 @@ def _recommend_core(db: Session, user: DomainUser, criteria: RecommendationCrite
     if not places:
         return RecommendationResult(places=[])
 
-    # 3. Loại cứng theo khoảng cách tối đa tùy vào duration_tag
-    places = _filter_by_gps(places, criteria.location, criteria.duration_tag)
-
-    if not places:
-        return RecommendationResult(places=[])
-
     if len(places) == 1:
         return RecommendationResult(places=places)
 
     # 7. Tính điểm từng địa điểm
-    tags = tag_repo.get_all(db)
     scored: list[tuple[float, DomainPlace]] = []
 
     for place in places:
-        total_score = _score_place(place, criteria, tags, user)
+        total_score = _score_place(place, criteria, db, user)
         scored.append((total_score, place))
 
     # Sắp xếp giảm dần theo điểm
@@ -154,7 +148,6 @@ def _recommend_core(db: Session, user: DomainUser, criteria: RecommendationCrite
     user.save(db, user)
 
     return RecommendationResult(places=top_places)
-
 
 def _filter_by_activity(places: list[DomainPlace], activities: List[str]) -> list[DomainPlace]:
     if not activities:
@@ -219,28 +212,30 @@ def _filter_by_weather(criteria: RecommendationCriteria, places: list[DomainPlac
     return places
 
 UNSAFE_BY_TIME_TAG = {
-    # 1. Sáng: Cấm nơi quá tĩnh lặng, ít người. (Yêu cầu sự năng động, sôi nổi)
+    # Sáng: Cấm các vibe/không gian quá tĩnh lặng hoặc quá sôi động/chỉ dành cho buổi tối
     "#morning": {
-        "#quiet",      # Quá tĩnh lặng (A calm place with low noise).
-        "#dreamy",     # Vibe mơ màng, tĩnh lặng (Soft, whimsical, and magical feeling).
-        "#romantic",   # Thường ưu tiên sự riêng tư/ít người (Warm and lovely atmosphere).
+        "#quiet",  # Thường không phù hợp với nhu cầu năng động buổi sáng
+        "#romantic",  # Vibe thường dành cho buổi tối
+        "#late_night",  # (Nếu có tag này)
+        "#dramatic",  # Vibe quá mạnh
+        "#sunset"  # Không phù hợp với thời điểm
     },
 
-    # 2. Trưa: Cấm nơi quá lãng mạn, ấm cúng, ồn ào. (Yêu cầu sự cân bằng, nhanh gọn)
+    # Trưa/Chiều: Cấm các vibe quá lãng mạn hoặc liên quan đến tối/ngoài trời nắng gắt
     "#noon": {
-        "#romantic",   # Quá lãng mạn (Warm and lovely atmosphere).
-        "#cozy",       # Quá ấm cúng, phù hợp buổi tối hơn (Warm and comfortable place).
-        "#vibrant",    # Quá ồn ào, sôi động quá mức (A lively and energetic atmosphere).
-        "#dramatic",   # Quá mạnh mẽ, căng thẳng (Bold, striking, and intense atmosphere).
-        "#youthful"    # Vibe trẻ trung, vui nhộn, dễ gây ồn ào (Fresh, fun, and playful vibe).
+        "#rooftop",  # Tránh nắng gắt buổi trưa
+        "#romantic",
+        "#dreamy",
+        "#quiet",  # Nếu đang cần các địa điểm cho bữa ăn trưa nhanh
+        "#luxury"  # Tránh các địa điểm yêu cầu thời gian dài và sang trọng
     },
 
-    # 3. Tối: Cấm nơi vắng vẻ. (Yêu cầu sự an toàn, đông đúc)
+    # Tối: Cấm các không gian/vibe quá sáng, ồn ào hoặc quá mộc mạc không phù hợp đi chơi đêm
     "#night": {
-        "#quiet",      # Vibe quá thư giãn, có thể vắng vẻ (Easy-going and relaxed vibe).
-        "#natural",    # Không gian thiên nhiên/ngoài trời thường vắng vẻ vào buổi tối (Inspired by nature, calming and organic).
-        "#rustic",     # Vibe mộc mạc, thường ở nơi vắng (Rough, earthy, and countryside charm).
-        "#free_spirited" # Vibe ngẫu hứng, có thể dẫn đến địa điểm vắng vẻ, kém an toàn (Relaxed, unconventional, and open-minded).
+        "#outdoor",  # Có thể không an toàn/tiện lợi (Trừ #rooftop)
+        "#natural",  # Vắng vẻ, không phù hợp đi chơi tối
+        "#free_spirited",
+        "#rustic",  # Vibe quá mộc mạc
     }
 }
 
@@ -287,12 +282,9 @@ def _filter_out_current_location(db: Session, criteria: RecommendationCriteria, 
     banned_activity_tags: set[str] = set()
 
     for place in places:
-        try:
-            distance = get_distance_sync(current_lat, current_lon, place.lat, place.lon)
-        except Exception:
-            continue
+        distance = get_distance_sync(current_lat, current_lon, place.lat, place.lon)
 
-            # Kiểm tra nếu địa điểm cực kỳ gần
+        # Kiểm tra nếu địa điểm cực kỳ gần
         if distance <= RADIUS_TO_EXCLUDE_KM:
             for tag in place.tags:
                 if tag in all_activities_tags:
@@ -303,7 +295,6 @@ def _filter_out_current_location(db: Session, criteria: RecommendationCriteria, 
         return places
 
     # BƯỚC 3: Loại bỏ tất cả các địa điểm chứa Banned Tags
-
     filtered_places: list[DomainPlace] = []
 
     for place in places:
@@ -406,7 +397,6 @@ def _score_distance(criteria: RecommendationCriteria, place: DomainPlace) -> flo
 def _score_rating(place: DomainPlace) -> float:
     """Tính điểm dựa trên rating của place.
     - rating tối đa 5 sao -> tối đa 20 điểm"""
-
     MAX_POINTS = 2.0
     return (place.rating / 5.0) * MAX_POINTS
 

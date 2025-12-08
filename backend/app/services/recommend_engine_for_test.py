@@ -7,7 +7,7 @@ import os
 from dataclasses import dataclass # Khuyến nghị
 
 # Tính toán đường dẫn gốc của dự án (Computonal_Thinking)
-# os.path.dirname(__file__) là services/
+# os.path.dirname(_file_) là services/
 # .. là app/
 # .. là backend/
 # .. là Computonal_Thinking/ (Project Root)
@@ -24,7 +24,6 @@ from backend.app.db import models
 from backend.app.domain.user import User as DomainUser
 from backend.app.domain.place import Place as DomainPlace
 from backend.app.domain.location import Location
-from backend.app.domain.tag import Tag
 from backend.app.domain.activity import Activity
 from backend.app.domain.recommendation import (
     RecommendationCriteria,
@@ -33,20 +32,17 @@ from backend.app.domain.recommendation import (
 from backend.app.repositories import (
     UserRepository,
     PlaceRepository,
-    TagRepositoryImpl,
     ActivityRepository,
     FavoriteRepository
 )
-from backend.app.utils.geo_utils import haversine_distance
-from backend.app.services.weather_service import get_current_weather_data, get_main_weather, normalize_weather_tag
+
+from backend.app.services.weather_service import get_main_weather
 from backend.app.services.place_service import _is_time_in_range, is_open_at
 from backend.app.services.distance_service import  get_distance_sync
-from backend.app.utils.time_utils import get_current_datetime, to_decimal_hours, from_decimal_hours, sum_of_time, combine_date_time
-from datetime import time
+from backend.app.utils.time_utils import get_current_datetime, from_decimal_hours, sum_of_time, combine_date_time
 
 user_repo = UserRepository()
 place_repo = PlaceRepository()
-tag_repo = TagRepositoryImpl()
 fav_repo = FavoriteRepository()
 
 @dataclass
@@ -77,100 +73,104 @@ def get_recommendations(
     json_datas = []
 
     for p in result.places:
-        if fav_repo.is_favorite(db, domain_user.id, r.id):
+        if fav_repo.is_favorite(db, domain_user.id, p.id):
             json_datas.append(JSON_DATA(place=p, is_fav=True))
 
     return [_to_api_dict(jt) for jt in json_datas]
 
-
 def _recommend_core(db: Session, user: DomainUser, criteria: RecommendationCriteria, n_results: int = 2):
     all_places: List[DomainPlace] = place_repo.get_all_as_domain(db)
     places = [p for p in all_places if p.lat is not None and p.lon is not None]
-    scored: list[tuple[float, float, DomainPlace]] = []
-    if not places:
-        print(f"Place is None❌")
-        return scored
-    print(f"Place success✅")
 
-    # 1. Loại cứng theo Activity
+    scored: list[tuple[float, float, DomainPlace]] = []
+
+    # 0. Kiểm tra đầu vào ban đầu
+    if not places:
+        print("[INIT] FAIL ❌ — No places loaded.")
+        return scored
+    print(f"[INIT] OK ✅ — Loaded {len(places)} places.")
+
+    # 1. Lọc theo Activity
     places = _filter_by_activity(places, criteria.activities)
 
     if not places:
-        print(f"activities failed❌")
+        print("[ACTIVITY] FAIL ❌ — No places match the selected activities.")
         return scored
-    print(f"activities success✅")
+    print(f"[ACTIVITY] OK ✅ — {len(places)} places remain.")
 
-    # 2. Loại cứng theo Hobby
+    # 2. Lọc theo Hobby
     places = _filter_by_hobby(places, criteria.extra_tags)
 
     if not places:
-        print(f"hobbies failed❌")
+        print("[HOBBY] FAIL ❌ — No places match the selected hobbies.")
         return scored
-    print(f"hobbies success✅")
+    print(f"[HOBBY] OK ✅ — {len(places)} places remain.")
 
-    # 3. Lọc theo thời tiết
+    # 3. Lọc theo Weather
     places = _filter_by_weather(criteria, places)
 
     if not places:
-        print(f"weather failed❌")
+        print("[WEATHER] FAIL ❌ — No places are suitable for current weather.")
         return scored
-    print(f"weather success✅")
+    print(f"[WEATHER] OK ✅ — {len(places)} places remain.")
 
-    # 4. Lọc khi user không chọn activity
+    # 4. Khi user không chọn Activity
     if not criteria.activities:
-        print(f"No activities: filter by Time of day and Current Location")
+        print("[NO_ACTIVITY] INFO — Filtering by time of day + current location")
+
+        # Time of day
         places = _filter_by_time_of_day(places)
         if not places:
-            print(f"Time of day failed❌")
+            print("[TIME_OF_DAY] FAIL ❌ — No places match time of day.")
             return scored
-        print(f"Time of day success✅")
+        print(f"[TIME_OF_DAY] OK ✅ — {len(places)} places remain.")
+
+        # Current Location
         places = _filter_out_current_location(db, criteria, places)
         if not places:
-            print(f"Current Location failed❌")
+            print("[CURRENT_LOCATION] FAIL ❌ — All places filtered out.")
             return scored
-        print(f"Current Location✅")
+        print(f"[CURRENT_LOCATION] OK ✅ — {len(places)} places remain.")
     else:
-        print(f"Have activities")
+        print("[ACTIVITY] INFO — Activities provided -> skipping fallback flow.")
 
-    # 5. Loại cứng theo giờ hoạt động
+    # 5. Lọc theo Opening Time
     places = _filter_by_opening_time(db, places)
 
     if not places:
-        print(f"Opening Time failed❌")
+        print("[OPENING_TIME] FAIL ❌ — No places open at this time.")
         return scored
+    print(f"[OPENING_TIME] OK ✅ — {len(places)} places remain.")
 
-    print(f"Opening Time success✅")
-
-    # 6. Loại cứng theo khoảng cách tối đa tùy vào duration_tag
+    # 6. Lọc theo Distance (GPS)
     places = _filter_by_gps(places, criteria.location, criteria.duration_tag)
 
     if not places:
-        print(f"distance failed❌")
+        print("[DISTANCE] FAIL ❌ — No places within allowed travel distance.")
         return scored
-    print(f"distance success✅")
+    print(f"[DISTANCE] OK ✅ — {len(places)} places remain.")
 
     if len(places) == 1:
         scored.append((_score_place(places[0], criteria, db, user), 0.0, places[0]))
         return scored
 
     # 7. Tính điểm từng địa điểm
-    # Định nghĩa: (total_score, distance, DomainPlace)
     print(f"waiting for scoring....")
+
     for place in places:
-        distance = haversine_distance(criteria.location.latitude, criteria.location.longitude, place.lat, place.lon)
+        distance = get_distance_sync(criteria.location.latitude, criteria.location.longitude, place.lat, place.lon)
         total_score = _score_place(place, criteria, db, user)
         scored.append((total_score, distance, place))
 
-    print(f"Counting Score success✅")
+    print(f"[{len(places)}] Counting Score success✅")
     # Sắp xếp giảm dần theo điểm
     scored.sort(key=lambda x: x[0], reverse=True)
 
-    # 🚨 THAY ĐỔI CHÍNH: Cắt (slice) danh sách để chỉ lấy N kết quả hàng đầu
+    # Cắt (slice) danh sách để chỉ lấy N kết quả hàng đầu
     top_n_scored_data = scored[:n_results]
 
     # Trả về Top N kết quả đã sắp xếp
     return top_n_scored_data
-
 
 def _filter_by_activity(places: list[DomainPlace], activities: List[str]) -> list[DomainPlace]:
     if not activities:
@@ -224,9 +224,7 @@ UNSAFE_SPACES_IN_EXTREME_WEATHER = {"#outdoor", "#rooftop"}
 def _filter_by_weather(criteria: RecommendationCriteria, places: list[DomainPlace]):
     """Loại bỏ các địa điểm không phù hợp trong thời tiết cực đoan.
     - Nếu thời tiết thuộc EXTREME_WEATHER_TAGS -> loại mọi place chứa tag trong UNSAFE_SPACES_IN_EXTREME_WEATHER."""
-    weather_js = get_current_weather_data(criteria.location.latitude, criteria.location.longitude)
-    weather = get_main_weather(weather_js)
-    weather_tag = normalize_weather_tag(weather)
+    weather_tag = get_main_weather(criteria.location.latitude, criteria.location.longitude)
 
     if weather_tag in EXTREME_WEATHER_TAGS:
         return [
@@ -258,7 +256,6 @@ UNSAFE_BY_TIME_TAG = {
     # Tối: Cấm các không gian/vibe quá sáng, ồn ào hoặc quá mộc mạc không phù hợp đi chơi đêm
     "#night": {
         "#outdoor",  # Có thể không an toàn/tiện lợi (Trừ #rooftop)
-        "#cheap",  # Tránh địa điểm quá rẻ tiền
         "#natural",  # Vắng vẻ, không phù hợp đi chơi tối
         "#free_spirited",
         "#rustic",  # Vibe quá mộc mạc
@@ -308,12 +305,9 @@ def _filter_out_current_location(db: Session, criteria: RecommendationCriteria, 
     banned_activity_tags: set[str] = set()
 
     for place in places:
-        try:
-            distance = get_distance_sync(current_lat, current_lon, place.lat, place.lon)
-        except Exception:
-            continue
+        distance = get_distance_sync(current_lat, current_lon, place.lat, place.lon)
 
-            # Kiểm tra nếu địa điểm cực kỳ gần
+        # Kiểm tra nếu địa điểm cực kỳ gần
         if distance <= RADIUS_TO_EXCLUDE_KM:
             for tag in place.tags:
                 if tag in all_activities_tags:
@@ -324,7 +318,6 @@ def _filter_out_current_location(db: Session, criteria: RecommendationCriteria, 
         return places
 
     # BƯỚC 3: Loại bỏ tất cả các địa điểm chứa Banned Tags
-
     filtered_places: list[DomainPlace] = []
 
     for place in places:
@@ -427,7 +420,6 @@ def _score_distance(criteria: RecommendationCriteria, place: DomainPlace) -> flo
 def _score_rating(place: DomainPlace) -> float:
     """Tính điểm dựa trên rating của place.
     - rating tối đa 5 sao -> tối đa 20 điểm"""
-
     MAX_POINTS = 2.0
     return (place.rating / 5.0) * MAX_POINTS
 
