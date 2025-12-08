@@ -1,9 +1,10 @@
 import httpx  # Thay thế requests
 import re
+import asyncio
 from typing import Dict, Any
 from backend.app.core.config import OSRM_API_URL
-import asyncio
 
+from backend.app.utils.geo_utils import haversine_distance
 
 # THAY ĐỔI: Hàm bất đồng bộ (async)
 async def calculate_osrm_distance(lat_origin: float, lon_origin: float, lat_dest: float, lon_dest: float):
@@ -110,7 +111,7 @@ async def get_osrm_distance_in_km(lat_origin: float, lon_origin: float, lat_dest
             distance_text = result["data"]["distance_text"]
             distance_km = extract_distance_regex(distance_text)
 
-            # **TRẢ VỀ NGAY LẬP TỨC NẾU THÀNH CÔNG VÀ KẾT QUẢ > 0**
+            # *TRẢ VỀ NGAY LẬP TỨC NẾU THÀNH CÔNG VÀ KẾT QUẢ > 0*
             if distance_km > 0.0:
                 return distance_km
 
@@ -118,7 +119,7 @@ async def get_osrm_distance_in_km(lat_origin: float, lon_origin: float, lat_dest
             # Bất kỳ lỗi nào trong quá trình truy cập key hay trích xuất đều bị bỏ qua.
             pass
 
-    return 100.0
+    return haversine_distance(lat_origin, lon_origin, lat_dest, lon_dest) * 0.8
 
 def get_distance_sync(lat_origin: float, lon_origin: float, lat_dest: float, lon_dest: float) -> float:
     """
@@ -132,7 +133,8 @@ def get_distance_sync(lat_origin: float, lon_origin: float, lat_dest: float, lon
 
         return distance
 
-    except Exception as e:
-        # Xử lý bất kỳ lỗi nào trong quá trình chạy đồng bộ/bất đồng bộ
-        print(f"CRITICAL ERROR in get_distance_sync: {e}. Trả về 100.0.")
-        return 100.0
+    except:
+        # Bất kỳ lỗi nào trong quá trình truy cập key hay trích xuất đều bị bỏ qua.
+        pass
+
+    return haversine_distance(lat_origin, lon_origin, lat_dest, lon_dest) * 0.8
