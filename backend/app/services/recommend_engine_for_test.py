@@ -74,74 +74,93 @@ def get_recommendations(
     # return result.places
     return [_to_api_dict(p) for p in result.places]
 
-def _recommend_core(db: Session, user: DomainUser, criteria: RecommendationCriteria) -> RecommendationResult:
+def _recommend_core(db: Session, user: DomainUser, criteria: RecommendationCriteria, n_results: int = 2):
     all_places: List[DomainPlace] = place_repo.get_all_as_domain(db)
     places = [p for p in all_places if p.lat is not None and p.lon is not None]
-
+    scored: list[tuple[float, float, DomainPlace]] = []
     if not places:
-        return RecommendationResult(places=[])
+        print(f"Place is None❌")
+        return scored
+    print(f"Place success✅")
 
     # 1. Loại cứng theo Activity
     places = _filter_by_activity(places, criteria.activities)
 
     if not places:
-        return RecommendationResult(places=[])
+        print(f"activities failed❌")
+        return scored
+    print(f"activities success✅")
 
     # 2. Loại cứng theo Hobby
     places = _filter_by_hobby(places, criteria.extra_tags)
 
     if not places:
-        return RecommendationResult(places=[])
-
-    # 3. Loại cứng theo khoảng cách tối đa tùy vào duration_tag
-    places = _filter_by_gps(places, criteria.location, criteria.duration_tag)
-
-    if not places:
-        return RecommendationResult(places=[])
+        print(f"hobbies failed❌")
+        return scored
+    print(f"hobbies success✅")
 
     # 4. Lọc theo thời tiết
     places = _filter_by_weather(criteria, places)
 
     if not places:
-        return RecommendationResult(places=[])
+        print(f"weather failed❌")
+        return scored
+    print(f"weather success✅")
 
-    # 5. Lọc theo thời gian: lọc các địa điểm không phù hợp thời gian(khi user kh chọn activity)
+    # 5. Lọc khi user không chọn activity
     if not criteria.activities:
+        print(f"No activities: filter by Time of day and Current Location")
         places = _filter_by_time_of_day(places)
         if not places:
-            return RecommendationResult(places=[])
+            print(f"Time of day failed❌")
+            return scored
+        print(f"Time of day success✅")
         places = _filter_out_current_location(db, criteria, places)
         if not places:
-            return RecommendationResult(places=[])
+            print(f"Current Location failed❌")
+            return scored
+        print(f"Current Location✅")
+    else:
+        print(f"Have activities")
 
-    # 6. Loại cứng theo thời gian hoạt động
+    # 6. Loại cứng theo giờ hoạt động
     places = _filter_by_opening_time(db, places)
 
     if not places:
-        return RecommendationResult(places=[])
+        print(f"Opening Time failed❌")
+        return scored
+
+    print(f"Opening Time success✅")
+
+    # 3. Loại cứng theo khoảng cách tối đa tùy vào duration_tag
+    places = _filter_by_gps(places, criteria.location, criteria.duration_tag)
+
+    if not places:
+        print(f"distance failed❌")
+        return scored
+    print(f"distance success✅")
+
+    if len(places) == 1:
+        scored.append((_score_place(places[0], criteria, db, user), 0.0, places[0]))
+        return scored
 
     # 7. Tính điểm từng địa điểm
-    tags = tag_repo.get_all(db)
-    scored: list[tuple[float, DomainPlace]] = []
+    # Định nghĩa: (total_score, distance, DomainPlace)
 
     for place in places:
-        total_score = _score_place(place, criteria, tags, user)
-        scored.append((total_score, place))
+        distance = haversine_distance(criteria.location.latitude, criteria.location.longitude, place.lat, place.lon)
+        total_score = _score_place(place, criteria, db, user)
+        scored.append((total_score, distance, place))
 
+    print(f"Counting Score success✅")
     # Sắp xếp giảm dần theo điểm
     scored.sort(key=lambda x: x[0], reverse=True)
 
-    # Chỉ lấy danh sách place (bỏ điểm)
-    top_places = [place for _, place in scored[:2]]
+    # 🚨 THAY ĐỔI CHÍNH: Cắt (slice) danh sách để chỉ lấy N kết quả hàng đầu
+    top_n_scored_data = scored[:n_results]
 
-    # Cập nhật history của user
-    for p in top_places:
-        user.update_history(p.id)
-
-    # Lưu lịch sử vào db
-    user.save(db, user)
-
-    return RecommendationResult(places=top_places)
+    # Trả về Top N kết quả đã sắp xếp
+    return top_n_scored_data
 
 
 def _filter_by_activity(places: list[DomainPlace], activities: List[str]) -> list[DomainPlace]:

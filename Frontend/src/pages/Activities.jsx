@@ -3,21 +3,22 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../components/layouts/Navbar";
 import TagSelector from "../components/common/TagSelector";
+import ClearAllButton from "../components/common/ClearAllButton";  
 import "../styles/Preferences.css";
 import activitiesAPI from "../services/activitiesAPI";
+import BackButton from "../components/common/BackButton";
 
 export default function Activities() {
   const navigate = useNavigate();
 
-  const [allActivities, setAllActivities] = useState([]);        // [{label,value}, ...]
-  const [selectedActivities, setSelectedActivities] = useState([]); // ["#cafe", "#movie", ...]
+  const [allActivities, setAllActivities] = useState([]);
+  const [selectedActivities, setSelectedActivities] = useState([]);
 
   const [tagsLoading, setTagsLoading] = useState(true);
   const [tagsError, setTagsError] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
-  // 🔹 Load list Activities
   useEffect(() => {
     const load = async () => {
       try {
@@ -27,20 +28,13 @@ export default function Activities() {
         const options = await activitiesAPI.getActivityTags();
         setAllActivities(options);
 
-        // Nếu có lưu local thì load lại (optional)
         const stored = localStorage.getItem("activities");
         if (stored) {
           const arr = JSON.parse(stored);
-          if (Array.isArray(arr)) {
-            setSelectedActivities(arr);
-          }
+          if (Array.isArray(arr)) setSelectedActivities(arr);
         }
       } catch (err) {
-        setTagsError(
-          typeof err === "string"
-            ? err
-            : err?.message || "Failed to load activities"
-        );
+        setTagsError(err?.message || "Failed to load activities");
       } finally {
         setTagsLoading(false);
       }
@@ -54,28 +48,28 @@ export default function Activities() {
     try {
       setSaving(true);
 
-      // lưu local: list có thể rỗng, BE vẫn handle được (engine cho phép thiếu activity)
       localStorage.setItem(
         "activities",
         JSON.stringify(selectedActivities || [])
       );
 
-      // tùy flow: nếu muốn sang results luôn thì "/results"
       navigate("/home");
     } catch (err) {
-      setError(
-        typeof err === "string"
-          ? err
-          : err?.message || "Failed to save activities"
-      );
+      setError(err?.message || "Failed to save activities");
     } finally {
       setSaving(false);
     }
   };
 
+  const handleClear = () => {
+    setSelectedActivities([]);
+  };
+
   return (
     <>
       <Navbar />
+      <BackButton to="/preferences" />
+
       <main className="pref-wrap">
         <h1 className="pref-title">CHOOSE YOUR ACTIVITY</h1>
         <p className="pref-sub">Share with us your thoughts</p>
@@ -84,11 +78,20 @@ export default function Activities() {
         {tagsError && <p className="text-red-500 text-sm">{tagsError}</p>}
 
         {!tagsLoading && !tagsError && (
-          <TagSelector
-            tags={allActivities}
-            defaultSelected={selectedActivities}
-            onChange={setSelectedActivities}
-          />
+          <div className="tag-wrapper">
+            <div className="tag-header">
+              <ClearAllButton
+                onClear={handleClear}
+                disabled={!selectedActivities.length}
+              />
+            </div>
+
+            <TagSelector
+              tags={allActivities}
+              defaultSelected={selectedActivities}
+              onChange={setSelectedActivities}
+            />
+          </div>
         )}
 
         {error && <p className="text-red-500 text-sm mt-2">{error}</p>}
@@ -96,7 +99,7 @@ export default function Activities() {
         <button
           className="pref-next"
           onClick={handleNext}
-          disabled={saving || tagsLoading} 
+          disabled={saving || tagsLoading}
         >
           {saving ? "Saving..." : "Next"}
         </button>

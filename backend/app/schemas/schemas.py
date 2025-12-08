@@ -82,7 +82,10 @@ class Place(BaseModel):
     address: str
     image: Optional[str] = None
     overview: Optional[str] = None
+    summarization: Optional[str] = None 
     tags: List[str] = []
+    rating: Optional[float] = None
+    open: Optional[str] = None
 
     @field_validator('tags', mode='before')
     @classmethod

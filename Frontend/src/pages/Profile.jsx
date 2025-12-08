@@ -1,27 +1,29 @@
+// src/pages/Profile.jsx
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../components/layouts/Navbar";
 import TagSelector from "../components/common/TagSelector";
-import {
-  DirectionButton,
-  FavoriteButton,
-} from "../components/common/ActionButtons"; // THÊM IMPORT NÀY
+import PlaceCard from "../components/common/PlaceCard";
 import "../styles/Profile.css";
+
+// IMPORT SERVICES
 import userAPI from "../services/userAPI";
 import preferenceAPI from "../services/preferenceAPI";
+import favoriteAPI from "../services/favoriteAPI";
 
 export default function Profile() {
   const navigate = useNavigate();
 
   const [activeMenu, setActiveMenu] = useState("Profile");
 
+  // --- USER DATA ---
   const [userData, setUserData] = useState({
     username: "",
     email: "",
     passwordMasked: "********",
   });
 
-  // 🔒 Đổi mật khẩu
+  // --- PASSWORD ---
   const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [passwordForm, setPasswordForm] = useState({
     currentPassword: "",
@@ -32,43 +34,23 @@ export default function Profile() {
   const [passwordSuccess, setPasswordSuccess] = useState("");
   const [passwordLoading, setPasswordLoading] = useState(false);
 
-  // Vibes from backend
-  const [allHobbies, setAllHobbies] = useState([]); // [{label,value}, ...]
-  const [userHobbies, setUserHobbies] = useState([]); // ["#cafe", ...]
+  // --- VIBES (HOBBIES) ---
+  const [allHobbies, setAllHobbies] = useState([]);
+  const [userHobbies, setUserHobbies] = useState([]);
   const [editingHobbies, setEditingHobbies] = useState([]);
   const [isEditingVibes, setIsEditingVibes] = useState(false);
   const [hobbyError, setHobbyError] = useState("");
   const [hobbySaving, setHobbySaving] = useState(false);
   const [hobbyLoading, setHobbyLoading] = useState(true);
 
-  // Favorites demo
-  const [favorites, setFavorites] = useState([
-    {
-      id: 1,
-      name: "The Running Bean Coffee",
-      desc: "A modern-style café with open space and white-wood tones — perfect for a creative vibe.",
-      address: "33 Mac Thi Buoi Street, District 1",
-      hashtags: "#CreativeVibe #ChillMood #CoffeeGoals",
-      image:
-        "https://images.unsplash.com/photo-1509042239860-f550ce710b93?auto=format&fit=crop&w=800&q=80",
-      liked: true,
-    },
-    {
-      id: 2,
-      name: "Oromia Coffee",
-      desc: "Cozy space with relaxing music, ideal for working or chatting.",
-      address: "193A/D3 Nam Ky Khoi Nghia, District 3",
-      hashtags: "#Cozy #Chill #Relax #CoffeeTime",
-      image:
-        "https://images.unsplash.com/photo-1511920170033-f8396924c348?auto=format&fit=crop&w=800&q=80",
-      liked: true,
-    },
-  ]);
+  // --- FAVORITES ---
+  const [favorites, setFavorites] = useState([]);
+  const [favLoading, setFavLoading] = useState(false);
   const [fadingIds, setFadingIds] = useState([]);
 
-  // 🔹 Load profile + hobbies
+  // 1. Load Profile & Hobbies
   useEffect(() => {
-    const load = async () => {
+    const loadInit = async () => {
       try {
         const [me, hobbyOptions, myHobbies] = await Promise.all([
           userAPI.getMe(),
@@ -92,15 +74,59 @@ export default function Profile() {
       }
     };
 
-    load();
+    loadInit();
   }, []);
 
+  // 2. Load Favorites khi vào tab Favorites
+  useEffect(() => {
+    if (activeMenu !== "Favorites") return;
+
+    const loadFavorites = async () => {
+      setFavLoading(true);
+      try {
+        const res = await favoriteAPI.getMyFavorites();
+
+        let validData = [];
+        if (Array.isArray(res)) validData = res;
+        else if (Array.isArray(res?.data)) validData = res.data;
+        else if (Array.isArray(res?.favorites)) validData = res.favorites;
+
+        const normalized = validData.map((p) => ({
+          ...p,
+          id: p.id,
+          title: p.name,
+          description: p.summarization || p.description || "empty field",
+          hashtags: Array.isArray(p.tags) ? p.tags : [],
+          fav: true,
+          rating:
+            typeof p.rating === "number"
+              ? p.rating
+              : p.rating != null
+              ? Number(p.rating)
+              : null,
+          openingHours: p.open || p.opening_hours || "N/A",  // ✅
+        }));
+              
+
+        console.log("[Profile] first favorite:", normalized[0]);
+        setFavorites(normalized);
+      } catch (error) {
+        console.error("Failed to load favorites", error);
+      } finally {
+        setFavLoading(false);
+      }
+    };
+
+    loadFavorites();
+  }, [activeMenu]);
+
+  // --- LOGOUT ---
   const handleLogout = () => {
     localStorage.removeItem("token");
     navigate("/login");
   };
 
-  // ====== ĐỔI MẬT KHẨU ======
+  // --- CHANGE PASSWORD LOGIC ---
   const handlePasswordFieldChange = (e) => {
     const { name, value } = e.target;
     setPasswordForm((prev) => ({
@@ -119,24 +145,20 @@ export default function Profile() {
       !passwordForm.newPassword ||
       !passwordForm.confirmPassword
     ) {
-      setPasswordError("Vui lòng điền đầy đủ cả 3 ô mật khẩu.");
+      setPasswordError("Please fill in all fields.");
       return;
     }
-
     if (passwordForm.newPassword !== passwordForm.confirmPassword) {
-      setPasswordError("Mật khẩu mới và xác nhận mật khẩu không khớp.");
+      setPasswordError("New password and confirmation do not match.");
       return;
     }
 
     try {
       setPasswordLoading(true);
-
-      // GỌI API ĐỔI MẬT KHẨU
       await userAPI.changePassword({
         current_password: passwordForm.currentPassword,
         new_password: passwordForm.newPassword,
       });
-
       setPasswordSuccess("Password changed successfully 🎉");
       setPasswordForm({
         currentPassword: "",
@@ -150,7 +172,7 @@ export default function Profile() {
       const msg =
         err?.response?.data?.detail ||
         err?.message ||
-        "Password changed unsuccessfully. Please check again";
+        "Failed to change password.";
       setPasswordError(msg);
     } finally {
       setPasswordLoading(false);
@@ -168,19 +190,7 @@ export default function Profile() {
     setPasswordSuccess("");
   };
 
-  // ====== FAVORITES ======
-  const toggleFavorite = (id) => {
-    const fav = favorites.find((f) => f.id === id);
-    if (fav?.liked) {
-      setFadingIds((prev) => [...prev, id]);
-      setTimeout(() => {
-        setFavorites((prev) => prev.filter((f) => f.id !== id));
-        setFadingIds((prev) => prev.filter((fid) => fid !== id));
-      }, 300);
-    }
-  };
-
-  // ====== VIBES ======
+  // --- VIBES LOGIC ---
   const saveHobbies = async () => {
     try {
       setHobbySaving(true);
@@ -191,12 +201,25 @@ export default function Profile() {
       alert("Your vibes have been updated!");
     } catch (err) {
       setHobbyError(
-        typeof err === "string"
-          ? err
-          : err?.message || "Failed to save hobbies"
+        typeof err === "string" ? err : err?.message || "Failed to save hobbies"
       );
     } finally {
       setHobbySaving(false);
+    }
+  };
+
+  // --- FAVORITES LOGIC ---
+  const handleToggleFavorite = (id, newStatus) => {
+    if (!newStatus) {
+      setFadingIds((prev) => [...prev, id]);
+      setTimeout(() => {
+        setFavorites((prev) => prev.filter((f) => f.id !== id));
+        setFadingIds((prev) => prev.filter((fid) => fid !== id));
+      }, 300);
+    } else {
+      setFavorites((prev) =>
+        prev.map((f) => (f.id === id ? { ...f, fav: true } : f))
+      );
     }
   };
 
@@ -208,34 +231,23 @@ export default function Profile() {
         <div className="sidebar">
           <div className="avatar-section">
             <div className="avatar-circle"></div>
-            <h3 className="username">Hello, {userData.username || "Guest"}</h3>
+            <h3 className="username">
+              Hello, {userData.username || "Guest"}
+            </h3>
           </div>
 
           <ul className="menu">
-            <li
-              className={`menu-item ${
-                activeMenu === "Profile" ? "active" : ""
-              }`}
-              onClick={() => setActiveMenu("Profile")}
-            >
-              Profile
-            </li>
-            <li
-              className={`menu-item ${
-                activeMenu === "Vibes" ? "active" : ""
-              }`}
-              onClick={() => setActiveMenu("Vibes")}
-            >
-              Vibes
-            </li>
-            <li
-              className={`menu-item ${
-                activeMenu === "Favorites" ? "active" : ""
-              }`}
-              onClick={() => setActiveMenu("Favorites")}
-            >
-              Favorites
-            </li>
+            {["Profile", "Vibes", "Favorites"].map((item) => (
+              <li
+                key={item}
+                className={`menu-item ${
+                  activeMenu === item ? "active" : ""
+                }`}
+                onClick={() => setActiveMenu(item)}
+              >
+                {item}
+              </li>
+            ))}
           </ul>
 
           <button className="logout-btn" onClick={handleLogout}>
@@ -245,22 +257,19 @@ export default function Profile() {
 
         {/* Main content */}
         <div className="profile-form-section">
-          {/* TAB: PROFILE */}
+          {/* PROFILE TAB */}
           {activeMenu === "Profile" && (
             <div className="profile-container">
               <h2 className="form-title">
                 {isChangingPassword ? "EDIT PROFILE" : "PROFILE SETTINGS"}
               </h2>
 
-              {/* View bình thường: chỉ xem thông tin + nút Change password */}
               {!isChangingPassword ? (
                 <div className="profile-form">
                   <label>Username:</label>
                   <p className="static-input">{userData.username}</p>
-
                   <label>Email:</label>
                   <p className="static-input">{userData.email}</p>
-
                   <label>Password:</label>
                   <p className="static-input">{userData.passwordMasked}</p>
 
@@ -272,7 +281,6 @@ export default function Profile() {
                   </button>
                 </div>
               ) : (
-                // Form đổi mật khẩu: 3 khung
                 <form className="profile-form" onSubmit={handleChangePassword}>
                   <label>Current password:</label>
                   <input
@@ -282,7 +290,6 @@ export default function Profile() {
                     onChange={handlePasswordFieldChange}
                     placeholder="Enter current password"
                   />
-
                   <label>New password:</label>
                   <input
                     type="password"
@@ -291,7 +298,6 @@ export default function Profile() {
                     onChange={handlePasswordFieldChange}
                     placeholder="Enter new password"
                   />
-
                   <label>Confirm new password:</label>
                   <input
                     type="password"
@@ -330,7 +336,7 @@ export default function Profile() {
             </div>
           )}
 
-          {/* TAB: VIBES */}
+          {/* VIBES TAB */}
           {activeMenu === "Vibes" && (
             <div className="vibes-section">
               <h2 className="form-title">YOUR VIBES</h2>
@@ -341,107 +347,90 @@ export default function Profile() {
               </p>
 
               {hobbyLoading && <p>Loading vibes...</p>}
-              {hobbyError && (
-                <p className="text-red-500 text-sm mb-2">{hobbyError}</p>
-              )}
+              {hobbyError && <p className="text-red-500 text-sm mb-2">{hobbyError}</p>}
 
               {!hobbyLoading && (
                 <>
-                  {!isEditingVibes ? (
-                    <>
-                      <TagSelector
-                        tags={allHobbies}
-                        defaultSelected={userHobbies}
-                        onChange={() => {}}
-                        readOnly={true}
-                      />
+                  <TagSelector
+                    tags={allHobbies}
+                    defaultSelected={
+                      isEditingVibes ? editingHobbies : userHobbies
+                    }
+                    onChange={isEditingVibes ? setEditingHobbies : () => {}}
+                    readOnly={!isEditingVibes}
+                  />
 
+                  {!isEditingVibes ? (
+                    <button
+                      className="edit-btn"
+                      style={{ marginTop: "20px" }}
+                      onClick={() => {
+                        setEditingHobbies(userHobbies);
+                        setIsEditingVibes(true);
+                      }}
+                    >
+                      Edit Vibes
+                    </button>
+                  ) : (
+                    <div className="button-group">
                       <button
-                        className="edit-btn"
-                        style={{ marginTop: "20px" }}
+                        className="cancel-btn"
                         onClick={() => {
                           setEditingHobbies(userHobbies);
-                          setIsEditingVibes(true);
+                          setIsEditingVibes(false);
                         }}
                       >
-                        Edit Vibes
+                        Cancel
                       </button>
-                    </>
-                  ) : (
-                    <>
-                      <TagSelector
-                        tags={allHobbies}
-                        defaultSelected={editingHobbies}
-                        onChange={(selected) => setEditingHobbies(selected)}
-                        readOnly={false}
-                      />
-
-                      <div className="button-group">
-                        <button
-                          className="cancel-btn"
-                          onClick={() => {
-                            setEditingHobbies(userHobbies);
-                            setIsEditingVibes(false);
-                          }}
-                        >
-                          Cancel
-                        </button>
-                        <button
-                          className="save-btn"
-                          onClick={saveHobbies}
-                          disabled={hobbySaving}
-                        >
-                          {hobbySaving ? "Saving..." : "Save"}
-                        </button>
-                      </div>
-                    </>
+                      <button
+                        className="save-btn"
+                        onClick={saveHobbies}
+                        disabled={hobbySaving}
+                      >
+                        {hobbySaving ? "Saving..." : "Save"}
+                      </button>
+                    </div>
                   )}
                 </>
               )}
             </div>
           )}
 
-          {/* TAB: FAVORITES (demo, chưa nối API) */}
+          {/* FAVORITES TAB */}
           {activeMenu === "Favorites" && (
             <div className="favorites-section">
               <h2 className="form-title">FAVORITE PLACES</h2>
-              <div className="favorites-list">
-                {favorites.map((fav) => (
-                  <div
-                    key={fav.id}
-                    className={`favorite-card ${
-                      fadingIds.includes(fav.id) ? "fade-out" : ""
-                    }`}
-                  >
-                    <img src={fav.image} alt={fav.name} className="fav-image" />
-                    <div className="fav-info">
-                      <h3>{fav.name}</h3>
-                      <p>{fav.desc}</p>
-                      <p className="address">{fav.address}</p>
-                      <p className="hashtags">{fav.hashtags}</p>
-                    </div>
 
-                    <div className="action-buttons-group">
-                      <DirectionButton
-                        place={{
-                          name: fav.name,
-                          address: fav.address,
-                          title: fav.name,
-                        }}
-                      />
-                      <FavoriteButton
-                        isFav={fav.liked}
-                        onToggle={() => toggleFavorite(fav.id)}
+              {favLoading ? (
+                <p style={{ textAlign: "center", marginTop: "20px" }}>
+                  Loading your favorites...
+                </p>
+              ) : (
+                <section className="results-list">
+                  {favorites.map((place) => (
+                    <div
+                      key={place.id}
+                      className={
+                        fadingIds.includes(place.id) ? "fade-out" : ""
+                      }
+                    >
+                      <PlaceCard
+                        place={place}
+                        onToggleFav={handleToggleFavorite}
                       />
                     </div>
-                  </div>
-                ))}
-                {favorites.length === 0 && (
-                  <p className="empty-fav">
-                    You have no favorite places yet 💔
-                  </p>
-                )}
-              </div>
+                  ))}
+
+                  {!favorites.length && (
+                    <p className="empty-fav">
+                      You have no favorite places yet 💔 <br />
+                      <span style={{ fontSize: "0.9em", color: "#666" }}>
+                        Go explore and save some vibes!
+                      </span>
+                    </p>
+                  )}
+                </section>
+              )}
             </div>
           )}
         </div>
