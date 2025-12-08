@@ -1,0 +1,24 @@
+id,name,tag_code,describe
+1,#vintage,Vintage,"Old-style, classic look."
+2,#modern,Modern,Clean and stylish design.
+3,#cheap,Cheap Eats,"Low-price, budget food."
+4,#quiet,Quiet,A calm place with low noise.
+5,#chill,Chill,Easy-going and relaxed vibe.
+6,#vibrant,Vibrant,A lively and energetic atmosphere.
+7,#romantic,Romantic,Warm and lovely atmosphere.
+8,#cozy,Cozy,Warm and comfortable place.
+9,#luxury,Luxury,High-end and elegant feel.
+10,#traditional,Traditional,A traditional or culturally classic dining experience.
+11,#healthy,Healthy,Fresh and good-for-body food.
+12,#culture,Culture,You enjoy local culture and traditions.
+13,#minimalist,Minimalist,"Clean, simple, and uncluttered space."
+14,#elegant,Elegant,Sophisticated and stylish atmosphere.
+15,#dreamy,Dreamy,"Soft, whimsical, and magical feeling."
+16,#youthful,Youthful,"Fresh, fun, and playful vibe."
+17,#natural,Natural,"Inspired by nature, calming and organic."
+18,#artistic,Artistic,Creative and visually expressive space.
+19,#free_spirited,Free-spirited,"Relaxed, unconventional, and open-minded."
+20,#rustic,Rustic,"Rough, earthy, and countryside charm."
+21,#dramatic,Dramatic,"Bold, striking, and intense atmosphere."
+22,#unique,Unique,Distinctive and one-of-a-kind character.
+23,#pleasant,Pleasant,"Comfortable, enjoyable, and easy-going mood."

@@ -1,18 +1,18 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Header
-from backend.app.schemas.location import (
+from backend.app.schemas.schemas import (
     RecommendationRequest,
     RecommendationResponse,
     RecommendationErrorResponse
 )
 from sqlalchemy.orm import Session
-from backend.app.db.deps import get_db
+from backend.app.db.db_connection import get_db
 from backend.app.db import models
-from ....services.recommend_engine import get_recommendations
+from backend.app.services.recommend_engine import get_recommendations
 from backend.app.core.dependencies import get_current_user
+
 router = APIRouter(prefix="/recommend", tags=["recommend"])
 
-
-@router.post("/",  # Bỏ /recommend vì prefix router đã xử lý
+@router.post("/",
              response_model=RecommendationResponse,
              responses={404: {"model": RecommendationErrorResponse}},
              status_code=status.HTTP_200_OK)
@@ -26,8 +26,11 @@ async def recommend_places(
         latitude=payload.latitude,
         longitude=payload.longitude,
         duration_tag=payload.duration_tag,
+        activities=payload.activity,
         user=current_user
     )
+
+
 
     if not results:
         raise HTTPException(

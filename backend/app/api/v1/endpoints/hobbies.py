@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from backend.app.db.deps import get_db
+from backend.app.db.db_connection import get_db
 from backend.app.db import models
 from typing import Optional, Dict, Any
 from fastapi import APIRouter, Depends, Header, HTTPException

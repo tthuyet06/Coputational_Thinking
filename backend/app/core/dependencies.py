@@ -5,7 +5,7 @@ from jose import jwt, JWTError, ExpiredSignatureError
 from sqlalchemy.orm import Session
 
 from backend.app.core.config import SECRET_KEY, ALGORITHM
-from backend.app.db.deps import get_db
+from backend.app.db.db_connection import get_db
 from backend.app.db import models
 
 

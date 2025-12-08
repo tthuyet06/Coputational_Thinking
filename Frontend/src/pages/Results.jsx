@@ -1,228 +1,274 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import Navbar from "../components/layouts/Navbar";
-import LoadingScreen from "./LoadingScreen";
-import EmptyState from "./EmptyState";
 import "../styles/Results.css";
 
-/* ----------------- Helper: tạo link chỉ đường ----------------- */
-function buildDirectionsUrl(place) {
-  const base = "https://www.google.com/maps/dir/?api=1";
-  const dest = place.coords
-    ? `${place.coords.lat},${place.coords.lng}`
-    : encodeURIComponent(place.address || place.title);
-  // origin dùng "Current Location" để Maps tự lấy vị trí người dùng
-  return `${base}&origin=Current+Location&destination=${dest}`;
-}
+// Import Services
+import suggestionAPI from "../services/suggestionAPI";
+import favoriteAPI from "../services/favoriteAPI"; 
 
-/* ----------------- Card ----------------- */
-function ResultCard({ item, onToggleFav, origin }) {
-  const navigate = useNavigate();
+// Import Components
+import LoadingScreen from "./LoadingScreen";
+import EmptyState from "./EmptyState";
 
-  const goToDetail = () => navigate(`/details/${item.id}`);
+// Import Hooks & Utils
+import useGeolocation from "../hooks/useGeolocation";
+import useWeather from "../hooks/useWeather";
+import toErrorMessage from "../utils/toErrorMessage";
+import PlaceCard from "../components/common/PlaceCard";
+import BackButton from "../components/common/BackButton";
 
-  const openDirections = (e) => {
-    e.stopPropagation();
-    window.open(buildDirectionsUrl(item), "_blank", "noopener,noreferrer");
-  };
+const DEFAULT_LATITUDE = 10.776;
+const DEFAULT_LONGITUDE = 106.7;
 
-  return (
-    <article className="result-card" onClick={goToDetail}>
-      <img className="result-img" src={item.image} alt={item.title} />
-      <div className="result-body">
-        <header className="result-header">
-          <h3 className="result-title">{item.title}</h3>
-          <div className="result-actions">
-            <button
-              className="icon-btn dir-btn"
-              onClick={openDirections}
-              aria-label={`Chỉ đường đến ${item.title}`}
-              title="Chỉ đường"
-              onMouseDown={(e) => e.preventDefault()} // tránh outline khi giữ chuột
-            >
-              {/* Nền diamond trắng + mũi tên rẽ phải đen */}
-              <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true">
-                {/* Diamond (square xoay 45°) */}
-                <rect x="3" y="3" width="18" height="18" rx="3"
-                      fill="#ffffff" transform="rotate(45 12 12)"/>
-                {/* Arrow turn right (đơn giản, rõ nét) */}
-                <path
-                  d="M9 16V12a3 3 0 0 1 3-3h3"
-                  fill="none"
-                  stroke="#111111"
-                  strokeWidth="2.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-                <path
-                  d="M14 7l4 4-4 4"
-                  fill="none"
-                  stroke="#111111"
-                  strokeWidth="2.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-            </button>
-
-            {/* ❤️ Nút yêu thích */}
-            <button
-              className={`fav-btn ${item.fav ? "is-fav" : ""}`}
-              aria-label={item.fav ? "Unfavorite" : "Favorite"}
-              onClick={(e) => {
-                e.stopPropagation();
-                onToggleFav(item.id);
-              }}
-              title={item.fav ? "Bỏ yêu thích" : "Thêm vào yêu thích"}
-            >
-              <svg width="22" height="22" viewBox="0 0 24 24">
-                <path d="M12 21s-6.7-4.1-9.6-7.6A6.1 6.1 0 0 1 12 5.3a6.1 6.1 0 0 1 9.6 8.1C18.7 16.9 12 21 12 21z" />
-              </svg>
-            </button>
-          </div>
-        </header>
-
-        <p className="result-desc">{item.description}</p>
-        <p className="result-addr">
-          <span className="pin">📍</span>
-          {item.address}
-        </p>
-        <p className="result-tags">
-          {item.hashtags.map((t) => (
-            <span key={t}>#{t} </span>
-          ))}
-        </p>
-      </div>
-    </article>
-  );
-}
-
-/* ----- Page ----- */
+// ---------------- Results Page ----------------
 export default function Results() {
   const location = useLocation();
   const navigate = useNavigate();
 
-  // chỉ show loading nếu đi từ Home
+  // 1. Geolocation Hook
+  const {
+    location: geoLoc,
+    error: geoError,
+    isLoading: geoLoading,
+    getLocation,
+  } = useGeolocation();
+
+  // 2. Weather Hook
+  const { weatherData, fetchWeather } = useWeather();
   const showLoading = !!location.state?.showLoading;
 
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(showLoading);
+  const [error, setError] = useState("");
 
-  // xoá state sau khi đọc để Back/Forward không bật lại
+  // Khởi động GPS
   useEffect(() => {
     if (location.state) {
       navigate(".", { replace: true, state: null });
     }
-  }, [location.state, navigate]);
+    getLocation();
+  }, [location.state, navigate, getLocation]);
 
-  const [origin, setOrigin] = useState(null);
-
+  // Khởi động Weather
   useEffect(() => {
-    if (!("geolocation" in navigator)) return;
-    navigator.geolocation.getCurrentPosition(
-      ({ coords }) => setOrigin(`${coords.latitude},${coords.longitude}`),
-      () => setOrigin(null), // fallback: không có origin
-      { enableHighAccuracy: true, timeout: 8000, maximumAge: 60000 }
-    );
-  }, []);
+    if (geoLoading) return;
+    if (!geoLoc && !geoError) return; // Chỉ chạy khi đã có kết quả GPS (thành công hoặc lỗi)
+    
+    const lat = geoLoc?.lat ?? DEFAULT_LATITUDE;
+    const lng = geoLoc?.lng ?? DEFAULT_LONGITUDE;
+    fetchWeather(lat, lng);
+  }, [geoLoading, geoLoc, geoError, fetchWeather]);
 
 
+  // 3. Logic Load Suggestions (Đã sửa lỗi hiển thị 404 ảo)
+  const loadRecommendations = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError("");
 
-  async function fetchResults(delayMs = 0) {
-    if (delayMs > 0) {
-      await new Promise((r) => setTimeout(r, delayMs));
-    }
-    return [
-      {
-        id: "timezone-arcade",
-        title: "TimeZone – Indoor Arcade",
-        image:
-          "https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=1200&auto=format&fit=crop",
-        description:
-          "Arcade với bowling, mini basketball, racing simulators ngay tại Saigon Centre. Lý tưởng cho nhóm bạn muốn xả năng lượng.",
-        address: "5th Floor, Saigon Centre, 65 Le Loi, District 1",
-        coords: { lat: 10.773337253342001, lng: 106.70103165732922},
-        hashtags: [
-          "PlayAndLaugh",
-          "EnergeticMood",
-          "FunVibes",
-          "TeamChallenge",
-          "ArcadeTime",
-        ],
-        fav: true,
-      },
-      {
-        id: "running-bean",
-        title: "The Running Bean Coffee",
-        image:
-          "https://hatiencorp.vn/wp-content/uploads/2020/08/bep-nha-hang-the-running-bean.jpg",
-        description:
-          "Quán cà phê hiện đại, tone trắng – gỗ, không gian mở, hợp chill/creative, có bàn dài làm việc nhóm.",
-        address: "33 Mac Thi Buoi Street, District 1",
-        coords: {lat: 10.775348279405895, lng: 106.7048851469228},
-        hashtags: [
-          "CreativeVibe",
-          "ChillMood",
-          "CoffeeGoals",
-          "CityCalm",
-          "SaigonSpot",
-        ],
-        fav: false,
-      },
-    ];
+      const storedDuration = localStorage.getItem("durationTag");
+      const parsedDuration = storedDuration ? JSON.parse(storedDuration) : null;
+      const duration_tag = parsedDuration?.tag_id;
+
+      const storedActs = localStorage.getItem("activities");
+      const parsedActs = storedActs ? JSON.parse(storedActs) : [];
+      const activities = Array.isArray(parsedActs) ? parsedActs : [];
+
+      if (!duration_tag) {
+        setItems([]);
+        setError("Missing duration selection.");
+        return;
+      }
+
+      const latitude = geoLoc?.lat ?? DEFAULT_LATITUDE;
+      const longitude = geoLoc?.lng ?? DEFAULT_LONGITUDE;
+
+      console.log("🚀 [Results] Requesting recommendations...");
+
+      // --- SỬA LỖI: Tách luồng để đảm bảo an toàn ---
+      
+      // A. Gọi API Gợi ý (Quan trọng nhất)
+      const recPromise = suggestionAPI.getRecommendations({
+        latitude,
+        longitude,
+        duration_tag,
+        activity: activities,
+      });
+
+      // B. Gọi API Favorite (Phụ - nếu lỗi 401 do chưa login thì bỏ qua)
+      const favPromise = favoriteAPI.getMyFavorites().catch((err) => {
+        console.warn("⚠️ [Results] Failed to load favorites (User might be guest):", err.message);
+        return []; // Trả về mảng rỗng để không làm crash Promise.all
+      });
+
+      // C. Chờ cả 2 xong
+      const [rawPlaces, myFavoritesResponse] = await Promise.all([recPromise, favPromise]);
+
+  // --- DEBUG: Xem nó trả về cái gì ---
+  console.log("📦 [Results] Raw Places:", rawPlaces);
+  console.log("❤️ [Results] Favorites Response:", myFavoritesResponse);
+
+ 
+  let validFavorites = [];
+
+  if (Array.isArray(myFavoritesResponse)) {
+    // Trường hợp 1: API trả về mảng trực tiếp (nếu có interceptor xử lý trước)
+    validFavorites = myFavoritesResponse;
+  } else if (myFavoritesResponse?.data && Array.isArray(myFavoritesResponse.data)) {
+    // Trường hợp 2: Axios trả về object bọc dữ liệu trong .data (Phổ biến nhất)
+    validFavorites = myFavoritesResponse.data;
+  } else {
+    console.warn("⚠️ Favorites response is not an array. Defaulting to empty.");
+    validFavorites = [];
   }
 
-  useEffect(() => {
-    const delay = showLoading ? 800 : 0; // chỉ delay khi đi từ Home
-    fetchResults(delay).then((data) => {
-      setItems(data);
-      setLoading(false);
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // mount 1 lần
+  let placesArray = [];
 
-  if (loading) {
+  if (Array.isArray(rawPlaces)) {
+    placesArray = rawPlaces;
+  } else if (rawPlaces?.recommendations && Array.isArray(rawPlaces.recommendations)) {
+    placesArray = rawPlaces.recommendations;
+  } else if (rawPlaces?.data && Array.isArray(rawPlaces.data)) {
+    // Phòng hờ BE trả về array bọc trong .data
+    placesArray = rawPlaces.data; 
+  } else {
+    placesArray = [];
+  }
+
+  if (placesArray.length === 0) {
+    setItems([]);
+    return;
+  }
+
+  // -----------------------------------------------------------
+  // 👇 3. TIẾP TỤC LOGIC MAP (Dùng validFavorites đã chuẩn hóa)
+  // -----------------------------------------------------------
+  
+  // Tạo Set chứa các ID đã thích để tra cứu cho nhanh O(1)
+  const favSet = new Set(validFavorites.map((f) => f.id));
+
+  const mapped = placesArray.map((p) => {
+    return {
+      id: p.id,
+      title: p.name,
+      image: p.image || p.image_url || "",
+      image_url: p.image_url || "",
+      
+      description: p.summarization || p.description || "Chưa có mô tả chi tiết.",
+      overview: p.overview || "",
+      address: p.address || "",
+      tags: Array.isArray(p.tags) ? p.tags : [],
+      hashtags: Array.isArray(p.tags) ? p.tags : [],
+      rating:
+        typeof p.rating === "number"
+          ? p.rating
+          : p.rating != null
+          ? Number(p.rating)
+          : 0,
+      openingHours: p.open || p.opening_hours || "N/A",  // ✅
+      // ✅ So sánh ID của Place với Set ID trong Favorites
+      fav: favSet.has(p.id),
+
+
+      
+      lat: p.latitude || p.lat,
+      lon: p.longitude || p.lon,
+    };
+  });
+
+  setItems(mapped.slice(0, 4));
+
+    } catch (err) {
+      console.error("❌ [Results] Error loading data:", err);
+      // Nếu lỗi 404 thật sự từ BE (BE báo không tìm thấy) -> Hiển thị Empty
+      if (err.response && err.response.status === 404) {
+          setItems([]);
+      } else {
+          setItems([]);
+          setError(toErrorMessage(err, "Failed to load recommendations"));
+      }
+    } finally {
+      setLoading(false);
+    }
+  }, [geoLoc, geoError]); // Bỏ fetchWeather khỏi dependency để tránh loop
+
+  // Effect kích hoạt
+  useEffect(() => {
+    if (!geoLoading && (geoLoc || geoError)) {
+      const delay = showLoading ? 800 : 0;
+      const timer = setTimeout(loadRecommendations, delay);
+      return () => clearTimeout(timer);
+    }
+  }, [geoLoc, geoError, geoLoading, showLoading, loadRecommendations]);
+
+  const toggleFav = (id, newStatus) =>
+    setItems((prev) =>
+      prev.map((it) => (it.id === id ? { ...it, fav: newStatus } : it))
+    );  
+
+  // --- RENDER ---
+  const finalLoading = loading || (geoLoading && !geoLoc && !geoError);
+
+  if (finalLoading) {
+    let msg = "Looking for the destination, please wait...";
+    if (geoLoading) msg = "Getting your current location...";
+    else if (loading) msg = "Matching your vibe and filtering results...";
+    
     return (
       <>
         <Navbar />
-        <LoadingScreen message="Looking for the destination, please wait..." />
+        <LoadingScreen message={msg} />
       </>
     );
   }
 
-  if (!loading && items.length === 0) {
+  // Logic hiển thị Empty State
+  // Nếu có lỗi API (error) HOẶC không có item nào
+  if (error || !items.length) {
+    const subtitle = error || "Please try again next time or adjust your vibe.";
     return (
       <>
         <Navbar />
         <EmptyState
-          title="We can’t find any destination that matches your vibes."
-          subtitle="Please try again next time."
+          title="We couldn't find any destination."
+          subtitle={subtitle}
           ctaText="Edit your vibe"
-          ctaTo="/editvibe"
+          ctaTo="/profile"
         />
       </>
     );
   }
 
-  const toggleFav = (id) =>
-    setItems((prev) =>
-      prev.map((it) => (it.id === id ? { ...it, fav: !it.fav } : it))
-    );
-
   return (
     <>
       <Navbar />
+      <BackButton to="/home"/>
       <main className="results-wrap">
         <div className="results-inner">
           <h1 className="results-title">
-            Here’s What
-            <br />
-            Matches Your Vibe!
+            Here’s What Matches Your Vibe!
           </h1>
 
+          {weatherData && (
+            <div className="weather-info" style={{ 
+                marginBottom: '20px', 
+                padding: '8px 16px', 
+                backgroundColor: 'rgba(255, 255, 255, 0.8)', 
+                borderRadius: '20px',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+                fontSize: '0.9rem',
+                color: '#333'
+            }}>
+                <span>🌤 {weatherData.temperature ?? weatherData.temp}°C</span>
+                {weatherData.description && <span>- {weatherData.description}</span>}
+            </div>
+          )}
           <section className="results-list">
             {items.map((it) => (
-              <ResultCard item={it} onToggleFav={toggleFav} origin={origin} />
+              <PlaceCard key={it.id} place={it} onToggleFav={toggleFav} />
             ))}
           </section>
         </div>

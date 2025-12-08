@@ -116,9 +116,6 @@
   background: #333;
 }
 
-.login-link:hover {
-  text-decoration: underline;
-}
 .btn-continue:hover { background: #333; }
 .btn-continue:active { transform: translateY(1px); }
 

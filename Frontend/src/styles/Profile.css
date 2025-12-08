@@ -157,29 +157,23 @@ body { margin: 0; }
 .profile-page .fav-info p { margin: 4px 0; color:#555; font-size: 14px; }
 .profile-page .fav-info .address { font-weight: 700; color:#333; }
 .profile-page .hashtags { color:#ff3366; font-weight: 600; font-size: 13px; }
-.profile-page .heart-btn {
-  width: 36px;
-  height: 36px;
-  min-width: 36px;
-  border-radius: 999px;
-  border: 1px solid #e5e7eb;
-  background: #fff;
-  display: grid;
-  place-items: center;
-  color: #9ca3af;
-  cursor: pointer;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-  transition: transform 0.15s ease, color 0.2s ease, background 0.2s ease;
+
+/* favorites: nhóm nút hành động (tim + chỉ đường) */
+.profile-page .action-buttons-group {
+  display: flex;
+  flex-direction: column; 
+  gap: 10px;
+  align-items: center;
+  margin-left: auto; /* Đẩy nhóm nút sang phải */
 }
-.profile-page .heart-btn:hover {
-  transform: scale(1.08);
+
+@media (min-width: 600px) {
+  .profile-page .action-buttons-group {
+    flex-direction: row; /* Xếp ngang khi đủ không gian */
+  }
 }
-.profile-page .heart-btn.liked {
-  color: #ef4444;
-  border-color: #f3b4b4;
-  background: #fff5f5;
-  animation: heartPop 0.35s ease;
-}
+/* Đã XÓA CSS cũ cho .heart-btn vì nó không còn được sử dụng */
+
 .profile-page .empty-fav {
   padding-top: 180px; display: flex; font-size: 20px; text-align: center;
   justify-content: center; color: #777; margin-top: 20px; font-style: italic;

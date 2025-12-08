@@ -4,61 +4,60 @@ import { Link, useNavigate } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
 import ErrorMessage from "../components/common/ErrorMessage";
 import "../styles/LoginForm.css";
-import { useAuthContext } from "../context/AuthContext";
 
 export default function LoginForm() {
   const navigate = useNavigate();
-  const { login, loading, error } = useContext(AuthContext);
+  const { login, loading, error, clearError } = useContext(AuthContext);
 
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError("");
-
-    await login(username, password);
-
-    // Nếu login thành công (user tồn tại trong context)
-    const token = localStorage.getItem("token"); // AuthContext lưu token
-    if (token) {
-      navigate("/preferences");
-    }
+    const ok = await login(username, password);
+    if (ok) navigate("/preferences");
   };
 
   return (
     <>
       <Navbar />
       <div className="login-wrapper">
-        <h2 className="login-title">Login Account</h2>
+        <h2 className="login-title">Login</h2>
+
         <form className="login-form" onSubmit={handleSubmit}>
           <label className="input-label">Username</label>
           <input
-            name="username"
             type="text"
+            name="username"
             placeholder="Enter Your Username"
             className="input-field"
             value={username}
-            onChange={(e) => setUsername(e.target.value)}
+            onChange={(e) => { setUsername(e.target.value); clearError?.(); }}
+            required
+            autoComplete="username"
           />
 
           <label className="input-label">Password</label>
           <input
-            name="password"
             type="password"
+            name="password"
             placeholder="Enter Your Password"
             className="input-field"
             value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            onChange={(e) => { setPassword(e.target.value); clearError?.(); }}
+            required
+            autoComplete="current-password"
           />
 
-          {(error || authError) && (
-            <p className="error-text">{error || authError}</p>
-          )}
+          {error && <ErrorMessage message={error} />}
 
           <p className="signup-text">
             Don’t have an account?{" "}
-            <Link to="/signup" className="signup-link">
+            <Link
+              to="/signup"
+              className="signup-link"
+              onClick={() => clearError?.()}
+            >
               Create one here.
             </Link>
           </p>
@@ -66,9 +65,6 @@ export default function LoginForm() {
           <button type="submit" className="btn-continue" disabled={loading}>
             {loading ? "Logging in..." : "Continue"}
           </button>
-
-          {/* Hiển thị lỗi nếu có */}
-          <ErrorMessage message={error} />
         </form>
       </div>
     </>

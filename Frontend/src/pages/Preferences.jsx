@@ -1,24 +1,73 @@
-import React, { useState } from "react";
+// src/pages/Preferences.jsx
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import Navbar from "../components/layouts/Navbar";
 import TagSelector from "../components/common/TagSelector";
+import ClearAllButton from "../components/common/ClearAllButton";  
 import "../styles/Preferences.css";
+import preferenceAPI from "../services/preferenceAPI";
 
 export default function Preferences() {
-  const vibes = [
-    "Sweet", "Peaceful", "Cozy", "Dreamy",
-    "Lovely", "Serene", "Soft", "Bold",
-    "Vibrant", "Energetic", "Fun", "Adventurous",
-    "Motivated", "Excited", "Playful", "Chill",
-    "Mysterious", "Romantic", "Lazy", "Classic",
-    "Creative", "Relaxed", "Trendy", "Quiet",
-    "Mellow", "Tranquil", "Wild", "Focused",
-  ];
+  const navigate = useNavigate();
 
-  const [selectedVibes, setSelectedVibes] = useState([]);
+  const [allHobbies, setAllHobbies] = useState([]);
+  const [selectedHobbies, setSelectedHobbies] = useState([]);
 
-  const handleNext = () => {
-    console.log("Selected vibes:", selectedVibes);
-    window.location.href = "/home";
+  const [tagsLoading, setTagsLoading] = useState(true);
+  const [tagsError, setTagsError] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+
+  // Load list hobbies + hobbies hiện tại
+  useEffect(() => {
+    const load = async () => {
+      try {
+        setTagsLoading(true);
+        setTagsError("");
+
+        const [options, myHobbies] = await Promise.all([
+          preferenceAPI.getHobbyTags(),
+          preferenceAPI.getMyHobbies(),
+        ]);
+
+        setAllHobbies(options);
+        setSelectedHobbies(myHobbies);
+      } catch (err) {
+        setTagsError(
+          typeof err === "string"
+            ? err
+            : err?.message || "Failed to load hobbies"
+        );
+      } finally {
+        setTagsLoading(false);
+      }
+    };
+    load();
+  }, []);
+
+  const handleNext = async () => {
+    setError("");
+
+    try {
+      setSaving(true);
+
+      await preferenceAPI.updateMyHobbies(selectedHobbies || []);
+      localStorage.setItem("hobbies", JSON.stringify(selectedHobbies || []));
+
+      navigate("/activities");
+    } catch (err) {
+      setError(
+        typeof err === "string"
+          ? err
+          : err?.message || "Failed to save hobbies"
+      );
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleClear = () => {
+    setSelectedHobbies([]);
   };
 
   return (
@@ -28,14 +77,34 @@ export default function Preferences() {
         <h1 className="pref-title">CHOOSE YOUR VIBE</h1>
         <p className="pref-sub">Share with us your thought</p>
 
-        <TagSelector tags={vibes} onChange={setSelectedVibes} />
+        {tagsLoading && <p>Loading hobbies...</p>}
+        {tagsError && <p className="text-red-500 text-sm">{tagsError}</p>}
+
+        {!tagsLoading && !tagsError && (
+          <div className="tag-wrapper">
+            <div className="tag-header">
+              <ClearAllButton
+                onClear={handleClear}
+                disabled={!selectedHobbies.length}
+              />
+            </div>
+
+            <TagSelector
+              tags={allHobbies}
+              defaultSelected={selectedHobbies}
+              onChange={setSelectedHobbies}
+            />
+          </div>
+        )}
+
+        {error && <p className="text-red-500 text-sm mt-2">{error}</p>}
 
         <button
           className="pref-next"
           onClick={handleNext}
-          disabled={selectedVibes.length === 0}
+          disabled={saving || tagsLoading}
         >
-          Next
+          {saving ? "Saving..." : "Next"}
         </button>
       </main>
     </>
