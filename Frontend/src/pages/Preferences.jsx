@@ -3,15 +3,15 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../components/layouts/Navbar";
 import TagSelector from "../components/common/TagSelector";
-import ClearAllButton from "../components/common/ClearAllButton";
+import ClearAllButton from "../components/common/ClearAllButton";  
 import "../styles/Preferences.css";
 import preferenceAPI from "../services/preferenceAPI";
 
 export default function Preferences() {
   const navigate = useNavigate();
 
-  const [allHobbies, setAllHobbies] = useState([]);          // [{id,label,value,raw}, ...]
-  const [selectedHobbies, setSelectedHobbies] = useState([]); // luôn cố gắng giữ dạng object cùng format với allHobbies
+  const [allHobbies, setAllHobbies] = useState([]);
+  const [selectedHobbies, setSelectedHobbies] = useState([]);
 
   const [tagsLoading, setTagsLoading] = useState(true);
   const [tagsError, setTagsError] = useState("");
@@ -26,22 +26,12 @@ export default function Preferences() {
         setTagsError("");
 
         const [options, myHobbies] = await Promise.all([
-          preferenceAPI.getHobbyTags(), // [{id,label,value,raw}, ...]
-          preferenceAPI.getMyHobbies(), // ["#cafe", "#yen_tinh", ...]
+          preferenceAPI.getHobbyTags(),
+          preferenceAPI.getMyHobbies(),
         ]);
 
         setAllHobbies(options);
-
-        // Map từ list string myHobbies -> list object tương ứng trong options
-        // để TagSelector nhận đúng format
-        if (Array.isArray(myHobbies) && myHobbies.length > 0) {
-          const mappedSelected = options.filter((opt) =>
-            myHobbies.includes(opt.value)
-          );
-          setSelectedHobbies(mappedSelected);
-        } else {
-          setSelectedHobbies([]);
-        }
+        setSelectedHobbies(myHobbies);
       } catch (err) {
         setTagsError(
           typeof err === "string"
@@ -52,7 +42,6 @@ export default function Preferences() {
         setTagsLoading(false);
       }
     };
-
     load();
   }, []);
 
