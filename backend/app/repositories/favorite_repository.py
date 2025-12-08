@@ -9,7 +9,6 @@ from sqlalchemy.orm import Session
 from backend.app.db import models
 from backend.app.domain.favorite import Favorite as DomainFavorite
 
-
 class FavoriteRepository:
     """
     Repository cho bảng favorites.

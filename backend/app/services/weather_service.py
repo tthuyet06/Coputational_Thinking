@@ -47,10 +47,8 @@ def get_current_weather_data(lat: float, lon: float) -> Dict[str, Any]:
         return get_empty_weather_data()  # Trả về dữ liệu rỗng khi có lỗi kết nối
 
 def get_main_weather(lat: float, lon: float) -> str:
-    """
-    Lấy dữ liệu thời tiết hiện tại và trả về tag thời tiết đã chuẩn hóa.
-    Không có bất kỳ khối try/except nào.
-    """
+    """Lấy dữ liệu thời tiết hiện tại và trả về tag thời tiết đã chuẩn hóa.
+    Không có bất kỳ khối try/except nào."""
     # weather_data luôn là Dict[str, Any] và có cấu trúc 'weather'[0]['main']
     weather_data = get_current_weather_data(lat, lon)
 

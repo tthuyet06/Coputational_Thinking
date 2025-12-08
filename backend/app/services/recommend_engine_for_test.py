@@ -108,7 +108,7 @@ def _recommend_core(db: Session, user: DomainUser, criteria: RecommendationCrite
         return scored
     print(f"hobbies success✅")
 
-    # 4. Lọc theo thời tiết
+    # 3. Lọc theo thời tiết
     places = _filter_by_weather(criteria, places)
 
     if not places:
@@ -116,7 +116,7 @@ def _recommend_core(db: Session, user: DomainUser, criteria: RecommendationCrite
         return scored
     print(f"weather success✅")
 
-    # 5. Lọc khi user không chọn activity
+    # 4. Lọc khi user không chọn activity
     if not criteria.activities:
         print(f"No activities: filter by Time of day and Current Location")
         places = _filter_by_time_of_day(places)
@@ -132,7 +132,7 @@ def _recommend_core(db: Session, user: DomainUser, criteria: RecommendationCrite
     else:
         print(f"Have activities")
 
-    # 6. Loại cứng theo giờ hoạt động
+    # 5. Loại cứng theo giờ hoạt động
     places = _filter_by_opening_time(db, places)
 
     if not places:
@@ -141,7 +141,7 @@ def _recommend_core(db: Session, user: DomainUser, criteria: RecommendationCrite
 
     print(f"Opening Time success✅")
 
-    # 3. Loại cứng theo khoảng cách tối đa tùy vào duration_tag
+    # 6. Loại cứng theo khoảng cách tối đa tùy vào duration_tag
     places = _filter_by_gps(places, criteria.location, criteria.duration_tag)
 
     if not places:

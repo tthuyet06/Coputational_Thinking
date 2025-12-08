@@ -1,4 +1,3 @@
-
 import httpx  # Thay thế requests
 import re
 from typing import Dict, Any
@@ -9,10 +8,6 @@ import asyncio
 # THAY ĐỔI: Hàm bất đồng bộ (async)
 async def calculate_osrm_distance(lat_origin: float, lon_origin: float, lat_dest: float, lon_dest: float):
     """Calculate driving distance using OSRM (Open Source Routing Machine) - ASYNC VERSION."""
-
-    # DEBUG: Thêm dòng in để theo dõi tiến trình
-    # print(f"DEBUG: Bắt đầu gọi OSRM cho {lat_origin}, {lon_origin} -> {lat_dest}, {lon_dest}")
-
     try:
         url = f"{OSRM_API_URL}/{lon_origin},{lat_origin};{lon_dest},{lat_dest}"
 
@@ -37,6 +32,7 @@ async def calculate_osrm_distance(lat_origin: float, lon_origin: float, lat_dest
             }
 
         data = response.json()
+
         if data.get("code") != "Ok":
             print("DEBUG: Lỗi OSRM: ROUTE_NOT_FOUND")
             return {
@@ -48,6 +44,7 @@ async def calculate_osrm_distance(lat_origin: float, lon_origin: float, lat_dest
 
         # Lấy route đầu tiên (tốt nhất)
         route = data["routes"][0]
+
         distance_meters = route["distance"]
         duration_seconds = route["duration"]
         distance_km = distance_meters / 1000
@@ -101,10 +98,8 @@ def extract_distance_regex(distance_str: str) -> float:
 
 
 async def get_osrm_distance_in_km(lat_origin: float, lon_origin: float, lat_dest: float, lon_dest: float) -> float:
-    """
-    Tính khoảng cách lái xe bằng OSRM. Trả về khoảng cách thực tế (float).
-    Trả về 100.0 km nếu có bất kỳ lỗi nào xảy ra (API thất bại, Timeout, hoặc trích xuất không thành công).
-    """
+    """Tính khoảng cách lái xe bằng OSRM. Trả về khoảng cách thực tế (float).
+    Trả về 100.0 km nếu có bất kỳ lỗi nào xảy ra (API thất bại, Timeout, hoặc trích xuất không thành công)."""
 
     # 1. Gọi hàm bất đồng bộ
     result: Dict[str, Any] = await calculate_osrm_distance(lat_origin, lon_origin, lat_dest, lon_dest)
@@ -141,108 +136,3 @@ def get_distance_sync(lat_origin: float, lon_origin: float, lat_dest: float, lon
         # Xử lý bất kỳ lỗi nào trong quá trình chạy đồng bộ/bất đồng bộ
         print(f"CRITICAL ERROR in get_distance_sync: {e}. Trả về 100.0.")
         return 100.0
-
-# ----------------
-# Thuật toán Cũ
-#-----------------
-
-# # distance_service.py
-# import requests
-# import re
-# from backend.app.core.config import OSRM_API_URL
-#
-# def calculate_osrm_distance(lat_origin: float, lon_origin: float, lat_dest: float, lon_dest: float):
-#     """Calculate driving distance using OSRM (Open Source Routing Machine)."""
-#     try:
-#         # OSRM yêu cầu format: {lon},{lat};{lon},{lat} (Lưu ý: Lon trước, Lat sau)
-#         url = f"{OSRM_API_URL}/{lon_origin},{lat_origin};{lon_dest},{lat_dest}"
-#
-#         params = {
-#             "overview": "false",  # Không cần chi tiết từng ngã rẽ để nhẹ gánh
-#             "steps": "false"
-#         }
-#
-#         response = requests.get(url, params=params, timeout=10)
-#
-#         if response.status_code != 200:
-#             return {
-#                 "success": False,
-#                 "error_code": "OSRM_API_ERROR",
-#                 "message": f"OSRM API Error: {response.status_code}",
-#                 "http_status": 502
-#             }
-#
-#         data = response.json()
-#
-#         # OSRM trả về code "Ok" nếu thành công
-#         if data.get("code") != "Ok":
-#             return {
-#                 "success": False,
-#                 "error_code": "ROUTE_NOT_FOUND",
-#                 "message": "No route found.",
-#                 "http_status": 404
-#             }
-#
-#         # Lấy route đầu tiên (tốt nhất)
-#         route = data["routes"][0]
-#
-#         # Dữ liệu thô từ OSRM
-#         distance_meters = route["distance"]
-#         duration_seconds = route["duration"]
-#
-#         # Tự format text (Google có sẵn, OSRM phải tự làm)
-#         distance_km = distance_meters / 1000
-#         duration_minutes = duration_seconds / 60
-#
-#         distance_text = f"{distance_km:.1f}"
-#
-#         if duration_minutes >= 60:
-#             hours = int(duration_minutes // 60)
-#             mins = int(duration_minutes % 60)
-#             duration_text = f"{hours} hours {mins} mins"
-#         else:
-#             duration_text = f"{int(duration_minutes)} mins"
-#
-#         return {
-#             "success": True,
-#             "data": {
-#                 "origin_coordinates": f"{lat_origin}, {lon_origin}",
-#                 "destination_coordinates": f"{lat_dest}, {lon_dest}",
-#                 "distance_text": distance_text,
-#                 "duration_text": duration_text,
-#             }
-#         }
-#
-#     except requests.exceptions.RequestException as e:
-#         # Lỗi kết nối mạng
-#         return {
-#             "success": False,
-#             "error_code": "CONNECTION_ERROR",
-#             "message": str(e),
-#             "http_status": 503
-#         }
-#     except Exception as e:
-#         # Lỗi code Python khác
-#         return {
-#             "success": False,
-#             "error_code": "INTERNAL_SERVER_ERROR",
-#             "message": str(e),
-#             "http_status": 500
-#         }
-
-# def extract_distance_regex(distance_str: str) -> float:
-#     """Sử dụng biểu thức chính quy để trích xuất số thực đầu tiên trong chuỗi."""
-#
-#     match = re.search(r'\d+\.?\d*', distance_str)
-#     if match:
-#         return float(match.group(0))
-#     else:
-#         return 0.0
-#
-# def get_osrm_distance_in_km(lat_origin: float, lon_origin: float, lat_dest: float, lon_dest: float) -> float | None:
-#     """Tính khoảng cách lái xe bằng OSRM và trả về giá trị float (km).
-#     Trả về None nếu có lỗi trong quá trình API hoặc không tìm thấy tuyến đường."""
-#     result = calculate_osrm_distance(lat_origin, lon_origin, lat_dest, lon_dest)
-#     distance_text = result["data"]["distance_text"]
-#
-#     return extract_distance_regex(distance_text)
