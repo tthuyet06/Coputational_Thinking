@@ -239,7 +239,6 @@ UNSAFE_BY_TIME_TAG = {
     # 1. Sáng: Cấm nơi quá tĩnh lặng, ít người. (Yêu cầu sự năng động, sôi nổi)
     "#morning": {
         "#quiet",      # Quá tĩnh lặng (A calm place with low noise).
-        "#chill",      # Vibe quá thư giãn, dễ dẫn đến ít người (Easy-going and relaxed vibe).
         "#dreamy",     # Vibe mơ màng, tĩnh lặng (Soft, whimsical, and magical feeling).
         "#romantic",   # Thường ưu tiên sự riêng tư/ít người (Warm and lovely atmosphere).
     },

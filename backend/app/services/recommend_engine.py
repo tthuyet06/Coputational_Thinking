@@ -102,19 +102,13 @@ def _recommend_core(db: Session, user: DomainUser, criteria: RecommendationCrite
     if not places:
         return RecommendationResult(places=[])
 
-    # 3. Loại cứng theo khoảng cách tối đa tùy vào duration_tag
-    places = _filter_by_gps(places, criteria.location, criteria.duration_tag)
-
-    if not places:
-        return RecommendationResult(places=[])
-
-    # 4. Lọc theo thời tiết
+    # 3. Lọc theo thời tiết
     places = _filter_by_weather(criteria, places)
 
     if not places:
         return RecommendationResult(places=[])
 
-    # 5. Lọc theo thời gian: lọc các địa điểm không phù hợp thời gian(khi user kh chọn activity)
+    # 4. Lọc theo thời gian và địa điểm trùng activity đang đứng
     if not criteria.activities:
         places = _filter_by_time_of_day(places)
         if not places:
@@ -125,6 +119,12 @@ def _recommend_core(db: Session, user: DomainUser, criteria: RecommendationCrite
 
     # 6. Loại cứng theo thời gian hoạt động
     places = _filter_by_opening_time(db, places)
+
+    if not places:
+        return RecommendationResult(places=[])
+
+    # 3. Loại cứng theo khoảng cách tối đa tùy vào duration_tag
+    places = _filter_by_gps(places, criteria.location, criteria.duration_tag)
 
     if not places:
         return RecommendationResult(places=[])
@@ -222,7 +222,6 @@ UNSAFE_BY_TIME_TAG = {
     # 1. Sáng: Cấm nơi quá tĩnh lặng, ít người. (Yêu cầu sự năng động, sôi nổi)
     "#morning": {
         "#quiet",      # Quá tĩnh lặng (A calm place with low noise).
-        "#chill",      # Vibe quá thư giãn, dễ dẫn đến ít người (Easy-going and relaxed vibe).
         "#dreamy",     # Vibe mơ màng, tĩnh lặng (Soft, whimsical, and magical feeling).
         "#romantic",   # Thường ưu tiên sự riêng tư/ít người (Warm and lovely atmosphere).
     },
