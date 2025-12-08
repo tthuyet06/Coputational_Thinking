@@ -38,10 +38,10 @@ from backend.app.repositories import (
     FavoriteRepository
 )
 from backend.app.utils.geo_utils import haversine_distance
-from backend.app.services.weather_service import get_main_weather
+from backend.app.services.weather_service import get_current_weather_data, get_main_weather, normalize_weather_tag
 from backend.app.services.place_service import _is_time_in_range, is_open_at
 from backend.app.services.distance_service import  get_distance_sync
-from backend.app.utils.time_utils import get_current_datetime, from_decimal_hours, sum_of_time, combine_date_time
+from backend.app.utils.time_utils import get_current_datetime, to_decimal_hours, from_decimal_hours, sum_of_time, combine_date_time
 from datetime import time
 
 user_repo = UserRepository()
@@ -90,7 +90,7 @@ def _recommend_core(db: Session, user: DomainUser, criteria: RecommendationCrite
     if not places:
         print(f"Place is None❌")
         return scored
-    print(f"[{len(places)}] place success✅")
+    print(f"Place success✅")
 
     # 1. Loại cứng theo Activity
     places = _filter_by_activity(places, criteria.activities)
@@ -98,7 +98,7 @@ def _recommend_core(db: Session, user: DomainUser, criteria: RecommendationCrite
     if not places:
         print(f"activities failed❌")
         return scored
-    print(f"[{len(places)}] activities success✅")
+    print(f"activities success✅")
 
     # 2. Loại cứng theo Hobby
     places = _filter_by_hobby(places, criteria.extra_tags)
@@ -106,48 +106,48 @@ def _recommend_core(db: Session, user: DomainUser, criteria: RecommendationCrite
     if not places:
         print(f"hobbies failed❌")
         return scored
-    print(f"[{len(places)}] hobbies success✅")
+    print(f"hobbies success✅")
 
-    # 4. Lọc theo thời tiết
+    # 3. Lọc theo thời tiết
     places = _filter_by_weather(criteria, places)
 
     if not places:
         print(f"weather failed❌")
         return scored
-    print(f"[{len(places)}] weather success✅")
+    print(f"weather success✅")
 
-    # 5. Lọc khi user không chọn activity
+    # 4. Lọc khi user không chọn activity
     if not criteria.activities:
         print(f"No activities: filter by Time of day and Current Location")
         places = _filter_by_time_of_day(places)
         if not places:
             print(f"Time of day failed❌")
             return scored
-        print(f"[{len(places)}] Time of day success✅")
+        print(f"Time of day success✅")
         places = _filter_out_current_location(db, criteria, places)
         if not places:
             print(f"Current Location failed❌")
             return scored
-        print(f"[{len(places)}] Current Location✅")
+        print(f"Current Location✅")
     else:
         print(f"Have activities")
 
-    # 6. Loại cứng theo giờ hoạt động
+    # 5. Loại cứng theo giờ hoạt động
     places = _filter_by_opening_time(db, places)
 
     if not places:
         print(f"Opening Time failed❌")
         return scored
 
-    print(f"[{len(places)}] Opening Time success✅")
+    print(f"Opening Time success✅")
 
-    # 3. Loại cứng theo khoảng cách tối đa tùy vào duration_tag
+    # 6. Loại cứng theo khoảng cách tối đa tùy vào duration_tag
     places = _filter_by_gps(places, criteria.location, criteria.duration_tag)
 
     if not places:
         print(f"distance failed❌")
         return scored
-    print(f"[{len(places)}] distance success✅")
+    print(f"distance success✅")
 
     if len(places) == 1:
         scored.append((_score_place(places[0], criteria, db, user), 0.0, places[0]))
@@ -224,7 +224,9 @@ UNSAFE_SPACES_IN_EXTREME_WEATHER = {"#outdoor", "#rooftop"}
 def _filter_by_weather(criteria: RecommendationCriteria, places: list[DomainPlace]):
     """Loại bỏ các địa điểm không phù hợp trong thời tiết cực đoan.
     - Nếu thời tiết thuộc EXTREME_WEATHER_TAGS -> loại mọi place chứa tag trong UNSAFE_SPACES_IN_EXTREME_WEATHER."""
-    weather_tag = get_main_weather(criteria.location.latitude, criteria.location.longitude)
+    weather_js = get_current_weather_data(criteria.location.latitude, criteria.location.longitude)
+    weather = get_main_weather(weather_js)
+    weather_tag = normalize_weather_tag(weather)
 
     if weather_tag in EXTREME_WEATHER_TAGS:
         return [
@@ -234,30 +236,32 @@ def _filter_by_weather(criteria: RecommendationCriteria, places: list[DomainPlac
 
     return places
 
-
 UNSAFE_BY_TIME_TAG = {
-    # 1. Sáng: Cấm nơi quá tĩnh lặng, ít người. (Yêu cầu sự năng động, sôi nổi)
+    # Sáng: Cấm các vibe/không gian quá tĩnh lặng hoặc quá sôi động/chỉ dành cho buổi tối
     "#morning": {
-        "#quiet",      # Quá tĩnh lặng (A calm place with low noise).
-        "#dreamy",     # Vibe mơ màng, tĩnh lặng (Soft, whimsical, and magical feeling).
-        "#romantic",   # Thường ưu tiên sự riêng tư/ít người (Warm and lovely atmosphere).
+        "#quiet",  # Thường không phù hợp với nhu cầu năng động buổi sáng
+        "#romantic",  # Vibe thường dành cho buổi tối
+        "#late_night",  # (Nếu có tag này)
+        "#dramatic",  # Vibe quá mạnh
+        "#sunset"  # Không phù hợp với thời điểm
     },
 
-    # 2. Trưa: Cấm nơi quá lãng mạn, ấm cúng, ồn ào. (Yêu cầu sự cân bằng, nhanh gọn)
+    # Trưa/Chiều: Cấm các vibe quá lãng mạn hoặc liên quan đến tối/ngoài trời nắng gắt
     "#noon": {
-        "#romantic",   # Quá lãng mạn (Warm and lovely atmosphere).
-        "#cozy",       # Quá ấm cúng, phù hợp buổi tối hơn (Warm and comfortable place).
-        "#vibrant",    # Quá ồn ào, sôi động quá mức (A lively and energetic atmosphere).
-        "#dramatic",   # Quá mạnh mẽ, căng thẳng (Bold, striking, and intense atmosphere).
-        "#youthful"    # Vibe trẻ trung, vui nhộn, dễ gây ồn ào (Fresh, fun, and playful vibe).
+        "#rooftop",  # Tránh nắng gắt buổi trưa
+        "#romantic",
+        "#dreamy",
+        "#quiet",  # Nếu đang cần các địa điểm cho bữa ăn trưa nhanh
+        "#luxury"  # Tránh các địa điểm yêu cầu thời gian dài và sang trọng
     },
 
-    # 3. Tối: Cấm nơi vắng vẻ. (Yêu cầu sự an toàn, đông đúc)
+    # Tối: Cấm các không gian/vibe quá sáng, ồn ào hoặc quá mộc mạc không phù hợp đi chơi đêm
     "#night": {
-        "#quite",      # Vibe quá thư giãn, có thể vắng vẻ (Easy-going and relaxed vibe).
-        "#natural",    # Không gian thiên nhiên/ngoài trời thường vắng vẻ vào buổi tối (Inspired by nature, calming and organic).
-        "#rustic",     # Vibe mộc mạc, thường ở nơi vắng (Rough, earthy, and countryside charm).
-        "#free_spirited" # Vibe ngẫu hứng, có thể dẫn đến địa điểm vắng vẻ, kém an toàn (Relaxed, unconventional, and open-minded).
+        "#outdoor",  # Có thể không an toàn/tiện lợi (Trừ #rooftop)
+        "#cheap",  # Tránh địa điểm quá rẻ tiền
+        "#natural",  # Vắng vẻ, không phù hợp đi chơi tối
+        "#free_spirited",
+        "#rustic",  # Vibe quá mộc mạc
     }
 }
 

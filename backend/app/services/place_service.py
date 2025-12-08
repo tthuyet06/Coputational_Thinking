@@ -29,7 +29,6 @@ def _is_time_in_range(now_t: time, start: time, end: time) -> bool:
     # trường hợp qua ngày
     return now_t >= start or now_t <= end
 
-
 # def _match_special_rules_for_date(
 #     rules: Sequence[SpecialOpeningRuleDomain],
 #     now: datetime,
@@ -152,3 +151,4 @@ def is_open_now(
     if now is None:
         now = datetime.now()
     return is_open_at(weekly_ranges, now)
+
