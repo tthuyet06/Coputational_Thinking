@@ -45,3 +45,16 @@
   color: #f7f7f7;
   cursor: not-allowed;
 }
+
+.tag-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.tag-header {
+  position: absolute;
+  top: -40px;
+  right: 10px;
+  z-index: 5;
+}
+
