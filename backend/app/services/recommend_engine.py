@@ -237,7 +237,7 @@ UNSAFE_BY_TIME_TAG = {
 
     # 3. Tối: Cấm nơi vắng vẻ. (Yêu cầu sự an toàn, đông đúc)
     "#night": {
-        "#quite",      # Vibe quá thư giãn, có thể vắng vẻ (Easy-going and relaxed vibe).
+        "#quiet",      # Vibe quá thư giãn, có thể vắng vẻ (Easy-going and relaxed vibe).
         "#natural",    # Không gian thiên nhiên/ngoài trời thường vắng vẻ vào buổi tối (Inspired by nature, calming and organic).
         "#rustic",     # Vibe mộc mạc, thường ở nơi vắng (Rough, earthy, and countryside charm).
         "#free_spirited" # Vibe ngẫu hứng, có thể dẫn đến địa điểm vắng vẻ, kém an toàn (Relaxed, unconventional, and open-minded).
