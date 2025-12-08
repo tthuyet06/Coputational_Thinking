@@ -38,10 +38,10 @@ from backend.app.repositories import (
     FavoriteRepository
 )
 from backend.app.utils.geo_utils import haversine_distance
-from backend.app.services.weather_service import get_current_weather_data, get_main_weather, normalize_weather_tag
+from backend.app.services.weather_service import get_main_weather
 from backend.app.services.place_service import _is_time_in_range, is_open_at
 from backend.app.services.distance_service import  get_distance_sync
-from backend.app.utils.time_utils import get_current_datetime, to_decimal_hours, from_decimal_hours, sum_of_time, combine_date_time
+from backend.app.utils.time_utils import get_current_datetime, from_decimal_hours, sum_of_time, combine_date_time
 from datetime import time
 
 user_repo = UserRepository()
@@ -90,7 +90,7 @@ def _recommend_core(db: Session, user: DomainUser, criteria: RecommendationCrite
     if not places:
         print(f"Place is None❌")
         return scored
-    print(f"Place success✅")
+    print(f"[{len(places)}] Place success✅")
 
     # 1. Loại cứng theo Activity
     places = _filter_by_activity(places, criteria.activities)
@@ -98,7 +98,7 @@ def _recommend_core(db: Session, user: DomainUser, criteria: RecommendationCrite
     if not places:
         print(f"activities failed❌")
         return scored
-    print(f"activities success✅")
+    print(f"[{len(places)}] activities success✅")
 
     # 2. Loại cứng theo Hobby
     places = _filter_by_hobby(places, criteria.extra_tags)
@@ -106,7 +106,7 @@ def _recommend_core(db: Session, user: DomainUser, criteria: RecommendationCrite
     if not places:
         print(f"hobbies failed❌")
         return scored
-    print(f"hobbies success✅")
+    print(f"[{len(places)}] hobbies success✅")
 
     # 3. Lọc theo thời tiết
     places = _filter_by_weather(criteria, places)
@@ -114,7 +114,7 @@ def _recommend_core(db: Session, user: DomainUser, criteria: RecommendationCrite
     if not places:
         print(f"weather failed❌")
         return scored
-    print(f"weather success✅")
+    print(f"[{len(places)}] weather success✅")
 
     # 4. Lọc khi user không chọn activity
     if not criteria.activities:
@@ -123,12 +123,12 @@ def _recommend_core(db: Session, user: DomainUser, criteria: RecommendationCrite
         if not places:
             print(f"Time of day failed❌")
             return scored
-        print(f"Time of day success✅")
+        print(f"[{len(places)}] Time of day success✅")
         places = _filter_out_current_location(db, criteria, places)
         if not places:
             print(f"Current Location failed❌")
             return scored
-        print(f"Current Location✅")
+        print(f"[{len(places)}] Current Location✅")
     else:
         print(f"Have activities")
 
@@ -139,7 +139,7 @@ def _recommend_core(db: Session, user: DomainUser, criteria: RecommendationCrite
         print(f"Opening Time failed❌")
         return scored
 
-    print(f"Opening Time success✅")
+    print(f"[{len(places)}] Opening Time success✅")
 
     # 6. Loại cứng theo khoảng cách tối đa tùy vào duration_tag
     places = _filter_by_gps(places, criteria.location, criteria.duration_tag)
@@ -147,7 +147,7 @@ def _recommend_core(db: Session, user: DomainUser, criteria: RecommendationCrite
     if not places:
         print(f"distance failed❌")
         return scored
-    print(f"distance success✅")
+    print(f"[{len(places)}] distance success✅")
 
     if len(places) == 1:
         scored.append((_score_place(places[0], criteria, db, user), 0.0, places[0]))
@@ -161,7 +161,7 @@ def _recommend_core(db: Session, user: DomainUser, criteria: RecommendationCrite
         total_score = _score_place(place, criteria, db, user)
         scored.append((total_score, distance, place))
 
-    print(f"Counting Score success✅")
+    print(f"[{len(places)}] Counting Score success✅")
     # Sắp xếp giảm dần theo điểm
     scored.sort(key=lambda x: x[0], reverse=True)
 
@@ -224,9 +224,7 @@ UNSAFE_SPACES_IN_EXTREME_WEATHER = {"#outdoor", "#rooftop"}
 def _filter_by_weather(criteria: RecommendationCriteria, places: list[DomainPlace]):
     """Loại bỏ các địa điểm không phù hợp trong thời tiết cực đoan.
     - Nếu thời tiết thuộc EXTREME_WEATHER_TAGS -> loại mọi place chứa tag trong UNSAFE_SPACES_IN_EXTREME_WEATHER."""
-    weather_js = get_current_weather_data(criteria.location.latitude, criteria.location.longitude)
-    weather = get_main_weather(weather_js)
-    weather_tag = normalize_weather_tag(weather)
+    weather_tag = get_main_weather(criteria.location.latitude, criteria.location.longitude)
 
     if weather_tag in EXTREME_WEATHER_TAGS:
         return [

@@ -71,7 +71,7 @@ async def calculate_osrm_distance(lat_origin: float, lon_origin: float, lat_dest
 
     # Bắt lỗi kết nối mạng (Timeout, DNS, Connection refused, v.v.)
     except httpx.RequestError as e:
-        print(f"DEBUG: Lỗi kết nối/Timeout: {type(e).__name__} - {str(e)}")
+        # print(f"DEBUG: Lỗi kết nối/Timeout: {type(e).__name__} - {str(e)}")
         return {
             "success": False,
             "error_code": "CONNECTION_ERROR",
@@ -79,7 +79,7 @@ async def calculate_osrm_distance(lat_origin: float, lon_origin: float, lat_dest
             "http_status": 503
         }
     except Exception as e:
-        print(f"DEBUG: Lỗi nội bộ: {type(e).__name__} - {str(e)}")
+        # print(f"DEBUG: Lỗi nội bộ: {type(e).__name__} - {str(e)}")
         return {
             "success": False,
             "error_code": "INTERNAL_SERVER_ERROR",
