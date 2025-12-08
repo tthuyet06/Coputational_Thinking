@@ -90,7 +90,7 @@ def _recommend_core(db: Session, user: DomainUser, criteria: RecommendationCrite
     if not places:
         print(f"Place is None❌")
         return scored
-    print(f"Place success✅")
+    print(f"[{len(places)}] Place success✅")
 
     # 1. Loại cứng theo Activity
     places = _filter_by_activity(places, criteria.activities)
@@ -98,7 +98,7 @@ def _recommend_core(db: Session, user: DomainUser, criteria: RecommendationCrite
     if not places:
         print(f"activities failed❌")
         return scored
-    print(f"activities success✅")
+    print(f"[{len(places)}] activities success✅")
 
     # 2. Loại cứng theo Hobby
     places = _filter_by_hobby(places, criteria.extra_tags)
@@ -106,7 +106,7 @@ def _recommend_core(db: Session, user: DomainUser, criteria: RecommendationCrite
     if not places:
         print(f"hobbies failed❌")
         return scored
-    print(f"hobbies success✅")
+    print(f"[{len(places)}] hobbies success✅")
 
     # 3. Lọc theo thời tiết
     places = _filter_by_weather(criteria, places)
@@ -114,7 +114,7 @@ def _recommend_core(db: Session, user: DomainUser, criteria: RecommendationCrite
     if not places:
         print(f"weather failed❌")
         return scored
-    print(f"weather success✅")
+    print(f"[{len(places)}] weather success✅")
 
     # 4. Lọc khi user không chọn activity
     if not criteria.activities:
@@ -123,12 +123,12 @@ def _recommend_core(db: Session, user: DomainUser, criteria: RecommendationCrite
         if not places:
             print(f"Time of day failed❌")
             return scored
-        print(f"Time of day success✅")
+        print(f"[{len(places)}] Time of day success✅")
         places = _filter_out_current_location(db, criteria, places)
         if not places:
             print(f"Current Location failed❌")
             return scored
-        print(f"Current Location✅")
+        print(f"[{len(places)}] Current Location✅")
     else:
         print(f"Have activities")
 
@@ -139,7 +139,7 @@ def _recommend_core(db: Session, user: DomainUser, criteria: RecommendationCrite
         print(f"Opening Time failed❌")
         return scored
 
-    print(f"Opening Time success✅")
+    print(f"[{len(places)}] Opening Time success✅")
 
     # 6. Loại cứng theo khoảng cách tối đa tùy vào duration_tag
     places = _filter_by_gps(places, criteria.location, criteria.duration_tag)
@@ -147,7 +147,7 @@ def _recommend_core(db: Session, user: DomainUser, criteria: RecommendationCrite
     if not places:
         print(f"distance failed❌")
         return scored
-    print(f"distance success✅")
+    print(f"[{len(places)}] distance success✅")
 
     if len(places) == 1:
         scored.append((_score_place(places[0], criteria, db, user), 0.0, places[0]))
@@ -161,7 +161,7 @@ def _recommend_core(db: Session, user: DomainUser, criteria: RecommendationCrite
         total_score = _score_place(place, criteria, db, user)
         scored.append((total_score, distance, place))
 
-    print(f"Counting Score success✅")
+    print(f"[{len(places)}] Counting Score success✅")
     # Sắp xếp giảm dần theo điểm
     scored.sort(key=lambda x: x[0], reverse=True)
 
