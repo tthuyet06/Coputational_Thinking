@@ -209,6 +209,8 @@ def list_favorites(db: Session, user: models.User) -> List[Dict[str, Any]]:
                 "overview": getattr(domain_place, "overview", "") or getattr(domain_place, "description", "") or "",
                 "summarization": getattr(domain_place, "summarization", "") or "", #thieu truong
                 "tags": domain_place.tags,
+                "rating": domain_place.rating,
+                 "open": domain_place.open,
             }
         )
 

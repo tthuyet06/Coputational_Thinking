@@ -1,0 +1,37 @@
+.page-back-btn {
+  position: absolute;
+  top: 90px;
+  left: 40px;
+
+  width: 48px;
+  height: 48px;
+  border-radius: 999px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  background: rgba(255, 255, 255, 0.22);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+
+  color: #111;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.page-back-btn:hover {
+  background: rgba(255, 255, 255, 0.35);
+  transform: translateY(-1px);
+}
+
+.page-back-btn:active {
+  transform: translateY(1px) scale(0.97);
+}
+
+.page-back-btn svg {
+  stroke: #111;
+}
