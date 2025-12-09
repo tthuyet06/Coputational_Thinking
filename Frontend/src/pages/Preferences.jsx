@@ -24,20 +24,14 @@ export default function Preferences() {
       try {
         setTagsLoading(true);
         setTagsError("");
-  
+
         const [options, myHobbies] = await Promise.all([
-          preferenceAPI.getHobbyTags(), // [{id,label,value,raw}, ...]
-          preferenceAPI.getMyHobbies(), // ["#vintage", "#modern", ...]
+          preferenceAPI.getHobbyTags(),
+          preferenceAPI.getMyHobbies(),
         ]);
-  
+
         setAllHobbies(options);
-  
-        // map list string -> list object theo options
-        const mappedSelected = Array.isArray(myHobbies)
-          ? options.filter((opt) => myHobbies.includes(opt.value))
-          : [];
-  
-        setSelectedHobbies(mappedSelected);
+        setSelectedHobbies(myHobbies);
       } catch (err) {
         setTagsError(
           typeof err === "string"
@@ -48,9 +42,8 @@ export default function Preferences() {
         setTagsLoading(false);
       }
     };
-  
     load();
-  }, []);  
+  }, []);
 
   const handleNext = async () => {
     setError("");
@@ -97,6 +90,7 @@ export default function Preferences() {
 
         {tagsLoading && <p>Loading hobbies...</p>}
         {tagsError && <p className="text-red-500 text-sm">{tagsError}</p>}
+
         {!tagsLoading && !tagsError && (
           <div className="tag-wrapper">
             <div className="tag-header">
