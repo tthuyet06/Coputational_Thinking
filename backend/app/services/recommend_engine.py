@@ -212,30 +212,30 @@ def _filter_by_weather(criteria: RecommendationCriteria, places: list[DomainPlac
     return places
 
 UNSAFE_BY_TIME_TAG = {
-    # Sáng: Cấm các vibe/không gian quá tĩnh lặng hoặc quá sôi động/chỉ dành cho buổi tối
+    # Sáng (#morning): Outdoor được đề xuất. Cấm các vibe quá tĩnh lặng, lãng mạn, kịch tính, VÀ không gian trong nhà.
     "#morning": {
-        "#quiet",  # Thường không phù hợp với nhu cầu năng động buổi sáng
-        "#romantic",  # Vibe thường dành cho buổi tối
-        "#late_night",  # (Nếu có tag này)
-        "#dramatic",  # Vibe quá mạnh
-        "#sunset"  # Không phù hợp với thời điểm
+        "#quiet",      # Quá tĩnh lặng
+        "#romantic",   # Vibe thường dành cho buổi tối
+        "#dramatic",    # Vibe quá mạnh
+        "#indoor"      # Hạn chế không gian trong nhà (vì ưu tiên Outdoor)
     },
 
-    # Trưa/Chiều: Cấm các vibe quá lãng mạn hoặc liên quan đến tối/ngoài trời nắng gắt
+    # Trưa/Chiều (#noon): Cấm các Không gian/Vibe không phù hợp với nhu cầu nhanh chóng hoặc tránh nắng.
     "#noon": {
-        "#rooftop",  # Tránh nắng gắt buổi trưa
-        "#romantic",
-        "#dreamy",
-        "#quiet",  # Nếu đang cần các địa điểm cho bữa ăn trưa nhanh
-        "#luxury"  # Tránh các địa điểm yêu cầu thời gian dài và sang trọng
+        "#rooftop",    # Tránh nắng gắt buổi trưa
+        "#romantic",   # Vibe quá lãng mạn
+        "#dreamy",     # Vibe thường hợp với tối/chiều muộn
+        "#quiet",      # Không phù hợp nếu cần địa điểm ăn trưa/làm việc năng động
+        "#luxury"      # Tránh các địa điểm yêu cầu thời gian dài và sang trọng
     },
 
-    # Tối: Cấm các không gian/vibe quá sáng, ồn ào hoặc quá mộc mạc không phù hợp đi chơi đêm
+    # Tối (#night): Cấm các Không gian/Vibe quá mộc mạc/vắng vẻ, không phù hợp đi chơi đêm.
     "#night": {
-        "#outdoor",  # Có thể không an toàn/tiện lợi (Trừ #rooftop)
-        "#natural",  # Vắng vẻ, không phù hợp đi chơi tối
-        "#free_spirited",
-        "#rustic",  # Vibe quá mộc mạc
+        "#cafe",           # Uống cafe tối có thể ảnh hưởng sức khỏe(không khuyến khích)
+        "#outdoor",        # Có thể không an toàn/tiện lợi (Trừ #rooftop)
+        "#natural",        # Vắng vẻ, không phù hợp đi chơi tối
+        "#free_spirited",  # Có thể dẫn đến nơi vắng vẻ/không an toàn
+        "#rustic"          # Vibe quá mộc mạc/thiếu ánh sáng
     }
 }
 
