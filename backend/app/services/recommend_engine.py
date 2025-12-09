@@ -45,7 +45,7 @@ from datetime import time
 user_repo = UserRepository()
 place_repo = PlaceRepository()
 fav_repo = FavoriteRepository()
-
+tag_repo = TagRepositoryImpl()
 @dataclass
 class JSON_DATA:
     place: DomainPlace
