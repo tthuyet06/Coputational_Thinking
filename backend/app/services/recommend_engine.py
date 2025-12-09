@@ -85,7 +85,7 @@ def get_recommendations(
 def _recommend_core(db: Session, user: DomainUser, criteria: RecommendationCriteria) -> RecommendationResult:
     all_places: List[DomainPlace] = place_repo.get_all_as_domain(db)
     places = [p for p in all_places if p.lat is not None and p.lon is not None]
-
+    print(f"[Recommend] Found {len(places)} places with valid coordinates." )
     if not places:
         return RecommendationResult(places=[])
     print(f"[Recommend] Starting recommendation with {len(places)} places." )
@@ -468,6 +468,9 @@ def _to_api_dict(jason_data: JSON_DATA) -> dict:
         "Favorite": is_fav,
         "id": place.id,
         "name": place.name,
+        # "link_address": place.link_address,
+        # "latitude": place.lat,
+        # "longitude": place.lon,
         "address": place.address or "",
         "overview":place.overview or "",
         "image": place.image or "",

@@ -107,7 +107,7 @@ def test_db_driven_recommendation():
             print(f"  Distance: {distance:.2f} km 🧭")
             print(f"  Tên: {place.name} 🏠")
             print(f"  ID: {place.id} 🆔")
-            print(f"  Rating: {place.rating}/5.0 ⭐")
+            print(f"  Rating: {place.rating}/5 ⭐")
             print(f"  Tags: {place.tags} 🏷️")
             print(f"  Opening: {place.open}")
             print(f"  Địa chỉ: {place.address} 📍")

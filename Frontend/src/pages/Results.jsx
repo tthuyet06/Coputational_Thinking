@@ -212,7 +212,6 @@ export default function Results() {
          </>
       );
    }
-
    return (
       <>
          <Navbar />
