@@ -1,4 +1,3 @@
-import time
 from typing import List, Dict, Any
 from sqlalchemy.orm import Session
 
@@ -33,6 +32,7 @@ from backend.app.repositories import (
     UserRepository,
     PlaceRepository,
     ActivityRepository,
+    TagRepositoryImpl,
     FavoriteRepository
 )
 
@@ -40,9 +40,11 @@ from backend.app.services.weather_service import get_main_weather
 from backend.app.services.place_service import _is_time_in_range, is_open_at
 from backend.app.services.distance_service import  get_distance_sync
 from backend.app.utils.time_utils import get_current_datetime, from_decimal_hours, sum_of_time, combine_date_time
+from datetime import time
 
 user_repo = UserRepository()
 place_repo = PlaceRepository()
+tag_repo = TagRepositoryImpl()
 fav_repo = FavoriteRepository()
 
 @dataclass
@@ -264,20 +266,24 @@ UNSAFE_BY_TIME_TAG = {
 }
 
 def _filter_by_time_of_day(places: list[DomainPlace]):
-
-    def time_to_tag(time_t: time) -> str:
-        """hour: 0–23
-        Return: "morning" | "noon" | "night"""
-        if _is_time_in_range(time_t, time(5, 0), time(11, 0, 0)):
+    def _time_to_tag(time_t: time) -> str:
+        """
+        Xác định tag thời điểm: #morning (5h-11h) | #noon (11h-17h) | #night (17h-5h)
+        """
+        # Sử dụng time(h, m, s) từ thư viện datetime
+        if _is_time_in_range(time_t, from_decimal_hours(5), from_decimal_hours(11)):
             return "#morning"
-        elif _is_time_in_range(time_t, time(11, 0, 0), time(17, 0, 0)):
+        elif _is_time_in_range(time_t, from_decimal_hours(11), from_decimal_hours(17)):
             return "#noon"
         else:
             return "#night"
 
-    current_hours = get_current_datetime().time()
-    time_tag = time_to_tag(current_hours)
-    unsafe_tags = UNSAFE_BY_TIME_TAG.get(time_tag)
+    current_time_obj = get_current_datetime().time()
+    time_tag = _time_to_tag(current_time_obj)
+    unsafe_tags = UNSAFE_BY_TIME_TAG.get(time_tag, set())
+
+    if not unsafe_tags:
+        return places
 
     return [
         p for p in places
