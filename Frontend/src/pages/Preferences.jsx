@@ -3,15 +3,15 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../components/layouts/Navbar";
 import TagSelector from "../components/common/TagSelector";
-import ClearAllButton from "../components/common/ClearAllButton";
+import ClearAllButton from "../components/common/ClearAllButton";  
 import "../styles/Preferences.css";
 import preferenceAPI from "../services/preferenceAPI";
 
 export default function Preferences() {
   const navigate = useNavigate();
 
-  const [allHobbies, setAllHobbies] = useState([]);          // [{id,label,value,raw}, ...]
-  const [selectedHobbies, setSelectedHobbies] = useState([]); // luôn cố gắng giữ dạng object cùng format với allHobbies
+  const [allHobbies, setAllHobbies] = useState([]);
+  const [selectedHobbies, setSelectedHobbies] = useState([]);
 
   const [tagsLoading, setTagsLoading] = useState(true);
   const [tagsError, setTagsError] = useState("");
@@ -24,20 +24,14 @@ export default function Preferences() {
       try {
         setTagsLoading(true);
         setTagsError("");
-  
+
         const [options, myHobbies] = await Promise.all([
-          preferenceAPI.getHobbyTags(), // [{id,label,value,raw}, ...]
-          preferenceAPI.getMyHobbies(), // ["#vintage", "#modern", ...]
+          preferenceAPI.getHobbyTags(),
+          preferenceAPI.getMyHobbies(),
         ]);
-  
+
         setAllHobbies(options);
-  
-        // map list string -> list object theo options
-        const mappedSelected = Array.isArray(myHobbies)
-          ? options.filter((opt) => myHobbies.includes(opt.value))
-          : [];
-  
-        setSelectedHobbies(mappedSelected);
+        setSelectedHobbies(myHobbies);
       } catch (err) {
         setTagsError(
           typeof err === "string"
@@ -48,9 +42,8 @@ export default function Preferences() {
         setTagsLoading(false);
       }
     };
-  
     load();
-  }, []);  
+  }, []);
 
   const handleNext = async () => {
     setError("");
@@ -97,6 +90,7 @@ export default function Preferences() {
 
         {tagsLoading && <p>Loading hobbies...</p>}
         {tagsError && <p className="text-red-500 text-sm">{tagsError}</p>}
+
         {!tagsLoading && !tagsError && (
           <div className="tag-wrapper">
             <div className="tag-header">
