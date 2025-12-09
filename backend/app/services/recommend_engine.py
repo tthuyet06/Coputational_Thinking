@@ -44,7 +44,6 @@ from datetime import time
 
 user_repo = UserRepository()
 place_repo = PlaceRepository()
-tag_repo = TagRepositoryImpl()
 fav_repo = FavoriteRepository()
 
 @dataclass
@@ -198,6 +197,7 @@ def _filter_by_gps(places: list[DomainPlace], loc: Location, duration_tag: str):
         return places
 
     out = []
+
     for p in places:
         d = get_distance_sync(loc.latitude, loc.longitude, p.lat, p.lon)
         if d <= max_distance_by_duration:
@@ -455,6 +455,9 @@ def _to_api_dict(jason_data: JSON_DATA) -> dict:
         "Favorite": is_fav,
         "id": place.id,
         "name": place.name,
+        # "link_address": place.link_address,
+        # "latitude": place.lat,
+        # "longitude": place.lon,
         "address": place.address or "",
         "overview":place.overview or "",
         "image": place.image or "",

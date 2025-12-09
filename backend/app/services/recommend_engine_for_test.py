@@ -44,7 +44,6 @@ from datetime import time
 
 user_repo = UserRepository()
 place_repo = PlaceRepository()
-tag_repo = TagRepositoryImpl()
 fav_repo = FavoriteRepository()
 
 @dataclass

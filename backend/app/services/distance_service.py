@@ -6,6 +6,7 @@ from typing import Dict, Any
 from backend.app.core.config import OSRM_API_URL
 from backend.app.utils.geo_utils import haversine_distance
 
+from backend.app.utils.geo_utils import haversine_distance
 
 # Hàm Bất Đồng Bộ (ASYNC) được giữ nguyên vì nó sử dụng httpx.AsyncClient
 async def calculate_osrm_distance(lat_origin: float, lon_origin: float, lat_dest: float, lon_dest: float):
@@ -31,7 +32,6 @@ async def calculate_osrm_distance(lat_origin: float, lon_origin: float, lat_dest
             }
 
         data = response.json()
-
         if data.get("code") != "Ok":
             return {
                 "success": False,
