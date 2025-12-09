@@ -136,4 +136,4 @@ def get_distance_sync(lat_origin: float, lon_origin: float, lat_dest: float, lon
         # Bất kỳ lỗi nào trong quá trình truy cập key hay trích xuất đều bị bỏ qua.
         pass
 
-    return haversine_distance(lat_origin, lon_origin, lat_dest, lon_dest) * 0.8
+    return haversine_distance(lat_origin, lon_origin, lat_dest, lon_dest) * 1.2

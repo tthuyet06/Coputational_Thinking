@@ -56,6 +56,7 @@ def get_recommendations(
     longitude: float,
     duration_tag: str | None,
     activities: List[str],
+    hobbies: List[str],
     user: models.User,
 ) -> List[dict]:
 
@@ -65,7 +66,7 @@ def get_recommendations(
         location=Location(latitude=latitude, longitude=longitude),
         duration_tag=duration_tag,
         activities=activities,
-        extra_tags=domain_user.hobbies,
+        extra_tags=hobbies,
     )
 
     result: RecommendationResult = _recommend_core(db, domain_user, criteria)
@@ -145,7 +146,7 @@ def _recommend_core(db: Session, user: DomainUser, criteria: RecommendationCrite
         user.update_history(p.id)
 
     # Lưu lịch sử vào db
-    user.save(db, user)
+    user_repo.save(db, user)
 
     return RecommendationResult(places=top_places)
 
@@ -189,7 +190,6 @@ def _filter_by_gps(places: list[DomainPlace], loc: Location, duration_tag: str):
         return places
 
     out = []
-
     for p in places:
         d = get_distance_sync(loc.latitude, loc.longitude, p.lat, p.lon)
         if d <= max_distance_by_duration:
@@ -213,28 +213,30 @@ def _filter_by_weather(criteria: RecommendationCriteria, places: list[DomainPlac
     return places
 
 UNSAFE_BY_TIME_TAG = {
-    # 1. Sáng: Cấm nơi quá tĩnh lặng, ít người. (Yêu cầu sự năng động, sôi nổi)
+    # Sáng (#morning): Outdoor được đề xuất. Cấm các vibe quá tĩnh lặng, lãng mạn, kịch tính, VÀ không gian trong nhà.
     "#morning": {
-        "#quiet",      # Quá tĩnh lặng (A calm place with low noise).
-        "#dreamy",     # Vibe mơ màng, tĩnh lặng (Soft, whimsical, and magical feeling).
-        "#romantic",   # Thường ưu tiên sự riêng tư/ít người (Warm and lovely atmosphere).
+        "#quiet",      # Quá tĩnh lặng
+        "#romantic",   # Vibe thường dành cho buổi tối
+        "#dramatic",    # Vibe quá mạnh
+        "#indoor"      # Cấm không gian trong nhà (vì ưu tiên Outdoor)
     },
 
-    # 2. Trưa: Cấm nơi quá lãng mạn, ấm cúng, ồn ào. (Yêu cầu sự cân bằng, nhanh gọn)
+    # Trưa/Chiều (#noon): Cấm các Không gian/Vibe không phù hợp với nhu cầu nhanh chóng hoặc tránh nắng.
     "#noon": {
-        "#romantic",   # Quá lãng mạn (Warm and lovely atmosphere).
-        "#cozy",       # Quá ấm cúng, phù hợp buổi tối hơn (Warm and comfortable place).
-        "#vibrant",    # Quá ồn ào, sôi động quá mức (A lively and energetic atmosphere).
-        "#dramatic",   # Quá mạnh mẽ, căng thẳng (Bold, striking, and intense atmosphere).
-        "#youthful"    # Vibe trẻ trung, vui nhộn, dễ gây ồn ào (Fresh, fun, and playful vibe).
+        "#rooftop",    # Tránh nắng gắt buổi trưa
+        "#romantic",   # Vibe quá lãng mạn
+        "#dreamy",     # Vibe thường hợp với tối/chiều muộn
+        "#quiet",      # Không phù hợp nếu cần địa điểm ăn trưa/làm việc năng động
+        "#luxury"      # Tránh các địa điểm yêu cầu thời gian dài và sang trọng
     },
 
-    # 3. Tối: Cấm nơi vắng vẻ. (Yêu cầu sự an toàn, đông đúc)
+    # Tối (#night): Cấm các Không gian/Vibe quá mộc mạc/vắng vẻ, không phù hợp đi chơi đêm.
     "#night": {
-        "#outdoor",  # Có thể không an toàn/tiện lợi (Trừ #rooftop)
-        "#natural",  # Vắng vẻ, không phù hợp đi chơi tối
-        "#free_spirited",
-        "#rustic",  # Vibe quá mộc mạc
+        "#cafe",           # Cafe đêm ảnh hưởng sức khỏe
+        "#outdoor",        # Có thể không an toàn/tiện lợi (Trừ #rooftop)
+        "#natural",        # Vắng vẻ, không phù hợp đi chơi tối
+        "#free_spirited",  # Có thể dẫn đến nơi vắng vẻ/không an toàn
+        "#rustic"          # Vibe quá mộc mạc/thiếu ánh sáng
     }
 }
 
@@ -441,9 +443,6 @@ def _to_api_dict(jason_data: JSON_DATA) -> dict:
         "Favorite": is_fav,
         "id": place.id,
         "name": place.name,
-        # "link_address": place.link_address,
-        # "latitude": place.lat,
-        # "longitude": place.lon,
         "address": place.address or "",
         "overview":place.overview or "",
         "image": place.image or "",
