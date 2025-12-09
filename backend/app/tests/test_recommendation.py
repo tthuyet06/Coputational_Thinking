@@ -83,7 +83,7 @@ def test_db_driven_recommendation():
         user_location = MockLocation(latitude=10.7750, longitude=106.6950)
         mock_criteria = MockCriteria(
             location=user_location,
-            duration_tag="#few_hours",
+            duration_tag="#long_time",
             activities=[],
             extra_tags=["#chill", "#outdoor"]
         )

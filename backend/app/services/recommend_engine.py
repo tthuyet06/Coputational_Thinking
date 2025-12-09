@@ -39,11 +39,13 @@ from backend.app.repositories import (
 from backend.app.services.weather_service import get_main_weather
 from backend.app.services.place_service import _is_time_in_range, is_open_at
 from backend.app.services.distance_service import  get_distance_sync
+from backend.app.utils.geo_utils import  haversine_distance
 from backend.app.utils.time_utils import get_current_datetime, from_decimal_hours, sum_of_time, combine_date_time
 from datetime import time
 
 user_repo = UserRepository()
 place_repo = PlaceRepository()
+tag_repo = TagRepositoryImpl()
 fav_repo = FavoriteRepository()
 
 @dataclass
@@ -56,10 +58,14 @@ def get_recommendations(
     latitude: float,
     longitude: float,
     duration_tag: str | None,
-    activities: List[str],
-    hobbies: List[str],
+    activities: List[str] | None,
+    hobbies: List[str] | None,
     user: models.User,
 ) -> List[dict]:
+
+    # đảm bảo luôn là list
+    activities = activities or []
+    hobbies = hobbies or []
 
     domain_user = user_repo.to_domain(user)
 
@@ -72,11 +78,11 @@ def get_recommendations(
 
     result: RecommendationResult = _recommend_core(db, domain_user, criteria)
 
-    json_datas = []
+    json_datas: List[JSON_DATA] = []
 
     for p in result.places:
-        if fav_repo.is_favorite(db, domain_user.id, p.id):
-            json_datas.append(JSON_DATA(place=p, is_fav=True))
+        is_fav = fav_repo.is_favorite(db, domain_user.id, p.id)
+        json_datas.append(JSON_DATA(place=p, is_fav=is_fav))
 
     return [_to_api_dict(jt) for jt in json_datas]
 
@@ -196,12 +202,23 @@ def _filter_by_gps(places: list[DomainPlace], loc: Location, duration_tag: str):
     if max_distance_by_duration is None:
         return places
 
-    out = []
+    # 1. Lọc sơ bộ bằng Haversine distance
+    haversine_filtered_places = []
+
+    HA_MAX_DISTANCE = max_distance_by_duration * 1.2  # Ví dụ: tăng 20% ngưỡng
 
     for p in places:
+        d_ha = haversine_distance(loc.latitude, loc.longitude, p.lat, p.lon)
+
+        if d_ha <= HA_MAX_DISTANCE:
+            haversine_filtered_places.append(p)
+
+    out = []
+    for p in haversine_filtered_places:
         d = get_distance_sync(loc.latitude, loc.longitude, p.lat, p.lon)
         if d <= max_distance_by_duration:
             out.append(p)
+
     return out
 
 EXTREME_WEATHER_TAGS = {"#rain", "#storm", "#snow", "#misty", "#extreme"}
