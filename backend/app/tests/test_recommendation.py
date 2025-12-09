@@ -44,6 +44,7 @@ class MockLocation:
     latitude: float
     longitude: float
 
+
 @dataclass
 class MockUser:
     id: int
@@ -90,7 +91,7 @@ def test_db_driven_recommendation():
         mock_user = MockUser(id=1, hobbies=mock_criteria.extra_tags)
 
         # GỌI HÀM TÍNH
-        scored_places = _recommend_core(db, mock_user, mock_criteria, 2)
+        scored_places = _recommend_core(db, mock_user, mock_criteria, 4)
         # scored_places = _recommend_core(db, mock_user, mock_criteria)
 
         if not scored_places:

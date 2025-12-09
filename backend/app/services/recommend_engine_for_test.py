@@ -56,6 +56,7 @@ def get_recommendations(
     longitude: float,
     duration_tag: str | None,
     activities: List[str],
+    hobbies: List[str],
     user: models.User,
 ) -> List[dict]:
 
@@ -65,7 +66,7 @@ def get_recommendations(
         location=Location(latitude=latitude, longitude=longitude),
         duration_tag=duration_tag,
         activities=activities,
-        extra_tags=domain_user.hobbies,
+        extra_tags=hobbies,
     )
 
     result: RecommendationResult = _recommend_core(db, domain_user, criteria)
