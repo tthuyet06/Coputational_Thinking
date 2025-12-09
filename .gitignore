@@ -44,3 +44,5 @@ backend/app/utils/__pycache__/*
 backend/app/__pycache__/*
 .idea/*
 *.pyc
+
+Frontend/package-lock.json

@@ -1,16 +1,17 @@
 // src/components/common/PlaceCard.jsx
-import React from "react";
+//import React from "react";
 import { useNavigate } from "react-router-dom";
 import { DirectionButton, FavoriteButton } from "./ActionButtons";
 
 const DEFAULT_IMAGE =
   "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=800&q=80";
 
-export default function PlaceCard({ place, onToggleFav }) {
+export default function PlaceCard({ place, onToggleFav, startCoords }) {
   const navigate = useNavigate();
+  console.log(`🔍 [PlaceCard] Card "${place.title}" received startCoords:`, startCoords);
 
   const goToDetail = () => {
-    navigate(`/details/${place.id}`, { state: { place } });
+    navigate(`/details/${place.id}`, { state: { place: place, startCoords: startCoords }  });
   };
 
   const imageSrc = place.image || place.image_url || DEFAULT_IMAGE;
@@ -27,7 +28,7 @@ export default function PlaceCard({ place, onToggleFav }) {
           <h3 className="result-title">{title}</h3>
 
           <div className="result-actions">
-            <DirectionButton place={place} />
+            <DirectionButton place={place} startCoords={startCoords}/>
             <FavoriteButton
               placeId={place.id}
               isFav={!!place.fav}
