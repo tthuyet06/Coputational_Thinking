@@ -12,7 +12,7 @@ from backend.app.core.dependencies import get_current_user
 
 router = APIRouter(prefix="/recommend", tags=["recommend"])
 
-@router.post("",
+@router.post("/",
              response_model=RecommendationResponse,
              responses={404: {"model": RecommendationErrorResponse}},
              status_code=status.HTTP_200_OK)
