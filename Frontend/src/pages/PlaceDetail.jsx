@@ -14,7 +14,11 @@ export default function PlaceDetail() {
   const location = useLocation();
   const navigate = useNavigate();
 
+  // 🆕 1. Lấy startCoords từ state được gửi sang
   const data = location.state?.place;
+  const startCoords = location.state?.startCoords; 
+
+  console.log("📍 [Detail] Received startCoords:", startCoords);
 
   if (!data) {
     navigate("/results");
@@ -46,26 +50,15 @@ export default function PlaceDetail() {
         : data.rating != null
         ? Number(data.rating)
         : null,
-  
-    // ⭐ ƯU TIÊN openingHours nếu đã được map sẵn từ Profile/Results
     openingHours:
       data.openingHours || data.opening_hours || data.open || "N/A",
-  
     fav: !!data.fav,
   };  
-
-  console.log("🕒 opening in DETAIL:", {
-    openingHours: data.openingHours,
-    open: data.open,
-    opening_hours: data.opening_hours,
-  });
-  
 
   const [fav, setFav] = useState(place.fav);
 
   const renderStars = (rating) => {
     const isValid = typeof rating === "number" && !Number.isNaN(rating);
-
     return (
       <span
         style={{
@@ -78,13 +71,7 @@ export default function PlaceDetail() {
       >
         <span style={{ color: "#fbbf24", fontSize: "1.2rem" }}>★</span>
         <span>{isValid ? rating.toFixed(1) : "N/A"}</span>
-        <span
-          style={{
-            fontSize: "0.85rem",
-            color: "#888",
-            fontWeight: "normal",
-          }}
-        >
+        <span style={{ fontSize: "0.85rem", color: "#888", fontWeight: "normal" }}>
           / 5.0
         </span>
       </span>
@@ -94,12 +81,10 @@ export default function PlaceDetail() {
   return (
     <>
       <Navbar />
-      {/* Nút back global, đồng bộ với các trang khác */}
-      <BackButton to="/results" />
+      <BackButton to={-1} />
 
       <main className="detail-wrap">
         <div className="detail-hero">
-          {/* Chỉ còn hình, bỏ mũi tên dư */}
           <img src={place.image} alt={place.title} />
         </div>
 
@@ -108,7 +93,9 @@ export default function PlaceDetail() {
             <h1 className="detail-title">{place.title}</h1>
 
             <div className="detail-actions">
-              <DirectionButton place={place} />
+              {/* 🆕 2. Truyền startCoords vào nút DirectionButton */}
+              <DirectionButton place={place} startCoords={startCoords} />
+              
               <FavoriteButton
                 placeId={place.id}
                 isFav={fav}
@@ -120,8 +107,6 @@ export default function PlaceDetail() {
           <p className="detail-desc">{place.description}</p>
 
           <dl className="detail-meta">
-            
-            {/* 2️⃣ BƯỚC 2: THÊM DÒNG HIỂN THỊ RATING TẠI ĐÂY */}
             <div className="meta-row">
               <dt>Rating:</dt>
               <dd>{renderStars(place.rating)}</dd>
@@ -146,7 +131,6 @@ export default function PlaceDetail() {
               <dt>Opening Hours:</dt>
               <dd>{place.openingHours || "N/A"}</dd>
             </div>
-
           </dl>
         </article>
       </main>

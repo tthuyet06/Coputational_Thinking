@@ -52,7 +52,7 @@ class User:
 
         return 0
 
-    def save(self, db: Session, domain_user: User) -> User:
+    #def save(self, db: Session, domain_user: User) -> User:
         """
         Lưu User và tự động đồng bộ History.
         """
