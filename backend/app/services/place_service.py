@@ -151,4 +151,3 @@ def is_open_now(
     if now is None:
         now = datetime.now()
     return is_open_at(weekly_ranges, now)
-
