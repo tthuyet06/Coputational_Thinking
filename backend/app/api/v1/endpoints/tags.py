@@ -33,7 +33,6 @@ def get_activities_list(db: Session = Depends(get_db)):
     results = tag_service.list_activity_tags(db)
     return {"activities": results}
 
-
 @router.get("/durations", response_model=DurationTagResponse, summary="Danh sách tag thời lượng")
 def get_duration_tags():
     """

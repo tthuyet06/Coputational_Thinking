@@ -51,7 +51,7 @@ export default function Home() {
     );
 
     // gửi state cho Results để show loading screen
-    navigate("/results", { state: { showLoading: true } });
+    navigate("/location-picker", { state: { showLoading: true } });
   };
 
   return (

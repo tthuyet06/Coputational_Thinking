@@ -12,6 +12,7 @@ import Results from "./pages/Results.jsx";
 import PlaceDetail from "./pages/PlaceDetail.jsx";
 import ProfilePage from "./pages/Profile.jsx";
 import Activities from "./pages/Activities.jsx";
+import LocationPicker from "./pages/LocationPicker"; 
 
 export default function App() {
   return (
@@ -28,6 +29,7 @@ export default function App() {
           <Route path="/preferences" element={<Preferences />} />
           <Route path="/results" element={<Results />} />
           <Route path="/details/:id" element={<PlaceDetail />} />
+          <Route path="/location-picker" element={<LocationPicker />} />
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/activities" element={<Activities />} />
         {/*</Route>*/}

@@ -1,3 +1,4 @@
+
 import httpx  # Thay thế requests
 import re
 import asyncio
@@ -33,7 +34,6 @@ async def calculate_osrm_distance(lat_origin: float, lon_origin: float, lat_dest
             }
 
         data = response.json()
-
         if data.get("code") != "Ok":
             print("DEBUG: Lỗi OSRM: ROUTE_NOT_FOUND")
             return {
@@ -45,7 +45,6 @@ async def calculate_osrm_distance(lat_origin: float, lon_origin: float, lat_dest
 
         # Lấy route đầu tiên (tốt nhất)
         route = data["routes"][0]
-
         distance_meters = route["distance"]
         duration_seconds = route["duration"]
         distance_km = distance_meters / 1000
