@@ -1,4 +1,3 @@
-import time
 from typing import List, Dict, Any
 from sqlalchemy.orm import Session
 
@@ -33,6 +32,7 @@ from backend.app.repositories import (
     UserRepository,
     PlaceRepository,
     ActivityRepository,
+    TagRepositoryImpl,
     FavoriteRepository
 )
 
@@ -40,6 +40,7 @@ from backend.app.services.weather_service import get_main_weather
 from backend.app.services.place_service import _is_time_in_range, is_open_at
 from backend.app.services.distance_service import  get_distance_sync
 from backend.app.utils.time_utils import get_current_datetime, from_decimal_hours, sum_of_time, combine_date_time
+from datetime import time
 
 user_repo = UserRepository()
 place_repo = PlaceRepository()
@@ -56,6 +57,7 @@ def get_recommendations(
     longitude: float,
     duration_tag: str | None,
     activities: List[str],
+    hobbies: List[str],
     user: models.User,
 ) -> List[dict]:
 
@@ -65,7 +67,7 @@ def get_recommendations(
         location=Location(latitude=latitude, longitude=longitude),
         duration_tag=duration_tag,
         activities=activities,
-        extra_tags=domain_user.hobbies,
+        extra_tags=hobbies,
     )
 
     result: RecommendationResult = _recommend_core(db, domain_user, criteria)
@@ -81,72 +83,78 @@ def get_recommendations(
 def _recommend_core(db: Session, user: DomainUser, criteria: RecommendationCriteria) -> RecommendationResult:
     all_places: List[DomainPlace] = place_repo.get_all_as_domain(db)
     places = [p for p in all_places if p.lat is not None and p.lon is not None]
-
+    print(f"[Recommend] Found {len(places)} places with valid coordinates." )
     if not places:
         return RecommendationResult(places=[])
-
+    print(f"[Recommend] Starting recommendation with {len(places)} places." )
     # 1. Loại cứng theo Activity
     places = _filter_by_activity(places, criteria.activities)
-
+    print(f"[Recommend] After activity filter: {len(places)} places." )
     if not places:
         return RecommendationResult(places=[])
 
     # 2. Loại cứng theo Hobby
     places = _filter_by_hobby(places, criteria.extra_tags)
-
+    print(f"[Recommend] After hobby filter: {len(places)} places." )
     if not places:
         return RecommendationResult(places=[])
 
     # 3. Lọc theo thời tiết
     places = _filter_by_weather(criteria, places)
-
+    print(f"[Recommend] After weather filter: {len(places)} places." )
     if not places:
         return RecommendationResult(places=[])
 
     # 4. Lọc theo thời gian và địa điểm trùng activity đang đứng
+    print(f"[Recommend] Checking time of day and current location filters." )
     if not criteria.activities:
+        print(1)
         places = _filter_by_time_of_day(places)
+        print(f"[Recommend] After time of day filter: {len(places)} places." )
         if not places:
             return RecommendationResult(places=[])
         places = _filter_out_current_location(db, criteria, places)
+        print(f"[Recommend] After current location filter: {len(places)} places." )
         if not places:
             return RecommendationResult(places=[])
-
+    print(f"[Recommend] Proceeding with {len(places)} places after filters." )
     # 6. Loại cứng theo thời gian hoạt động
     places = _filter_by_opening_time(db, places)
-
+    print(f"[Recommend] After opening time filter: {len(places)} places." )
     if not places:
         return RecommendationResult(places=[])
 
     # 3. Loại cứng theo khoảng cách tối đa tùy vào duration_tag
     places = _filter_by_gps(places, criteria.location, criteria.duration_tag)
-
+    print(f"[Recommend] After GPS filter: {len(places)} places." )
     if not places:
         return RecommendationResult(places=[])
 
     if len(places) == 1:
         return RecommendationResult(places=places)
-
+    print(f"[Recommend] Scoring {len(places)} places." )
     # 7. Tính điểm từng địa điểm
     scored: list[tuple[float, DomainPlace]] = []
-
+    print(f"[Recommend] Calculating scores for places." )
     for place in places:
         total_score = _score_place(place, criteria, db, user)
         scored.append((total_score, place))
-
+    print(f"[Recommend] Scoring completed." )
     # Sắp xếp giảm dần theo điểm
     scored.sort(key=lambda x: x[0], reverse=True)
-
+    print(f"[Recommend] Places sorted by score." )
     # Chỉ lấy danh sách place (bỏ điểm)
     top_places = [place for _, place in scored[:2]]
-
+    print(f"[Recommend] Top {len(top_places)} places selected." )
     # Cập nhật history của user
     for p in top_places:
         user.update_history(p.id)
-
+    print(f"[Recommend] User history updated." )
     # Lưu lịch sử vào db
-    user.save(db, user)
-
+    user_repo.save(db, user)
+    print(f"[Recommend] User data saved to database." )
+    for p in top_places:
+        print(f"[Recommend] Recommended Place ID: {p.id}, Name: {p.name}" )
     return RecommendationResult(places=top_places)
 
 def _filter_by_activity(places: list[DomainPlace], activities: List[str]) -> list[DomainPlace]:
@@ -213,46 +221,52 @@ def _filter_by_weather(criteria: RecommendationCriteria, places: list[DomainPlac
     return places
 
 UNSAFE_BY_TIME_TAG = {
-    # 1. Sáng: Cấm nơi quá tĩnh lặng, ít người. (Yêu cầu sự năng động, sôi nổi)
+    # Sáng (#morning): Outdoor được đề xuất. Cấm các vibe quá tĩnh lặng, lãng mạn, kịch tính, VÀ không gian trong nhà.
     "#morning": {
-        "#quiet",      # Quá tĩnh lặng (A calm place with low noise).
-        "#dreamy",     # Vibe mơ màng, tĩnh lặng (Soft, whimsical, and magical feeling).
-        "#romantic",   # Thường ưu tiên sự riêng tư/ít người (Warm and lovely atmosphere).
+        "#quiet",      # Quá tĩnh lặng
+        "#romantic",   # Vibe thường dành cho buổi tối
+        "#dramatic",    # Vibe quá mạnh
+        "#indoor"      # Cấm không gian trong nhà (vì ưu tiên Outdoor)
     },
 
-    # 2. Trưa: Cấm nơi quá lãng mạn, ấm cúng, ồn ào. (Yêu cầu sự cân bằng, nhanh gọn)
+    # Trưa/Chiều (#noon): Cấm các Không gian/Vibe không phù hợp với nhu cầu nhanh chóng hoặc tránh nắng.
     "#noon": {
-        "#romantic",   # Quá lãng mạn (Warm and lovely atmosphere).
-        "#cozy",       # Quá ấm cúng, phù hợp buổi tối hơn (Warm and comfortable place).
-        "#vibrant",    # Quá ồn ào, sôi động quá mức (A lively and energetic atmosphere).
-        "#dramatic",   # Quá mạnh mẽ, căng thẳng (Bold, striking, and intense atmosphere).
-        "#youthful"    # Vibe trẻ trung, vui nhộn, dễ gây ồn ào (Fresh, fun, and playful vibe).
+        "#rooftop",    # Tránh nắng gắt buổi trưa
+        "#romantic",   # Vibe quá lãng mạn
+        "#dreamy",     # Vibe thường hợp với tối/chiều muộn
+        "#quiet",      # Không phù hợp nếu cần địa điểm ăn trưa/làm việc năng động
+        "#luxury"      # Tránh các địa điểm yêu cầu thời gian dài và sang trọng
     },
 
-    # 3. Tối: Cấm nơi vắng vẻ. (Yêu cầu sự an toàn, đông đúc)
+    # Tối (#night): Cấm các Không gian/Vibe quá mộc mạc/vắng vẻ, không phù hợp đi chơi đêm.
     "#night": {
-        "#outdoor",  # Có thể không an toàn/tiện lợi (Trừ #rooftop)
-        "#natural",  # Vắng vẻ, không phù hợp đi chơi tối
-        "#free_spirited",
-        "#rustic",  # Vibe quá mộc mạc
+        "#cafe",           # Cafe đêm ảnh hưởng sức khỏe
+        "#outdoor",        # Có thể không an toàn/tiện lợi (Trừ #rooftop)
+        "#natural",        # Vắng vẻ, không phù hợp đi chơi tối
+        "#free_spirited",  # Có thể dẫn đến nơi vắng vẻ/không an toàn
+        "#rustic"          # Vibe quá mộc mạc/thiếu ánh sáng
     }
 }
 
 def _filter_by_time_of_day(places: list[DomainPlace]):
-
-    def time_to_tag(time_t: time) -> str:
-        """hour: 0–23
-        Return: "morning" | "noon" | "night"""
-        if _is_time_in_range(time_t, time(5, 0), time(11, 0, 0)):
+    def _time_to_tag(time_t: time) -> str:
+        """
+        Xác định tag thời điểm: #morning (5h-11h) | #noon (11h-17h) | #night (17h-5h)
+        """
+        # Sử dụng time(h, m, s) từ thư viện datetime
+        if _is_time_in_range(time_t, from_decimal_hours(5), from_decimal_hours(11)):
             return "#morning"
-        elif _is_time_in_range(time_t, time(11, 0, 0), time(17, 0, 0)):
+        elif _is_time_in_range(time_t, from_decimal_hours(11), from_decimal_hours(17)):
             return "#noon"
         else:
             return "#night"
 
-    current_hours = get_current_datetime().time()
-    time_tag = time_to_tag(current_hours)
-    unsafe_tags = UNSAFE_BY_TIME_TAG.get(time_tag)
+    current_time_obj = get_current_datetime().time()
+    time_tag = _time_to_tag(current_time_obj)
+    unsafe_tags = UNSAFE_BY_TIME_TAG.get(time_tag, set())
+
+    if not unsafe_tags:
+        return places
 
     return [
         p for p in places

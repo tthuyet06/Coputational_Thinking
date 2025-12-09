@@ -24,24 +24,20 @@ export default function Preferences() {
       try {
         setTagsLoading(true);
         setTagsError("");
-
+  
         const [options, myHobbies] = await Promise.all([
           preferenceAPI.getHobbyTags(), // [{id,label,value,raw}, ...]
-          preferenceAPI.getMyHobbies(), // ["#cafe", "#yen_tinh", ...]
+          preferenceAPI.getMyHobbies(), // ["#vintage", "#modern", ...]
         ]);
-
+  
         setAllHobbies(options);
-
-        // Map từ list string myHobbies -> list object tương ứng trong options
-        // để TagSelector nhận đúng format
-        if (Array.isArray(myHobbies) && myHobbies.length > 0) {
-          const mappedSelected = options.filter((opt) =>
-            myHobbies.includes(opt.value)
-          );
-          setSelectedHobbies(mappedSelected);
-        } else {
-          setSelectedHobbies([]);
-        }
+  
+        // map list string -> list object theo options
+        const mappedSelected = Array.isArray(myHobbies)
+          ? options.filter((opt) => myHobbies.includes(opt.value))
+          : [];
+  
+        setSelectedHobbies(mappedSelected);
       } catch (err) {
         setTagsError(
           typeof err === "string"
@@ -52,8 +48,9 @@ export default function Preferences() {
         setTagsLoading(false);
       }
     };
+  
     load();
-  }, []);
+  }, []);  
 
   const handleNext = async () => {
     setError("");
@@ -100,7 +97,6 @@ export default function Preferences() {
 
         {tagsLoading && <p>Loading hobbies...</p>}
         {tagsError && <p className="text-red-500 text-sm">{tagsError}</p>}
-
         {!tagsLoading && !tagsError && (
           <div className="tag-wrapper">
             <div className="tag-header">
