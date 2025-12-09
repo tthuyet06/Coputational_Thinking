@@ -110,6 +110,7 @@ def test_db_driven_recommendation():
             print(f"  ID: {place.id} 🆔")
             print(f"  Rating: {place.rating}/5 ⭐")
             print(f"  Tags: {place.tags} 🏷️")
+            print(f"  Opening: {place.open}")
             print(f"  Địa chỉ: {place.address} 📍")
             print("---------------------------------------")
 

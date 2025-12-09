@@ -6,6 +6,7 @@ from typing import Dict, Any
 from backend.app.core.config import OSRM_API_URL
 from backend.app.utils.geo_utils import haversine_distance
 
+
 # Hàm Bất Đồng Bộ (ASYNC) được giữ nguyên vì nó sử dụng httpx.AsyncClient
 async def calculate_osrm_distance(lat_origin: float, lon_origin: float, lat_dest: float, lon_dest: float):
     """Calculate driving distance using OSRM (Open Source Routing Machine) - ASYNC VERSION."""
@@ -42,7 +43,7 @@ async def calculate_osrm_distance(lat_origin: float, lon_origin: float, lat_dest
         route = data["routes"][0]
         distance_meters = route["distance"]
         distance_km = distance_meters / 1000
-        
+
         # Chỉ trả về khoảng cách, đơn giản hóa cấu trúc trả về cho mục đích tính toán
         return {
             "success": True,
@@ -64,6 +65,7 @@ async def calculate_osrm_distance(lat_origin: float, lon_origin: float, lat_dest
             "http_status": 500
         }
 
+
 def extract_distance_regex(distance_str: str) -> float:
     """Sử dụng biểu thức chính quy để trích xuất số thực đầu tiên trong chuỗi."""
     match = re.search(r'\d+\.?\d*', distance_str)
@@ -83,7 +85,7 @@ def get_distance_sync(lat_origin: float, lon_origin: float, lat_dest: float, lon
     """
     # Giá trị mặc định/dự phòng
     fallback_distance = haversine_distance(lat_origin, lon_origin, lat_dest, lon_dest) * 1.2
-    
+
     try:
         # Sử dụng asyncio.run() để gọi hàm async và lấy kết quả
         result: Dict[str, Any] = asyncio.run(
@@ -93,7 +95,7 @@ def get_distance_sync(lat_origin: float, lon_origin: float, lat_dest: float, lon
         # Kiểm tra kết quả thành công
         if result.get("success") and "distance_km" in result:
             distance_km = result["distance_km"]
-            
+
             if distance_km > 0.0:
                 # Trả về khoảng cách OSRM nếu thành công
                 return distance_km

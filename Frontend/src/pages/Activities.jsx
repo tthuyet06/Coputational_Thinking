@@ -28,11 +28,11 @@ export default function Activities() {
         const options = await activitiesAPI.getActivityTags();
         setAllActivities(options);
 
-        const stored = localStorage.getItem("activities");
-        if (stored) {
-          const arr = JSON.parse(stored);
-          if (Array.isArray(arr)) setSelectedActivities(arr);
-        }
+        // const stored = localStorage.getItem("activities");
+        // if (stored) {
+        //   const arr = JSON.parse(stored);
+        //   if (Array.isArray(arr)) setSelectedActivities(arr);
+        // }
       } catch (err) {
         setTagsError(err?.message || "Failed to load activities");
       } finally {
