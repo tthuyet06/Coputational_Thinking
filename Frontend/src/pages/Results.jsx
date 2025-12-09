@@ -1,12 +1,12 @@
 // src/pages/Results.jsx
 import React, { useEffect, useState, useCallback, useRef } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useLocation } from "react-router-dom"; // Bỏ useNavigate nếu không dùng
 import Navbar from "../components/layouts/Navbar";
 import "../styles/Results.css";
 
 // Import Services
 import suggestionAPI from "../services/suggestionAPI";
-// Đã xóa import favoriteAPI theo yêu cầu
+import preferenceAPI from "../services/preferenceAPI"; // <--- Import API user
 
 // Import Components
 import LoadingScreen from "./LoadingScreen";
@@ -23,11 +23,8 @@ const DEFAULT_LONGITUDE = 106.7;
 
 export default function Results() {
    const location = useLocation();
-   // const navigate = useNavigate(); // Nếu không dùng navigate trong useEffect thì có thể comment lại để tránh warning
 
    // --- 1. XỬ LÝ TỌA ĐỘ VÀ FLAGS ---
-   
-   // Sử dụng useRef để lưu trữ TẤT CẢ thông tin từ state ban đầu
    const locationDataRef = useRef({ 
       lat: location.state?.lat ?? DEFAULT_LATITUDE, 
       lng: location.state?.lng ?? DEFAULT_LONGITUDE,
@@ -64,28 +61,31 @@ export default function Results() {
          setLoading(true);
          setError("");
 
-         // --- Lấy dữ liệu từ LocalStorage ---
-         
-         // 1. Duration Tag
+         // --- BƯỚC 1: Lấy dữ liệu cấu hình từ LocalStorage (Duration, Activity) ---
          const storedDuration = localStorage.getItem("durationTag");
          const parsedDuration = storedDuration ? JSON.parse(storedDuration) : null;
          const duration_tag = parsedDuration?.tag_id;
 
-         // 2. Activities
          const storedActs = localStorage.getItem("activities");
          const parsedActs = storedActs ? JSON.parse(storedActs) : [];
          const activities = Array.isArray(parsedActs) ? parsedActs : [];
-
-         // 3. Hobbies (Mới thêm) - Lấy từ key "user_hobbies" đã lưu ở trang Preferences
-         const storedHobbies = localStorage.getItem("user_hobbies");
-         const parsedHobbies = storedHobbies ? JSON.parse(storedHobbies) : [];
-         const hobbies = Array.isArray(parsedHobbies) ? parsedHobbies : [];
 
          if (!duration_tag) {
             console.warn("⚠️ [Results] Missing duration tag inside localStorage");
             setItems([]);
             setError("Missing duration selection.");
             return;
+         }
+
+         // --- BƯỚC 2: Gọi API lấy Hobby của User (Thay vì lấy local) ---
+         let userHobbies = [];
+         try {
+            // Gọi api getMyHobbies từ preferenceAPI
+            userHobbies = await preferenceAPI.getMyHobbies();
+         } catch (hobbyErr) {
+            console.warn("⚠️ [Results] Failed to fetch user hobbies, continuing with empty list.", hobbyErr);
+            // Vẫn tiếp tục chạy dù lỗi lấy hobby, coi như hobby rỗng
+            userHobbies = [];
          }
 
          const latitude = finalLat;
@@ -96,21 +96,21 @@ export default function Results() {
              longitude, 
              duration_tag, 
              activities,
-             hobbies 
+             hobbies: userHobbies 
          });
 
-         // Gọi API (Chỉ gọi 1 API suggestion, bỏ favoriteAPI)
+         // --- BƯỚC 3: Gọi API Recommendation ---
+         // Truyền hobby vừa lấy được vào đây
          const rawPlaces = await suggestionAPI.getRecommendations({ 
              latitude, 
              longitude, 
              duration_tag, 
              activity: activities,
-             hobby: hobbies // Truyền danh sách hobby vào đây
+             hobby: userHobbies 
          });
          
-         // --- Xử lý Places ---
+         // --- BƯỚC 4: Xử lý dữ liệu trả về ---
          let placesArray = [];
-         // Kiểm tra cấu trúc trả về (có thể là mảng trực tiếp, hoặc object chứa data)
          if (Array.isArray(rawPlaces)) {
             placesArray = rawPlaces;
          } else if (rawPlaces?.recommendations && Array.isArray(rawPlaces.recommendations)) {
@@ -136,10 +136,9 @@ export default function Results() {
             rating: typeof p.rating === "number" ? p.rating : p.rating != null ? Number(p.rating) : 0,
             openingHours: p.open || p.opening_hours || "N/A",   
             
-            // --- THAY ĐỔI Ở ĐÂY ---
-            // Thay vì dùng favSet.has(id), ta lấy trực tiếp từ biến API cung cấp
-            // Giả sử backend trả về field 'is_liked' hoặc 'fav' hoặc 'is_favorite'
-            fav: !!(p.is_fav || p.Favorite || p.is_favorite), 
+            // --- XỬ LÝ FAV: Lấy trực tiếp từ response ---
+            // Kiểm tra các trường có thể backend trả về (is_fav, is_liked, ...)
+            fav: !!(p.is_fav || p.is_liked || p.Favorite || p.is_favorite), 
             
             lat: p.latitude || p.lat,
             lon: p.longitude || p.lon,
@@ -170,7 +169,7 @@ export default function Results() {
       }
    }, [hasPickedLocation, showLoading, loadRecommendations]); 
    
-   // Hàm toggleFav (Update UI giả lập trước khi gọi API add/remove fav nếu cần)
+   // Hàm toggleFav: Chỉ update UI tạm thời
    const toggleFav = (id, newStatus) =>
       setItems((prev) =>
          prev.map((it) => (it.id === id ? { ...it, fav: newStatus } : it))

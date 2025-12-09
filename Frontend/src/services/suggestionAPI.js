@@ -2,28 +2,44 @@
 import api from "../api";
 
 const suggestionAPI = {
-  // 1. Thêm 'activity' vào tham số nhận vào
-  async getRecommendations({ latitude, longitude, duration_tag, activity }) {
+  /**
+   * Lấy gợi ý dựa trên vị trí, thời gian, sở thích và hoạt động
+   * Schema yêu cầu:
+   * - latitude: number
+   * - longitude: number
+   * - duration_tag: string
+   * - hobby: [string]
+   * - activity: [string]
+   */
+  async getRecommendations({ latitude, longitude, duration_tag, activity, hobby }) {
     
-    // 2. Validate dữ liệu để khớp Schema
+    // 1. Chuẩn hóa dữ liệu (Data Normalization)
+    const payload = {
+      // Ép kiểu về Number (đề phòng trường hợp input là string)
+      latitude: Number(latitude),
+      longitude: Number(longitude),
 
-    // Schema yêu cầu: "duration_tag": "string"
-    // Nếu duration_tag là số (VD: 1), hãy ép sang string
-    const finalDurationTag = String(duration_tag); 
+      // Ép kiểu về String
+      duration_tag: String(duration_tag),
 
-    // Schema yêu cầu: "activity": ["string"]
-    // Đảm bảo activity là mảng
-    const finalActivity = Array.isArray(activity) ? activity : [];
+      // Đảm bảo là Array, nếu không có thì gửi mảng rỗng
+      hobby: Array.isArray(hobby) ? hobby : [],
+      activity: Array.isArray(activity) ? activity : [],
+    };
 
-    // Gửi request
-    const res = await api.post("/api/v1/recommend/", {
-      latitude: latitude,      // Schema: number -> OK
-      longitude: longitude,    // Schema: number -> OK
-      duration_tag: finalDurationTag, // Schema: string -> Đã ép kiểu
-      activity: finalActivity, // Schema: [string] -> OK (Lấy từ tham số truyền vào)
-    });
+    // (Optional) Log ra để kiểm tra trước khi gửi
+    // console.log("Payload sent to recommend:", payload);
 
-    return res.data?.recommendations ?? [];
+    // 2. Gửi request
+    try {
+      const res = await api.post("/api/v1/recommend/", payload);
+      
+      // Trả về mảng recommendations, nếu không có thì trả về mảng rỗng
+      return res.data?.recommendations ?? [];
+    } catch (error) {
+      console.error("Error fetching recommendations:", error);
+      return []; // Trả về mảng rỗng khi lỗi để không crash UI
+    }
   },
 };
 
