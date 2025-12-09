@@ -84,8 +84,8 @@ def test_db_driven_recommendation():
         mock_criteria = MockCriteria(
             location=user_location,
             duration_tag="#few_hours",
-            activities=["#cafe"],
-            extra_tags=["#chill"]
+            activities=[],
+            extra_tags=["#chill", "#outdoor"]
         )
         mock_user = MockUser(id=1, hobbies=mock_criteria.extra_tags)
 
@@ -109,6 +109,7 @@ def test_db_driven_recommendation():
             print(f"  ID: {place.id} 🆔")
             print(f"  Rating: {place.rating}/5 ⭐")
             print(f"  Tags: {place.tags} 🏷️")
+            print(f"  Opening: {place.open}")
             print(f"  Địa chỉ: {place.address} 📍")
             print("---------------------------------------")
 
