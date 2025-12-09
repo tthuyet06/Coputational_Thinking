@@ -44,7 +44,6 @@ from datetime import time
 
 user_repo = UserRepository()
 place_repo = PlaceRepository()
-tag_repo = TagRepositoryImpl()
 fav_repo = FavoriteRepository()
 
 @dataclass
@@ -84,72 +83,78 @@ def get_recommendations(
 def _recommend_core(db: Session, user: DomainUser, criteria: RecommendationCriteria) -> RecommendationResult:
     all_places: List[DomainPlace] = place_repo.get_all_as_domain(db)
     places = [p for p in all_places if p.lat is not None and p.lon is not None]
-
+    print(f"[Recommend] Found {len(places)} places with valid coordinates." )
     if not places:
         return RecommendationResult(places=[])
-
+    print(f"[Recommend] Starting recommendation with {len(places)} places." )
     # 1. Loại cứng theo Activity
     places = _filter_by_activity(places, criteria.activities)
-
+    print(f"[Recommend] After activity filter: {len(places)} places." )
     if not places:
         return RecommendationResult(places=[])
 
     # 2. Loại cứng theo Hobby
     places = _filter_by_hobby(places, criteria.extra_tags)
-
+    print(f"[Recommend] After hobby filter: {len(places)} places." )
     if not places:
         return RecommendationResult(places=[])
 
     # 3. Lọc theo thời tiết
     places = _filter_by_weather(criteria, places)
-
+    print(f"[Recommend] After weather filter: {len(places)} places." )
     if not places:
         return RecommendationResult(places=[])
 
     # 4. Lọc theo thời gian và địa điểm trùng activity đang đứng
+    print(f"[Recommend] Checking time of day and current location filters." )
     if not criteria.activities:
+        print(1)
         places = _filter_by_time_of_day(places)
+        print(f"[Recommend] After time of day filter: {len(places)} places." )
         if not places:
             return RecommendationResult(places=[])
         places = _filter_out_current_location(db, criteria, places)
+        print(f"[Recommend] After current location filter: {len(places)} places." )
         if not places:
             return RecommendationResult(places=[])
-
+    print(f"[Recommend] Proceeding with {len(places)} places after filters." )
     # 6. Loại cứng theo thời gian hoạt động
     places = _filter_by_opening_time(db, places)
-
+    print(f"[Recommend] After opening time filter: {len(places)} places." )
     if not places:
         return RecommendationResult(places=[])
 
     # 3. Loại cứng theo khoảng cách tối đa tùy vào duration_tag
     places = _filter_by_gps(places, criteria.location, criteria.duration_tag)
-
+    print(f"[Recommend] After GPS filter: {len(places)} places." )
     if not places:
         return RecommendationResult(places=[])
 
     if len(places) == 1:
         return RecommendationResult(places=places)
-
+    print(f"[Recommend] Scoring {len(places)} places." )
     # 7. Tính điểm từng địa điểm
     scored: list[tuple[float, DomainPlace]] = []
-
+    print(f"[Recommend] Calculating scores for places." )
     for place in places:
         total_score = _score_place(place, criteria, db, user)
         scored.append((total_score, place))
-
+    print(f"[Recommend] Scoring completed." )
     # Sắp xếp giảm dần theo điểm
     scored.sort(key=lambda x: x[0], reverse=True)
-
-    # Chỉ lấy 2 place trong danh sách places (remove score)
+    print(f"[Recommend] Places sorted by score." )
+    # Chỉ lấy danh sách place (bỏ điểm)
     top_places = [place for _, place in scored[:2]]
-
+    print(f"[Recommend] Top {len(top_places)} places selected." )
     # Cập nhật history của user
     for p in top_places:
         user.update_history(p.id)
-
+    print(f"[Recommend] User history updated." )
     # Lưu lịch sử vào db
     user_repo.save(db, user)
-
+    print(f"[Recommend] User data saved to database." )
+    for p in top_places:
+        print(f"[Recommend] Recommended Place ID: {p.id}, Name: {p.name}" )
     return RecommendationResult(places=top_places)
 
 def _filter_by_activity(places: list[DomainPlace], activities: List[str]) -> list[DomainPlace]:
@@ -192,6 +197,7 @@ def _filter_by_gps(places: list[DomainPlace], loc: Location, duration_tag: str):
         return places
 
     out = []
+
     for p in places:
         d = get_distance_sync(loc.latitude, loc.longitude, p.lat, p.lon)
         if d <= max_distance_by_duration:
@@ -449,6 +455,9 @@ def _to_api_dict(jason_data: JSON_DATA) -> dict:
         "Favorite": is_fav,
         "id": place.id,
         "name": place.name,
+        # "link_address": place.link_address,
+        # "latitude": place.lat,
+        # "longitude": place.lon,
         "address": place.address or "",
         "overview":place.overview or "",
         "image": place.image or "",

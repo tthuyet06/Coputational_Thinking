@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session, joinedload
 
 from backend.app.db import models
 from backend.app.domain.user import User as DomainUser
-
+from backend.app.domain.history import History
 
 class UserRepository:
     """
@@ -96,11 +96,11 @@ class UserRepository:
 
         # 2. Parse History (Mới thêm)
         # Lưu ý: user.history_items là list ORM, cần chuyển sang list Domain
-        domain_history: List[domain_user.history] = []
+        domain_history: List[History] = []
         if user.history_items:
             for item in user.history_items:
                 domain_history.append(
-                    domain_user.history(
+                    History(
                         place_id=item.place_id,
                         reco_count=item.reco_count,
                         time=item.date  # date trong DB -> time trong Domain
