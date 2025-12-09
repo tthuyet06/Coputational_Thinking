@@ -58,10 +58,14 @@ def get_recommendations(
     latitude: float,
     longitude: float,
     duration_tag: str | None,
-    activities: List[str],
-    hobbies: List[str],
+    activities: List[str] | None,
+    hobbies: List[str] | None,
     user: models.User,
 ) -> List[dict]:
+
+    # đảm bảo luôn là list
+    activities = activities or []
+    hobbies = hobbies or []
 
     domain_user = user_repo.to_domain(user)
 
@@ -74,11 +78,11 @@ def get_recommendations(
 
     result: RecommendationResult = _recommend_core(db, domain_user, criteria)
 
-    json_datas = []
+    json_datas: List[JSON_DATA] = []
 
     for p in result.places:
-        if fav_repo.is_favorite(db, domain_user.id, p.id):
-            json_datas.append(JSON_DATA(place=p, is_fav=True))
+        is_fav = fav_repo.is_favorite(db, domain_user.id, p.id)
+        json_datas.append(JSON_DATA(place=p, is_fav=is_fav))
 
     return [_to_api_dict(jt) for jt in json_datas]
 
