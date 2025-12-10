@@ -217,7 +217,7 @@ export default function Profile() {
       setTimeout(() => {
         setFavorites((prev) => prev.filter((f) => f.id !== id));
         setFadingIds((prev) => prev.filter((fid) => fid !== id));
-      }, 300);
+      }, 600);
     } else {
       setFavorites((prev) =>
         prev.map((f) => (f.id === id ? { ...f, fav: true } : f))

@@ -2,21 +2,17 @@ import React, { useState, useEffect, useRef } from "react";
 import '../../styles/ActionButtons.css'; 
 import favoriteAPI from "../../services/favoriteAPI"; 
 
-// --- 1. FUNCTION BUILD URL (Giữ nguyên logic đã sửa ở bước trước) ---
+// --- 1. FUNCTION BUILD URL (Giữ nguyên) ---
 function buildDirectionsUrl(destPlace, startCoords) {
     const baseUrl = "https://www.google.com/maps/dir/?api=1";
-    
-    // Fallback an toàn cho tọa độ đích
     const destLat = destPlace.lat ?? destPlace.latitude;
     const destLon = destPlace.lon ?? destPlace.longitude ?? destPlace.lng;
     
-    // Xử lý điểm xuất phát
     let originParam = "Current+Location"; 
     if (startCoords && startCoords.lat != null && startCoords.lng != null) {
         originParam = `${startCoords.lat},${startCoords.lng}`;
     }
 
-    // Xử lý điểm đích
     let destParam = "";
     if (destLat != null && destLon != null) {
         destParam = `${destLat},${destLon}`;
@@ -27,9 +23,8 @@ function buildDirectionsUrl(destPlace, startCoords) {
     return `${baseUrl}&origin=${originParam}&destination=${destParam}&travelmode=driving`;
 }
 
-// --- 2. DIRECTION BUTTON (Đã thêm điều kiện ẩn nút) ---
+// --- 2. DIRECTION BUTTON (Giữ nguyên) ---
 export function DirectionButton({ place, startCoords }) {
-  // Nếu không có tọa độ xuất phát -> Không hiển thị nút chỉ đường
   if (!startCoords || startCoords.lat == null || startCoords.lng == null) {
     return null; 
   }
@@ -44,7 +39,6 @@ export function DirectionButton({ place, startCoords }) {
     <button
       className="icon-btn dir-btn"
       onClick={openDirections}
-      aria-label={`Direction to ${place.title}`}
       title="Get Directions"
       onMouseDown={(e) => e.preventDefault()} 
     >
@@ -57,37 +51,53 @@ export function DirectionButton({ place, startCoords }) {
   );
 }
 
-// --- 3. FAVORITE BUTTON (Đã dọn dẹp useEffect) ---
+// --- 3. FAVORITE BUTTON (SỬA LỖI TIMEOUT) ---
 export function FavoriteButton({ placeId, isFav, onToggle }) {
-  const [isFavorited, setIsFavorited] = useState(isFav);
+  const [isFavorited, setIsFavorited] = useState(!!isFav);
+  
+  // Ref để lưu timer, giúp kiểm soát việc clear/không clear
   const debounceTimer = useRef(null);
+  
+  // Ref để biết component còn sống hay đã chết
+  const isMounted = useRef(true);
 
-  // ✅ 1. Chỉ dùng useEffect để đồng bộ props từ cha xuống (khi load lại danh sách)
-  // Không gọi API trong này để tránh loop
   useEffect(() => {
-    setIsFavorited(isFav);
+    isMounted.current = true;
+    setIsFavorited(!!isFav);
+    
+    // Cleanup function khi component unmount
+    return () => {
+      isMounted.current = false;
+      // QUAN TRỌNG: KHÔNG clear timeout ở đây!
+      // Để API call vẫn được thực hiện dù component đã biến mất khỏi màn hình Profile.
+    };
   }, [isFav]);
 
-  // ✅ 2. Cleanup: Hủy timer nếu component bị unmount (chuyển trang)
-  useEffect(() => {
-    return () => {
-      if (debounceTimer.current) {
-        clearTimeout(debounceTimer.current);
-      }
-    };
-  }, []);
-
   const executeApiCall = async (currentId, status) => {
-    const validId = parseInt(currentId);
-    if (!currentId || isNaN(validId)) return; 
+    // Check ID an toàn (như đã bàn ở bước trước)
+    if (currentId === null || currentId === undefined) {
+        console.warn("⚠️ [FavoriteButton] Missing ID!");
+        return; 
+    }
+
+    // Xử lý ID lưỡng tính (Int/String)
+    let idToSend = currentId;
+    const strId = String(currentId);
+    if (/^\d+$/.test(strId)) {
+        idToSend = parseInt(strId, 10);
+    }
 
     try {
-      console.log(`📡 [Favorite API] Updating ${validId} to ${status}`);
-      await favoriteAPI.updateFavoriteStatus(validId, status);
+      console.log(`📡 [Favorite API] EXECUTE -> ID: ${idToSend} | Status: ${status}`);
+      await favoriteAPI.updateFavoriteStatus(idToSend, status);
     } catch (error) {
       console.error("❌ Failed to update favorite:", error);
-      // Có thể revert UI ở đây nếu cần thiết
-      // setIsFavorited(!status); 
+      
+      // CHỈ Revert UI nếu component CÒN SỐNG
+      // Nếu ở trang Profile và component đã bị xóa, ta không cần revert UI nữa
+      if (isMounted.current) {
+         setIsFavorited(!status); 
+      }
     }
   };
 
@@ -95,19 +105,21 @@ export function FavoriteButton({ placeId, isFav, onToggle }) {
     e.stopPropagation();
     e.preventDefault();
 
-    // 1. Optimistic UI: Cập nhật giao diện ngay lập tức
     const newStatus = !isFavorited;
+    
+    // 1. Optimistic UI: Đổi màu ngay
     setIsFavorited(newStatus);
     
-    // Báo cho component cha biết (nếu cần đổi màu icon ở cha)
+    // 2. Báo cho cha (Profile/Results) ngay lập tức
     if (onToggle) onToggle(newStatus);
 
-    // 2. Debounce: Xóa timer cũ nếu người dùng bấm liên tục
+    // 3. Clear timer CŨ (nếu user bấm liên tục)
     if (debounceTimer.current) {
       clearTimeout(debounceTimer.current);
     }
 
-    // 3. Set timer mới: Chỉ gọi API sau 500ms ngừng bấm
+    // 4. Set timer MỚI.
+    // Timer này sẽ sống sót qua khỏi sự kiện Unmount nhờ việc ta bỏ clearTimeout ở useEffect.
     debounceTimer.current = setTimeout(() => {
       executeApiCall(placeId, newStatus);
     }, 500);
@@ -117,7 +129,7 @@ export function FavoriteButton({ placeId, isFav, onToggle }) {
     <button 
         className={`fav-btn ${isFavorited ? "is-fav" : ""}`} 
         onClick={handleClick}
-        onMouseDown={(e) => e.preventDefault()} // Ngăn sự kiện click lan ra ngoài
+        onMouseDown={(e) => e.preventDefault()}
     >
       <svg width="22" height="22" viewBox="0 0 24 24" fill={isFavorited ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2">
         <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>

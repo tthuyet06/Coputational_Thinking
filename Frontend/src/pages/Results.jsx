@@ -1,4 +1,3 @@
-// src/pages/Results.jsx
 import React, { useEffect, useState, useCallback, useRef } from "react";
 import { useLocation } from "react-router-dom";
 import Navbar from "../components/layouts/Navbar";
@@ -54,7 +53,7 @@ export default function Results() {
        }
    };
 
-   // --- STATE KHỞI TẠO --- (để tránh false fallbacl)
+   // --- STATE KHỞI TẠO ---
    const [items, setItems] = useState(() => getCachedDataSync());
    
    const [loading, setLoading] = useState(() => {
@@ -65,22 +64,88 @@ export default function Results() {
    
    const [error, setError] = useState("");
 
-   // 2. Weather Hook (Cập nhật thời tiết hiện tại)
+   // 2. Weather Hook
    const { weatherData, fetchWeather } = useWeather();
 
    useEffect(() => {
       fetchWeather(finalLat, finalLng);
    }, [finalLat, finalLng, fetchWeather]);
 
-   // 3. Logic Load Suggestions
+   // ==========================================================
+   // 🔥 NEW: BACKGROUND SYNC FAVORITES (Đồng bộ lại tim khi quay lại trang)
+   // ==========================================================
+   useEffect(() => {
+      // Chỉ chạy khi đã có items (tức là đang dùng Cache hoặc vừa load xong)
+      if (items.length === 0) return;
+
+      const syncFavorites = async () => {
+         try {
+            console.log("🔄 [Results] Background syncing favorites...");
+            // Gọi API lấy danh sách yêu thích mới nhất
+            const myFavoritesRaw = await favoriteAPI.getMyFavorites();
+            
+            // Chuẩn hóa dữ liệu trả về
+            let validFavs = [];
+            if (Array.isArray(myFavoritesRaw)) validFavs = myFavoritesRaw;
+            else if (Array.isArray(myFavoritesRaw?.data)) validFavs = myFavoritesRaw.data;
+            else if (Array.isArray(myFavoritesRaw?.favorites)) validFavs = myFavoritesRaw.favorites;
+
+            // Tạo Set chứa các ID đang được like
+            // Lưu ý: convert ID về String để so sánh an toàn
+            const favSet = new Set(validFavs.map(f => String(f.id)));
+
+            setItems((prevItems) => {
+               // Kiểm tra xem có thay đổi gì không để tránh render thừa
+               let hasChange = false;
+               
+               const newItems = prevItems.map((item) => {
+                  const currentFavStatus = !!item.fav;
+                  const remoteFavStatus = favSet.has(String(item.id));
+
+                  // Nếu trạng thái tim trên cache khác với server -> Cập nhật
+                  if (currentFavStatus !== remoteFavStatus) {
+                     hasChange = true;
+                     return { ...item, fav: remoteFavStatus };
+                  }
+                  return item;
+               });
+
+               // Nếu có thay đổi, cập nhật State và ghi đè lại vào Cache
+               if (hasChange) {
+                  console.log("✅ [Results] Detected changes in favorites. Updating UI & Cache.");
+                  const dataToCache = {
+                     lat: finalLat,
+                     lng: finalLng,
+                     items: newItems
+                  };
+                  sessionStorage.setItem(STORAGE_KEY, JSON.stringify(dataToCache));
+                  return newItems;
+               }
+
+               return prevItems; // Không thay đổi gì
+            });
+
+         } catch (err) {
+            console.error("⚠️ [Results] Background sync failed:", err);
+         }
+      };
+
+      syncFavorites();
+      
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+   }, []); // Chỉ chạy 1 lần khi mount (quay lại trang)
+
+
+   // 3. Logic Load Suggestions (Logic chính gọi API gợi ý)
    const loadRecommendations = useCallback(async () => {
       if (!hasPickedLocation) {
          setLoading(false);
          return;
       }
 
+      // Nếu đã có cache thì dùng cache (Logic sync ở trên sẽ lo việc cập nhật tim)
       if (items.length > 0) {
-          console.log("⚡ [Results] Used cached data, skipping API.");
+          console.log("⚡ [Results] Used cached data, skipping main API.");
           setLoading(false);
           return;
       }
@@ -89,7 +154,7 @@ export default function Results() {
          setLoading(true);
          setError("");
 
-         // --- BƯỚC 1: Chuẩn bị tham số cơ bản ---
+         // ... (Logic chuẩn bị params giữ nguyên) ...
          const storedDuration = localStorage.getItem("durationTag");
          const parsedDuration = storedDuration ? JSON.parse(storedDuration) : null;
          const duration_tag = parsedDuration?.tag_id;
@@ -107,23 +172,12 @@ export default function Results() {
          const latitude = finalLat;
          const longitude = finalLng;
 
-         // --- BƯỚC 2: GỌI API ---
-         console.log("🚀 [Results] Fetching Hobbies & Favorites first...");
-
-         // 2.1: Lấy Hobbies và Favorites song song trước
-         // Vì Recs cần Hobby, nhưng Favs thì độc lập, nên ta gọi gom 2 cái này
+         // Gọi API
          const [userHobbies, myFavoritesRaw] = await Promise.all([
-             preferenceAPI.getMyHobbies().catch((err) => {
-                 console.warn("⚠️ Failed to load hobbies:", err);
-                 return [];
-             }),
+             preferenceAPI.getMyHobbies().catch(() => []),
              favoriteAPI.getMyFavorites().catch(() => [])
          ]);
 
-         console.log("🎨 [Results] User Hobbies:", userHobbies);
-         console.log("🚀 [Results] Requesting Recommendations...");
-
-         // 2.2: Gọi API Recommendations với hobby vừa lấy được
          const rawPlaces = await suggestionAPI.getRecommendations({ 
              latitude, 
              longitude, 
@@ -132,15 +186,15 @@ export default function Results() {
              hobby: userHobbies 
          });
 
-         // --- BƯỚC 3: Xử lý danh sách Favorites để đối chiếu ---
+         // Xử lý Fav
          let validFavs = [];
          if (Array.isArray(myFavoritesRaw)) validFavs = myFavoritesRaw;
          else if (Array.isArray(myFavoritesRaw?.data)) validFavs = myFavoritesRaw.data;
          else if (Array.isArray(myFavoritesRaw?.favorites)) validFavs = myFavoritesRaw.favorites;
 
-         const favSet = new Set(validFavs.map(f => f.id));
+         const favSet = new Set(validFavs.map(f => String(f.id))); // Convert string cho chắc
 
-         // --- BƯỚC 4: Xử lý danh sách Recommendations ---
+         // Xử lý Recommendations
          let placesArray = [];
          if (Array.isArray(rawPlaces)) placesArray = rawPlaces;
          else if (Array.isArray(rawPlaces?.recommendations)) placesArray = rawPlaces.recommendations;
@@ -152,7 +206,6 @@ export default function Results() {
             return;
          }
 
-         // Mapping dữ liệu & GÁN FAV TỪ DANH SÁCH ĐỐI CHIẾU
          const mapped = placesArray.map((p) => ({
             id: p.id,
             title: p.name,
@@ -164,8 +217,7 @@ export default function Results() {
             rating: typeof p.rating === "number" ? p.rating : p.rating != null ? Number(p.rating) : 0,
             openingHours: p.open || p.opening_hours || "N/A",
             
-            // Check ID có trong favSet không
-            fav: favSet.has(p.id), 
+            fav: favSet.has(String(p.id)), 
             
             lat: p.latitude || p.lat,
             lon: p.longitude || p.lon,
@@ -173,11 +225,10 @@ export default function Results() {
 
          setItems(mapped);
 
-         // --- BƯỚC 5: Lưu Cache ---
          const dataToCache = {
              lat: finalLat,
              lng: finalLng,
-             items: mapped //lưu dữ liệu tránh call api
+             items: mapped 
          };
          sessionStorage.setItem(STORAGE_KEY, JSON.stringify(dataToCache));
 
@@ -204,7 +255,7 @@ export default function Results() {
       }
    }, [hasPickedLocation, loadRecommendations, items.length]); 
    
-   // Hàm toggleFav
+   // Hàm toggleFav (Chỉ update UI Local + Cache)
    const toggleFav = (id, newStatus) => {
       setItems((prev) => {
          const updatedItems = prev.map((it) => (it.id === id ? { ...it, fav: newStatus } : it));
@@ -234,6 +285,7 @@ export default function Results() {
    const hasItems = items.length > 0;
 
    if (!hasPickedLocation || (!hasItems && error) || (!hasItems && !loading)) {
+      // (Code EmptyState giữ nguyên)
       let title = "We couldn't find any destination.";
       let subtitle = error || "Please try again next time or adjust your vibe.";
       let ctaText = "Select your location";
