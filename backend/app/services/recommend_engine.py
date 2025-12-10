@@ -87,12 +87,25 @@ def get_recommendations(
     return [_to_api_dict(jt) for jt in json_datas]
 
 def _recommend_core(db: Session, user: DomainUser, criteria: RecommendationCriteria) -> RecommendationResult:
+    print("User Information:")
+    print(f"- location: {criteria.location.latitude} (latitude), {criteria.location.longitude} (longitude)")
+    print(f"- duration tag: {criteria.duration_tag}")
+    print(f"- activity: {criteria.activities}")
+    print(f"- hobby: {criteria.extra_tags}")
+    print(f"- current time: {get_current_datetime()}")
+    print(f"- current weather tag: {get_main_weather(criteria.location.latitude, criteria.location.longitude)}")
+
+    print(f"\nRecommendation:\n")
+
     all_places: List[DomainPlace] = place_repo.get_all_as_domain(db)
     places = [p for p in all_places if p.lat is not None and p.lon is not None]
     print(f"[Recommend] Found {len(places)} places with valid coordinates." )
+
     if not places:
         return RecommendationResult(places=[])
-    print(f"[Recommend] Starting recommendation with {len(places)} places." )
+
+    print(f"[Recommend] Starting recommendation with {len(places)} places.")
+
     # 1. Loại cứng theo Activity
     places = _filter_by_activity(places, criteria.activities)
     print(f"[Recommend] After activity filter: {len(places)} places." )
@@ -112,55 +125,72 @@ def _recommend_core(db: Session, user: DomainUser, criteria: RecommendationCrite
         return RecommendationResult(places=[])
 
     # 4. Lọc theo thời gian và địa điểm trùng activity đang đứng
-    print(f"[Recommend] Checking time of day and current location filters." )
     if not criteria.activities:
-        print(1)
+        print(f"[Recommend] User not choose 'Activity'. Checking time of day and current location filters." )
+
         places = _filter_by_time_of_day(places)
         print(f"[Recommend] After time of day filter: {len(places)} places." )
         if not places:
             return RecommendationResult(places=[])
+
         places = _filter_out_current_location(db, criteria, places)
         print(f"[Recommend] After current location filter: {len(places)} places." )
         if not places:
             return RecommendationResult(places=[])
+
     print(f"[Recommend] Proceeding with {len(places)} places after filters." )
-    # 6. Loại cứng theo thời gian hoạt động
+
+    # 5. Loại cứng theo thời gian hoạt động
     places = _filter_by_opening_time(db, places)
     print(f"[Recommend] After opening time filter: {len(places)} places." )
     if not places:
         return RecommendationResult(places=[])
 
-    # 3. Loại cứng theo khoảng cách tối đa tùy vào duration_tag
+    # 6. Loại cứng theo khoảng cách tối đa tùy vào duration_tag
     places = _filter_by_gps(places, criteria.location, criteria.duration_tag)
     print(f"[Recommend] After GPS filter: {len(places)} places." )
     if not places:
         return RecommendationResult(places=[])
 
-    if len(places) == 1:
-        return RecommendationResult(places=places)
-    print(f"[Recommend] Scoring {len(places)} places." )
     # 7. Tính điểm từng địa điểm
+    print(f"[Recommend] Scoring {len(places)} places.")
     scored: list[tuple[float, DomainPlace]] = []
+
     print(f"[Recommend] Calculating scores for places." )
     for place in places:
         total_score = _score_place(place, criteria, db, user)
         scored.append((total_score, place))
     print(f"[Recommend] Scoring completed." )
+
     # Sắp xếp giảm dần theo điểm
     scored.sort(key=lambda x: x[0], reverse=True)
     print(f"[Recommend] Places sorted by score." )
+
     # Chỉ lấy danh sách place (bỏ điểm)
     top_places = [place for _, place in scored[:2]]
     print(f"[Recommend] Top {len(top_places)} places selected." )
+
     # Cập nhật history của user
     for p in top_places:
         user.update_history(p.id)
     print(f"[Recommend] User history updated." )
+
     # Lưu lịch sử vào db
     user_repo.save(db, user)
     print(f"[Recommend] User data saved to database." )
+
+    print(f"[Recommend] Recommend 2 places:\n")
+    i = 1
     for p in top_places:
-        print(f"[Recommend] Recommended Place ID: {p.id}, Name: {p.name}" )
+        print(f"Top {i}: Name: {p.name}, Place ID: {p.id}" )
+        print(f"Rating: {p.rating}")
+        print(f"Address: {p.address}")
+        print(f"Overview: {p.overview}")
+        print(f"Summarization: {p.summarization}")
+        print(f"Tags: {p.tags}")
+        print(f"Opening hours: {p.open}")
+        print("\n")
+
     return RecommendationResult(places=top_places)
 
 def _filter_by_activity(places: list[DomainPlace], activities: List[str]) -> list[DomainPlace]:
@@ -469,7 +499,7 @@ def _to_api_dict(jason_data: JSON_DATA) -> dict:
     place = jason_data.place
     is_fav = jason_data.is_fav
     return {
-        "Favorite": is_fav,
+        "favorite": is_fav,
         "id": place.id,
         "name": place.name,
         # "link_address": place.link_address,
@@ -479,7 +509,7 @@ def _to_api_dict(jason_data: JSON_DATA) -> dict:
         "overview":place.overview or "",
         "image": place.image or "",
         "summarization": place.summarization or "",
-        "tags": place.tags,
-        "rating": place.rating or "",
+        "tags": place.tags or "",
+        "rating": place.rating or 0.0,
         "open": place.open or "",
     }
