@@ -1,12 +1,13 @@
 // src/pages/Results.jsx
 import React, { useEffect, useState, useCallback, useRef } from "react";
-import { useLocation } from "react-router-dom"; // Bỏ useNavigate nếu không dùng
+import { useLocation } from "react-router-dom";
 import Navbar from "../components/layouts/Navbar";
 import "../styles/Results.css";
 
 // Import Services
 import suggestionAPI from "../services/suggestionAPI";
-import preferenceAPI from "../services/preferenceAPI"; // <--- Import API user
+import preferenceAPI from "../services/preferenceAPI";
+import favoriteAPI from "../services/favoriteAPI";
 
 // Import Components
 import LoadingScreen from "./LoadingScreen";
@@ -20,6 +21,7 @@ import BackButton from "../components/common/BackButton";
 
 const DEFAULT_LATITUDE = 10.776;
 const DEFAULT_LONGITUDE = 106.7;
+const STORAGE_KEY = "last_search_results"; 
 
 export default function Results() {
    const location = useLocation();
@@ -29,22 +31,43 @@ export default function Results() {
       lat: location.state?.lat ?? DEFAULT_LATITUDE, 
       lng: location.state?.lng ?? DEFAULT_LONGITUDE,
       hasPicked: location.state?.lat != null && location.state?.lng != null,
-      shouldShowLoading: !!location.state?.showLoading
+      showLoading: !!location.state?.showLoading
    });
    
+   //Set final pick
    const finalLat = locationDataRef.current.lat;
    const finalLng = locationDataRef.current.lng;
    const hasPickedLocation = locationDataRef.current.hasPicked;
-   const showLoading = locationDataRef.current.shouldShowLoading;
 
-   // 2. Weather Hook
-   const { weatherData, fetchWeather } = useWeather();
+   // --- HÀM HELPER ĐỌC CACHE ĐỒNG BỘ ---
+   const getCachedDataSync = () => {
+       try {
+           const cached = sessionStorage.getItem(STORAGE_KEY);
+           if (!cached) return [];
+           const parsed = JSON.parse(cached);
+           if (parsed.lat === finalLat && parsed.lng === finalLng && Array.isArray(parsed.items)) {
+               return parsed.items;
+           }
+           return [];
+       } catch (e) {
+           return [];
+       }
+   };
 
-   const [items, setItems] = useState([]);
-   const [loading, setLoading] = useState(showLoading && hasPickedLocation); 
+   // --- STATE KHỞI TẠO --- (để tránh false fallbacl)
+   const [items, setItems] = useState(() => getCachedDataSync());
+   
+   const [loading, setLoading] = useState(() => {
+       const cachedItems = getCachedDataSync();
+       if (cachedItems.length > 0) return false; 
+       return locationDataRef.current.showLoading && hasPickedLocation;
+   });
+   
    const [error, setError] = useState("");
 
-   // Khởi động Weather
+   // 2. Weather Hook (Cập nhật thời tiết hiện tại)
+   const { weatherData, fetchWeather } = useWeather();
+
    useEffect(() => {
       fetchWeather(finalLat, finalLng);
    }, [finalLat, finalLng, fetchWeather]);
@@ -52,16 +75,21 @@ export default function Results() {
    // 3. Logic Load Suggestions
    const loadRecommendations = useCallback(async () => {
       if (!hasPickedLocation) {
-         console.log("⏳ [Results] Skipping recommendations: No location picked.");
          setLoading(false);
          return;
+      }
+
+      if (items.length > 0) {
+          console.log("⚡ [Results] Used cached data, skipping API.");
+          setLoading(false);
+          return;
       }
 
       try {
          setLoading(true);
          setError("");
 
-         // --- BƯỚC 1: Lấy dữ liệu cấu hình từ LocalStorage (Duration, Activity) ---
+         // --- BƯỚC 1: Chuẩn bị tham số cơ bản ---
          const storedDuration = localStorage.getItem("durationTag");
          const parsedDuration = storedDuration ? JSON.parse(storedDuration) : null;
          const duration_tag = parsedDuration?.tag_id;
@@ -71,36 +99,31 @@ export default function Results() {
          const activities = Array.isArray(parsedActs) ? parsedActs : [];
 
          if (!duration_tag) {
-            console.warn("⚠️ [Results] Missing duration tag inside localStorage");
             setItems([]);
             setError("Missing duration selection.");
             return;
          }
 
-         // --- BƯỚC 2: Gọi API lấy Hobby của User (Thay vì lấy local) ---
-         let userHobbies = [];
-         try {
-            // Gọi api getMyHobbies từ preferenceAPI
-            userHobbies = await preferenceAPI.getMyHobbies();
-         } catch (hobbyErr) {
-            console.warn("⚠️ [Results] Failed to fetch user hobbies, continuing with empty list.", hobbyErr);
-            // Vẫn tiếp tục chạy dù lỗi lấy hobby, coi như hobby rỗng
-            userHobbies = [];
-         }
-
          const latitude = finalLat;
          const longitude = finalLng;
 
-         console.log("🚀 [Results] Requesting recommendations with:", { 
-             latitude, 
-             longitude, 
-             duration_tag, 
-             activities,
-             hobbies: userHobbies 
-         });
+         // --- BƯỚC 2: GỌI API ---
+         console.log("🚀 [Results] Fetching Hobbies & Favorites first...");
 
-         // --- BƯỚC 3: Gọi API Recommendation ---
-         // Truyền hobby vừa lấy được vào đây
+         // 2.1: Lấy Hobbies và Favorites song song trước
+         // Vì Recs cần Hobby, nhưng Favs thì độc lập, nên ta gọi gom 2 cái này
+         const [userHobbies, myFavoritesRaw] = await Promise.all([
+             preferenceAPI.getMyHobbies().catch((err) => {
+                 console.warn("⚠️ Failed to load hobbies:", err);
+                 return [];
+             }),
+             favoriteAPI.getMyFavorites().catch(() => [])
+         ]);
+
+         console.log("🎨 [Results] User Hobbies:", userHobbies);
+         console.log("🚀 [Results] Requesting Recommendations...");
+
+         // 2.2: Gọi API Recommendations với hobby vừa lấy được
          const rawPlaces = await suggestionAPI.getRecommendations({ 
              latitude, 
              longitude, 
@@ -108,23 +131,28 @@ export default function Results() {
              activity: activities,
              hobby: userHobbies 
          });
-         
-         // --- BƯỚC 4: Xử lý dữ liệu trả về ---
+
+         // --- BƯỚC 3: Xử lý danh sách Favorites để đối chiếu ---
+         let validFavs = [];
+         if (Array.isArray(myFavoritesRaw)) validFavs = myFavoritesRaw;
+         else if (Array.isArray(myFavoritesRaw?.data)) validFavs = myFavoritesRaw.data;
+         else if (Array.isArray(myFavoritesRaw?.favorites)) validFavs = myFavoritesRaw.favorites;
+
+         const favSet = new Set(validFavs.map(f => f.id));
+
+         // --- BƯỚC 4: Xử lý danh sách Recommendations ---
          let placesArray = [];
-         if (Array.isArray(rawPlaces)) {
-            placesArray = rawPlaces;
-         } else if (rawPlaces?.recommendations && Array.isArray(rawPlaces.recommendations)) {
-            placesArray = rawPlaces.recommendations;
-         } else if (rawPlaces?.data && Array.isArray(rawPlaces.data)) {
-            placesArray = rawPlaces.data; 
-         }
+         if (Array.isArray(rawPlaces)) placesArray = rawPlaces;
+         else if (Array.isArray(rawPlaces?.recommendations)) placesArray = rawPlaces.recommendations;
+         else if (Array.isArray(rawPlaces?.data)) placesArray = rawPlaces.data;
 
          if (placesArray.length === 0) {
             setItems([]);
+            sessionStorage.removeItem(STORAGE_KEY); 
             return;
          }
 
-         // Mapping dữ liệu
+         // Mapping dữ liệu & GÁN FAV TỪ DANH SÁCH ĐỐI CHIẾU
          const mapped = placesArray.map((p) => ({
             id: p.id,
             title: p.name,
@@ -134,17 +162,24 @@ export default function Results() {
             address: p.address || "",
             tags: Array.isArray(p.tags) ? p.tags : [],
             rating: typeof p.rating === "number" ? p.rating : p.rating != null ? Number(p.rating) : 0,
-            openingHours: p.open || p.opening_hours || "N/A",   
+            openingHours: p.open || p.opening_hours || "N/A",
             
-            // --- XỬ LÝ FAV: Lấy trực tiếp từ response ---
-            // Kiểm tra các trường có thể backend trả về (is_fav, is_liked, ...)
-            fav: !!(p.is_fav || p.is_liked || p.Favorite || p.is_favorite), 
+            // Check ID có trong favSet không
+            fav: favSet.has(p.id), 
             
             lat: p.latitude || p.lat,
             lon: p.longitude || p.lon,
-         }));
+         })).slice(0, 4);
 
-         setItems(mapped.slice(0, 4));
+         setItems(mapped);
+
+         // --- BƯỚC 5: Lưu Cache ---
+         const dataToCache = {
+             lat: finalLat,
+             lng: finalLng,
+             items: mapped //lưu dữ liệu tránh call api
+         };
+         sessionStorage.setItem(STORAGE_KEY, JSON.stringify(dataToCache));
 
       } catch (err) {
          console.error("❌ [Results] Error loading data:", err);
@@ -157,27 +192,37 @@ export default function Results() {
       } finally {
          setLoading(false);
       }
-   }, [hasPickedLocation, finalLat, finalLng]); 
+   }, [hasPickedLocation, finalLat, finalLng, items.length]); 
 
 
-   // Effect kích hoạt Load Recommendations
+   // Effect kích hoạt load
    useEffect(() => {
-      if (hasPickedLocation) {
-         const delay = showLoading ? 800 : 0;
-         const timer = setTimeout(loadRecommendations, delay);
-         return () => clearTimeout(timer);
+      if (hasPickedLocation && items.length === 0) {
+          const delay = locationDataRef.current.showLoading ? 800 : 0;
+          const timer = setTimeout(loadRecommendations, delay);
+          return () => clearTimeout(timer);
       }
-   }, [hasPickedLocation, showLoading, loadRecommendations]); 
+   }, [hasPickedLocation, loadRecommendations, items.length]); 
    
-   // Hàm toggleFav: Chỉ update UI tạm thời
-   const toggleFav = (id, newStatus) =>
-      setItems((prev) =>
-         prev.map((it) => (it.id === id ? { ...it, fav: newStatus } : it))
-      );   
+   // Hàm toggleFav
+   const toggleFav = (id, newStatus) => {
+      setItems((prev) => {
+         const updatedItems = prev.map((it) => (it.id === id ? { ...it, fav: newStatus } : it));
+         
+         const currentCache = sessionStorage.getItem(STORAGE_KEY);
+         if (currentCache) {
+             const parsedCache = JSON.parse(currentCache);
+             if (parsedCache.lat === finalLat && parsedCache.lng === finalLng) {
+                 parsedCache.items = updatedItems;
+                 sessionStorage.setItem(STORAGE_KEY, JSON.stringify(parsedCache));
+             }
+         }
+         return updatedItems;
+      });
+   };
 
-   const finalLoading = loading; 
-
-   if (finalLoading) {
+   // UI Rendering logic (giữ nguyên)
+   if (loading) {
       return (
          <>
             <Navbar />
@@ -186,13 +231,15 @@ export default function Results() {
       );
    }
    
-   if (!hasPickedLocation || error || !items.length) {
+   const hasItems = items.length > 0;
+
+   if (!hasPickedLocation || (!hasItems && error) || (!hasItems && !loading)) {
       let title = "We couldn't find any destination.";
       let subtitle = error || "Please try again next time or adjust your vibe.";
       let ctaText = "Select your location";
       let ctaTo = "/location-picker";
 
-      if (error || (items.length === 0 && hasPickedLocation)) { 
+      if (error || (hasPickedLocation && !hasItems)) { 
          ctaText = "Edit your vibe";
          ctaTo = "/profile";
       } else if (!hasPickedLocation) {
@@ -212,6 +259,7 @@ export default function Results() {
          </>
       );
    }
+
    return (
       <>
          <Navbar />
