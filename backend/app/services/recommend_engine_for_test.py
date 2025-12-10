@@ -45,6 +45,7 @@ from datetime import time
 
 user_repo = UserRepository()
 place_repo = PlaceRepository()
+tag_repo = TagRepositoryImpl()
 fav_repo = FavoriteRepository()
 
 @dataclass
@@ -57,10 +58,14 @@ def get_recommendations(
     latitude: float,
     longitude: float,
     duration_tag: str | None,
-    activities: List[str],
-    hobbies: List[str],
+    activities: List[str] | None,
+    hobbies: List[str] | None,
     user: models.User,
 ) -> List[dict]:
+
+    # đảm bảo luôn là list
+    activities = activities or []
+    hobbies = hobbies or []
 
     domain_user = user_repo.to_domain(user)
 
@@ -73,11 +78,11 @@ def get_recommendations(
 
     result: RecommendationResult = _recommend_core(db, domain_user, criteria)
 
-    json_datas = []
+    json_datas: List[JSON_DATA] = []
 
     for p in result.places:
-        if fav_repo.is_favorite(db, domain_user.id, p.id):
-            json_datas.append(JSON_DATA(place=p, is_fav=True))
+        is_fav = fav_repo.is_favorite(db, domain_user.id, p.id)
+        json_datas.append(JSON_DATA(place=p, is_fav=is_fav))
 
     return [_to_api_dict(jt) for jt in json_datas]
 
@@ -481,14 +486,17 @@ def _to_api_dict(jason_data: JSON_DATA) -> dict:
     place = jason_data.place
     is_fav = jason_data.is_fav
     return {
-        "Favorite": is_fav,
+        "favorite": is_fav,
         "id": place.id,
         "name": place.name,
+        # "link_address": place.link_address,
+        # "latitude": place.lat,
+        # "longitude": place.lon,
         "address": place.address or "",
         "overview":place.overview or "",
         "image": place.image or "",
         "summarization": place.summarization or "",
-        "tags": place.tags,
-        "rating": place.rating or "",
+        "tags": place.tags or "",
+        "rating": place.rating or 0.0,
         "open": place.open or "",
     }
