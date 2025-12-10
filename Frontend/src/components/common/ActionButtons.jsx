@@ -74,7 +74,6 @@ export function FavoriteButton({ placeId, isFav, onToggle }) {
   }, [isFav]);
 
   const executeApiCall = async (currentId, status) => {
-    // Check ID an toàn (như đã bàn ở bước trước)
     if (currentId === null || currentId === undefined) {
         console.warn("⚠️ [FavoriteButton] Missing ID!");
         return; 

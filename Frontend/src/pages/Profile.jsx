@@ -85,14 +85,14 @@ export default function Profile() {
       setFavLoading(true);
       try {
         const res = await favoriteAPI.getMyFavorites();
-        console.log("🔥 Raw API Response (Favorites):", res);
+        //console.log("🔥 Raw API Response (Favorites):", res);
 
 
         let validData = [];
         if (Array.isArray(res)) validData = res;
         else if (Array.isArray(res?.data)) validData = res.data;
         else if (Array.isArray(res?.favorites)) validData = res.favorites;
-        console.log("✅ Valid Data found:", validData);
+        //console.log("✅ Valid Data found:", validData);
         const normalized = validData.map((p) => ({
           ...p,
           id: p.id,
@@ -110,7 +110,7 @@ export default function Profile() {
         }));
               
 
-        console.log("[Profile] first favorite:", normalized[0]);
+        //console.log("[Profile] first favorite:", normalized[0]);
         setFavorites(normalized);
       } catch (error) {
         console.error("Failed to load favorites", error);
