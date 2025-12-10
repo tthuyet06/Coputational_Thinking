@@ -1,4 +1,3 @@
-// src/pages/PlaceDetail.jsx
 import React, { useState } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import Navbar from "../components/layouts/Navbar";
@@ -10,15 +9,15 @@ import {
 import BackButton from "../components/common/BackButton";
 
 export default function PlaceDetail() {
-  const { id } = useParams();
+  //const { id } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
 
-  // 🆕 1. Lấy startCoords từ state được gửi sang
+  // 1. Lấy startCoords từ state
   const data = location.state?.place;
   const startCoords = location.state?.startCoords; 
 
-  console.log("📍 [Detail] Received startCoords:", startCoords);
+  // console.log("📍 [Detail] Received startCoords:", startCoords);
 
   if (!data) {
     navigate("/results");
@@ -28,8 +27,8 @@ export default function PlaceDetail() {
   const place = {
     ...data,
     id: data.id,
-    lat: data.lat,
-    lon: data.lon,
+    lat: data.lat || data.latitude,
+    lon: data.lon || data.longitude,
     name: data.name || data.title,
     title: data.title || data.name || "Tên địa điểm",
     image: data.image || data.hero || data.image_url,
@@ -56,6 +55,40 @@ export default function PlaceDetail() {
   };  
 
   const [fav, setFav] = useState(place.fav);
+  const handleToggleFavorite = (newStatus) => {
+    // 1. Cập nhật state tại trang hiện tại
+    setFav(newStatus);
+
+    // 2. CẬP NHẬT ĐỒNG BỘ VÀO SESSION STORAGE
+    // Để khi back về Results, trang đó đọc storage sẽ thấy status mới
+    try {
+      const STORAGE_KEY = "last_search_results"; // Phải trùng với key bên Results.jsx
+      const cachedRaw = sessionStorage.getItem(STORAGE_KEY);
+
+      if (cachedRaw) {
+        const cachedData = JSON.parse(cachedRaw);
+        
+        // Kiểm tra xem có mảng items không
+        if (cachedData.items && Array.isArray(cachedData.items)) {
+          // Tạo mảng items mới với item hiện tại đã được update fav
+          const updatedItems = cachedData.items.map((item) => {
+            // So sánh ID (chuyển về string để chắc chắn khớp)
+            if (String(item.id) === String(place.id)) {
+              return { ...item, fav: newStatus };
+            }
+            return item;
+          });
+
+          // Lưu ngược lại vào storage
+          cachedData.items = updatedItems;
+          sessionStorage.setItem(STORAGE_KEY, JSON.stringify(cachedData));
+          console.log(`💾 [Detail] Synced fav status (${newStatus}) to SessionStorage for ID: ${place.id}`);
+        }
+      }
+    } catch (error) {
+      console.error("Failed to update session storage:", error);
+    }
+  };
 
   const renderStars = (rating) => {
     const isValid = typeof rating === "number" && !Number.isNaN(rating);
@@ -93,13 +126,12 @@ export default function PlaceDetail() {
             <h1 className="detail-title">{place.title}</h1>
 
             <div className="detail-actions">
-              {/* 🆕 2. Truyền startCoords vào nút DirectionButton */}
               <DirectionButton place={place} startCoords={startCoords} />
               
               <FavoriteButton
                 placeId={place.id}
                 isFav={fav}
-                onToggle={(newStatus) => setFav(newStatus)}
+                onToggle={handleToggleFavorite} 
               />
             </div>
           </header>

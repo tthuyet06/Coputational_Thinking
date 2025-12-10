@@ -78,7 +78,11 @@ class RecommendationErrorResponse(BaseModel):
 
 class Place(BaseModel):
     id: int
+<<<<<<< HEAD
     Favorite: bool
+=======
+    #Favorite: bool
+>>>>>>> main
     name: str
     address: str
     image: Optional[str] = None
