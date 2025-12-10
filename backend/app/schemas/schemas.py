@@ -1,5 +1,5 @@
 from typing import List, Optional
-from pydantic import BaseModel, EmailStr, field_validator
+from pydantic import BaseModel, EmailStr, field_validator, Field
 from uuid import UUID
 from backend.app.utils.tag_parser import parse_comma_separated_string
 
@@ -136,3 +136,7 @@ class ActivityCodesResponse(BaseModel):
 
 class ActivityTagsResponse(BaseModel):
     activities: List[ActivityItem]
+
+class ChangePasswordRequest(BaseModel):
+    old_password: str = Field(..., min_length=1, description="Current password")
+    new_password: str = Field(..., min_length=8, description="New password (minimum 8 characters)")

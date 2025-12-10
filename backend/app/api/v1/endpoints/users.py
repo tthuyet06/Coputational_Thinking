@@ -9,12 +9,13 @@ from starlette import status
 from backend.app.schemas.schemas import (
     UserResponse,
     UpdateUserRequest,
+    ChangePasswordRequest
 )
 
 from backend.app.services.user_service import (
     get_profile,
     update_name,
-
+    change_user_password
 )
 
 from backend.app.core.dependencies import get_current_user
@@ -34,3 +35,15 @@ async def patch_me(
 ):
     updated_user = update_name(db, user, req.username)
     return get_profile(updated_user)
+
+@router.put("/me/password", summary="Đổi mật khẩu")
+async def update_password(
+    req: ChangePasswordRequest,
+    user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    API đổi mật khẩu người dùng.
+    Yêu cầu: Mật khẩu cũ và mật khẩu mới.
+    """
+    return change_user_password(db, user, req.old_password, req.new_password)
