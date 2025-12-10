@@ -77,8 +77,8 @@ class RecommendationErrorResponse(BaseModel):
     error: str
 
 class Place(BaseModel):
+    favorite: bool
     id: int
-    Favorite: bool
     name: str
     address: str
     image: Optional[str] = None

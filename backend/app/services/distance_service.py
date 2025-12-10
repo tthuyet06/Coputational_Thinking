@@ -79,31 +79,32 @@ def extract_distance_regex(distance_str: str) -> float:
 # Nó đã được hợp nhất vào hàm đồng bộ bên dưới để tiện lợi.
 
 def get_distance_sync(lat_origin: float, lon_origin: float, lat_dest: float, lon_dest: float) -> float:
-    """
-    Hàm chính đồng bộ để tính khoảng cách OSRM hoặc khoảng cách Haversine dự phòng.
-    Sử dụng asyncio.run() để thực thi tác vụ bất đồng bộ.
-    """
-    # Giá trị mặc định/dự phòng
-    fallback_distance = haversine_distance(lat_origin, lon_origin, lat_dest, lon_dest) * 1.2
+    """Hàm chính đồng bộ để tính khoảng cách OSRM hoặc khoảng cách Haversine dự phòng.
+    Sử dụng asyncio.run() để thực thi tác vụ bất đồng bộ."""
 
-    try:
-        # Sử dụng asyncio.run() để gọi hàm async và lấy kết quả
-        result: Dict[str, Any] = asyncio.run(
-            calculate_osrm_distance(lat_origin, lon_origin, lat_dest, lon_dest)
-        )
+    return haversine_distance(lat_origin, lon_origin, lat_dest, lon_dest) * 1.2
 
-        # Kiểm tra kết quả thành công
-        if result.get("success") and "distance_km" in result:
-            distance_km = result["distance_km"]
-
-            if distance_km > 0.0:
-                # Trả về khoảng cách OSRM nếu thành công
-                return distance_km
-
-    except Exception as e:
-        # Xử lý nếu asyncio.run() gặp lỗi (ví dụ: đang chạy trong ngữ cảnh event loop khác)
-        print(f"Lỗi khi chạy asyncio.run: {e}")
-        pass
-
-    # Trả về khoảng cách dự phòng (Haversine * 1.2) nếu OSRM thất bại hoặc có lỗi
-    return fallback_distance
+    # # Giá trị mặc định/dự phòng
+    # fallback_distance = haversine_distance(lat_origin, lon_origin, lat_dest, lon_dest) * 1.2
+    #
+    # try:
+    #     # Sử dụng asyncio.run() để gọi hàm async và lấy kết quả
+    #     result: Dict[str, Any] = asyncio.run(
+    #         calculate_osrm_distance(lat_origin, lon_origin, lat_dest, lon_dest)
+    #     )
+    #
+    #     # Kiểm tra kết quả thành công
+    #     if result.get("success") and "distance_km" in result:
+    #         distance_km = result["distance_km"]
+    #
+    #         if distance_km > 0.0:
+    #             # Trả về khoảng cách OSRM nếu thành công
+    #             return distance_km
+    #
+    # except Exception as e:
+    #     # Xử lý nếu asyncio.run() gặp lỗi (ví dụ: đang chạy trong ngữ cảnh event loop khác)
+    #     print(f"Lỗi khi chạy asyncio.run: {e}")
+    #     pass
+    #
+    # # Trả về khoảng cách dự phòng (Haversine * 1.2) nếu OSRM thất bại hoặc có lỗi
+    # return fallback_distance
