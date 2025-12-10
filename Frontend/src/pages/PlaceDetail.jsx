@@ -1,15 +1,13 @@
-import React, { useState } from "react";
-import { useNavigate, useParams, useLocation } from "react-router-dom";
+import React from "react"; // Bỏ useState
+import { useNavigate, useLocation } from "react-router-dom";
 import Navbar from "../components/layouts/Navbar";
 import "../styles/PlaceDetail.css";
-import {
-  DirectionButton,
-  FavoriteButton,
-} from "../components/common/ActionButtons";
+import { DirectionButton, FavoriteButton } from "../components/common/ActionButtons";
 import BackButton from "../components/common/BackButton";
 
+const STORAGE_KEY = "last_search_results";
+
 export default function PlaceDetail() {
-  //const { id } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -17,13 +15,12 @@ export default function PlaceDetail() {
   const data = location.state?.place;
   const startCoords = location.state?.startCoords; 
 
-  // console.log("📍 [Detail] Received startCoords:", startCoords);
-
   if (!data) {
     navigate("/results");
     return null;
   }
 
+  // Chuẩn hóa dữ liệu Place
   const place = {
     ...data,
     id: data.id,
@@ -32,58 +29,34 @@ export default function PlaceDetail() {
     name: data.name || data.title,
     title: data.title || data.name || "Tên địa điểm",
     image: data.image || data.hero || data.image_url,
-    description:
-      data.overview ||
-      data.description ||
-      data.summarization ||
-      "Chưa có mô tả chi tiết.",
-    hashtags: Array.isArray(data.hashtags)
-      ? data.hashtags
-      : Array.isArray(data.tags)
-      ? data.tags
-      : [],
+    description: data.overview || data.description || data.summarization || "Chưa có mô tả chi tiết.",
+    hashtags: Array.isArray(data.hashtags) ? data.hashtags : Array.isArray(data.tags) ? data.tags : [],
     address: data.address || "",
-    rating:
-      typeof data.rating === "number"
-        ? data.rating
-        : data.rating != null
-        ? Number(data.rating)
-        : null,
-    openingHours:
-      data.openingHours || data.opening_hours || data.open || "N/A",
+    rating: typeof data.rating === "number" ? data.rating : data.rating != null ? Number(data.rating) : null,
+    openingHours: data.openingHours || data.opening_hours || data.open || "N/A",
     fav: !!data.fav,
   };  
 
-  const [fav, setFav] = useState(place.fav);
-  const handleToggleFavorite = (newStatus) => {
-    // 1. Cập nhật state tại trang hiện tại
-    setFav(newStatus);
-
-    // 2. CẬP NHẬT ĐỒNG BỘ VÀO SESSION STORAGE
-    // Để khi back về Results, trang đó đọc storage sẽ thấy status mới
+  // --- HÀM CHỈ LÀM NHIỆM VỤ SYNC CACHE (Không cần setState) ---
+  const syncFavToCache = (newStatus) => {
     try {
-      const STORAGE_KEY = "last_search_results"; // Phải trùng với key bên Results.jsx
       const cachedRaw = sessionStorage.getItem(STORAGE_KEY);
+      if (!cachedRaw) return;
 
-      if (cachedRaw) {
-        const cachedData = JSON.parse(cachedRaw);
-        
-        // Kiểm tra xem có mảng items không
-        if (cachedData.items && Array.isArray(cachedData.items)) {
-          // Tạo mảng items mới với item hiện tại đã được update fav
-          const updatedItems = cachedData.items.map((item) => {
-            // So sánh ID (chuyển về string để chắc chắn khớp)
-            if (String(item.id) === String(place.id)) {
-              return { ...item, fav: newStatus };
-            }
-            return item;
-          });
+      const cachedData = JSON.parse(cachedRaw);
+      
+      if (cachedData.items && Array.isArray(cachedData.items)) {
+        // Cập nhật item trong cache mà không cần reload trang
+        const updatedItems = cachedData.items.map((item) => {
+          if (String(item.id) === String(place.id)) {
+            return { ...item, fav: newStatus };
+          }
+          return item;
+        });
 
-          // Lưu ngược lại vào storage
-          cachedData.items = updatedItems;
-          sessionStorage.setItem(STORAGE_KEY, JSON.stringify(cachedData));
-          console.log(`💾 [Detail] Synced fav status (${newStatus}) to SessionStorage for ID: ${place.id}`);
-        }
+        cachedData.items = updatedItems;
+        sessionStorage.setItem(STORAGE_KEY, JSON.stringify(cachedData));
+        console.log(`💾 [Detail] Cache updated for ID ${place.id}: fav=${newStatus}`);
       }
     } catch (error) {
       console.error("Failed to update session storage:", error);
@@ -93,20 +66,10 @@ export default function PlaceDetail() {
   const renderStars = (rating) => {
     const isValid = typeof rating === "number" && !Number.isNaN(rating);
     return (
-      <span
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: "5px",
-          fontWeight: "bold",
-          color: "#333",
-        }}
-      >
+      <span style={{ display: "flex", alignItems: "center", gap: "5px", fontWeight: "bold", color: "#333" }}>
         <span style={{ color: "#fbbf24", fontSize: "1.2rem" }}>★</span>
         <span>{isValid ? rating.toFixed(1) : "N/A"}</span>
-        <span style={{ fontSize: "0.85rem", color: "#888", fontWeight: "normal" }}>
-          / 5.0
-        </span>
+        <span style={{ fontSize: "0.85rem", color: "#888", fontWeight: "normal" }}>/ 5.0</span>
       </span>
     );
   };
@@ -128,10 +91,11 @@ export default function PlaceDetail() {
             <div className="detail-actions">
               <DirectionButton place={place} startCoords={startCoords} />
               
+              {/* Truyền place.fav ban đầu, syncFavToCache chạy khi toggle */}
               <FavoriteButton
                 placeId={place.id}
-                isFav={fav}
-                onToggle={handleToggleFavorite} 
+                isFav={place.fav} 
+                onToggle={syncFavToCache} 
               />
             </div>
           </header>
@@ -143,25 +107,19 @@ export default function PlaceDetail() {
               <dt>Rating:</dt>
               <dd>{renderStars(place.rating)}</dd>
             </div>
-
             <div className="meta-row">
               <dt>Hashtags:</dt>
               <dd className="tags">
-                {place.hashtags.map((t) => `${t}`).join(" ")}
+                {place.hashtags.map((t, i) => <span key={i}>{t} </span>)}
               </dd>
             </div>
-
             <div className="meta-row">
               <dt>Address:</dt>
-              <dd>
-                <span className="pin">📍</span>
-                {place.address}
-              </dd>
+              <dd><span className="pin">📍</span>{place.address}</dd>
             </div>
-
             <div className="meta-row">
               <dt>Opening Hours:</dt>
-              <dd>{place.openingHours || "N/A"}</dd>
+              <dd>{place.openingHours}</dd>
             </div>
           </dl>
         </article>
