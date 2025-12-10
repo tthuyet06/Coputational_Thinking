@@ -13,6 +13,7 @@ from backend.app.repositories import (
 )
 from backend.app.db.models import Hobby
 from backend.app.db.models import Activity
+from backend.app.core.security import verify_password, get_password_hash
 
 # Khởi tạo repository (stateless, dùng lại được)
 user_repo = UserRepository()
@@ -24,24 +25,6 @@ place_repo = PlaceRepository()
 # KHO TAG SỞ THÍCH & TAG THỜI LƯỢNG
 # (giữ hợp đồng API như cũ để không phá frontend)
 # ============================================================
-def list_hobby_tags() -> List[str]:
-    """
-    Trả về toàn bộ tag sở thích hợp lệ (để validate input / render UI).
-
-    Lưu ý:
-    - Đây là "kho chuẩn" của hệ thống.
-    - update_hobbies() sẽ chỉ chấp nhận các tag nằm trong danh sách này.
-    """
-    return [
-        "#an_chinh",
-        "#an_vat",
-        "#cafe",
-        "#van_hoa",
-        "#yen_tinh",
-        "#soi_dong",
-        "#song_ao",
-    ]
-
 
 def list_duration_tags() -> List[Dict[str, str]]:
     """
@@ -261,3 +244,42 @@ def remove_favorite_item(
         return {"message": "Removed from favorites"}
     else:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Not in favorites, no action needed")
+
+
+# ============================================================
+# ĐỔI MẬT KHẨU (PASSWORD)
+# ============================================================
+def change_user_password(
+        db: Session,
+        user: models.User,
+        old_password: str,
+        new_password: str
+) -> Dict[str, str]:
+    """
+    Đổi mật khẩu người dùng.
+    - Kiểm tra mật khẩu cũ có đúng không.
+    - Hash mật khẩu mới và lưu vào DB.
+    """
+    # 1. Kiểm tra mật khẩu cũ
+    if not verify_password(old_password, user.password_hash):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Incorrect old password"  # Tiếng Anh theo yêu cầu
+        )
+
+    # 2. Kiểm tra mật khẩu mới không được trùng mật khẩu cũ
+    if old_password == new_password:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="New password cannot be the same as the old password"
+        )
+
+    # 3. Cập nhật mật khẩu mới
+    user.hashed_password = get_password_hash(new_password)
+
+    # 4. Lưu xuống DB
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+
+    return {"message": "Password updated successfully"}
