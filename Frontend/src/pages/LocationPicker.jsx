@@ -16,11 +16,6 @@ export default function LocationPicker() {
   const [mapCenter, setMapCenter] = useState(DEFAULT_CENTER);
   const [mapZoom, setMapZoom] = useState(13);
 
-  const [searchText, setSearchText] = useState("");
-  const [isSearching, setIsSearching] = useState(false);
-  const [errorMsg, setErrorMsg] = useState("");
-  const [searchCache, setSearchCache] = useState({});
-
   // 🔹 1. Lần nào vào cũng thử lấy vị trí hiện tại
   useEffect(() => {
     if (navigator.geolocation) {
@@ -56,60 +51,9 @@ export default function LocationPicker() {
     return () => clearTimeout(timer);
   }, []);
 
-  // 🔹 3. Search địa chỉ
-  const handleSearch = async (e) => {
-    e.preventDefault();
-    const query = searchText.trim().toLowerCase();
-    if (!query) return;
-
-    if (searchCache[query]) {
-      const cached = searchCache[query];
-      setSelectedPos(cached);
-      setMapCenter([cached.lat, cached.lng]);
-      setMapZoom(15);
-      setErrorMsg("");
-      return;
-    }
-
-    setIsSearching(true);
-    setErrorMsg("");
-
-    try {
-      const email = "studyonly_user@example.com";
-      const response = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
-          searchText
-        )}&limit=1&email=${email}`
-      );
-      if (!response.ok) throw new Error("API Error");
-      const data = await response.json();
-
-      if (data && data.length > 0) {
-        const result = data[0];
-        const newPos = {
-          lat: parseFloat(result.lat),
-          lng: parseFloat(result.lon),
-        };
-
-        setSelectedPos(newPos);
-        setMapCenter([newPos.lat, newPos.lng]);
-        setMapZoom(15);
-        setSearchCache((prev) => ({ ...prev, [query]: newPos }));
-      } else {
-        setErrorMsg("Can't find this place. Try another keyword.");
-      }
-    } catch (err) {
-      console.error("Search error:", err);
-      setErrorMsg("Network error or API limit reached.");
-    } finally {
-      setIsSearching(false);
-    }
-  };
-
-  // 🔹 4. Next -> Results
+  // 🔹 3. Next -> Results
   const handleNext = () => {
     if (selectedPos) {
-      // vẫn có thể clear search result cũ nếu bạn đang dùng ở Results
       sessionStorage.removeItem("last_search_results");
       navigate("/results", {
         state: {
@@ -157,64 +101,10 @@ export default function LocationPicker() {
             Pin Your Location 📍
           </h1>
           <p style={{ color: "#666" }}>
-            We start from your current location. You can pick another spot
-            if you want ✨
+            We start from your current location. Tap on the map to pick
+            another spot if you want ✨
           </p>
         </div>
-
-        {/* Search Box */}
-        <form
-          onSubmit={handleSearch}
-          style={{
-            display: "flex",
-            gap: "10px",
-            marginBottom: "20px",
-          }}
-        >
-          <input
-            type="text"
-            placeholder="Search address..."
-            value={searchText}
-            onChange={(e) => setSearchText(e.target.value)}
-            style={{
-              flex: 1,
-              padding: "12px 20px",
-              borderRadius: "50px",
-              border: "1px solid #ddd",
-              fontSize: "16px",
-              outline: "none",
-              boxShadow: "0 2px 5px rgba(0,0,0,0.05)",
-            }}
-          />
-          <button
-            type="submit"
-            disabled={isSearching}
-            style={{
-              padding: "0 25px",
-              borderRadius: "50px",
-              border: "none",
-              backgroundColor: "#333",
-              color: "#fff",
-              cursor: "pointer",
-              fontWeight: "bold",
-              minWidth: "100px",
-            }}
-          >
-            {isSearching ? "..." : "Search"}
-          </button>
-        </form>
-
-        {errorMsg && (
-          <p
-            style={{
-              color: "red",
-              textAlign: "center",
-              marginBottom: "15px",
-            }}
-          >
-            {errorMsg}
-          </p>
-        )}
 
         {/* Map */}
         <div

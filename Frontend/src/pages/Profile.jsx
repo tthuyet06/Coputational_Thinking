@@ -248,7 +248,7 @@ export default function Profile() {
       setTimeout(() => {
         setFavorites((prev) => prev.filter((f) => f.id !== id));
         setFadingIds((prev) => prev.filter((fid) => fid !== id));
-      }, 100);
+      }, 600);
     } else {
       setFavorites((prev) =>
         prev.map((f) => (f.id === id ? { ...f, fav: true } : f))
@@ -274,11 +274,6 @@ export default function Profile() {
         <div className="sidebar">
         <div className="avatar-section">
           <div className="avatar-circle">
-            <img
-              src="/default-avatar.jpeg"
-              alt="User avatar"
-              className="avatar-img"
-            />
           </div>
           <h3 className="username">Hello, {userData.username}</h3>
         </div>
