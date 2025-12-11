@@ -91,12 +91,14 @@ export default function Profile() {
       setFavLoading(true);
       try {
         const res = await favoriteAPI.getMyFavorites();
+        //console.log("🔥 Raw API Response (Favorites):", res);
+
 
         let validData = [];
         if (Array.isArray(res)) validData = res;
         else if (Array.isArray(res?.data)) validData = res.data;
         else if (Array.isArray(res?.favorites)) validData = res.favorites;
-
+        //console.log("✅ Valid Data found:", validData);
         const normalized = validData.map((p) => ({
           ...p,
           id: p.id,
@@ -246,7 +248,7 @@ export default function Profile() {
       setTimeout(() => {
         setFavorites((prev) => prev.filter((f) => f.id !== id));
         setFadingIds((prev) => prev.filter((fid) => fid !== id));
-      }, 100);
+      }, 600);
     } else {
       setFavorites((prev) =>
         prev.map((f) => (f.id === id ? { ...f, fav: true } : f))
@@ -272,11 +274,6 @@ export default function Profile() {
         <div className="sidebar">
         <div className="avatar-section">
           <div className="avatar-circle">
-            <img
-              src="/default-avatar.jpeg"
-              alt="User avatar"
-              className="avatar-img"
-            />
           </div>
           <h3 className="username">Hello, {userData.username}</h3>
         </div>

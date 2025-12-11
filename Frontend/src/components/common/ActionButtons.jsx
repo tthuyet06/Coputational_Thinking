@@ -73,6 +73,15 @@ export function FavoriteButton({ placeId, isFav, onToggle }) {
     };
   }, [isFav]);
 
+  // ✅ 2. Cleanup: Hủy timer nếu component bị unmount (chuyển trang)
+  useEffect(() => {
+    return () => {
+      if (debounceTimer.current) {
+        clearTimeout(debounceTimer.current);
+      }
+    };
+  }, []);
+
   const executeApiCall = async (currentId, status) => {
     if (currentId === null || currentId === undefined) {
         console.warn("⚠️ [FavoriteButton] Missing ID!");

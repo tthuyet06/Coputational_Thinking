@@ -11,6 +11,7 @@ export default function PlaceDetail() {
   const location = useLocation();
   const navigate = useNavigate();
 
+  // 1. Lấy startCoords từ state
   const data = location.state?.place;
   const startCoords = location.state?.startCoords; 
 
