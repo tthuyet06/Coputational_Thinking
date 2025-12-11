@@ -49,6 +49,8 @@ export default function Activities() {
         JSON.stringify(selectedActivities || [])
       );
 
+      sessionStorage.removeItem("last_search_results");
+
       navigate("/home");
     } catch (err) {
       setError(err?.message || "Failed to save activities");

@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useContext } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import "../../styles/Navbar.css";
+import { AuthContext } from "../../context/AuthContext";
 
 export default function Navbar() {
   const [open, setOpen] = useState(false);
@@ -8,6 +9,8 @@ export default function Navbar() {
   const ref = useRef(null); 
   const navigate = useNavigate();
   const { pathname } = useLocation();
+
+  const { logout } = useContext(AuthContext);
 
   const isAuthPage = pathname === "/login" || pathname === "/signup";
   const isProfilePage = pathname === "/profile";
@@ -97,6 +100,7 @@ export default function Navbar() {
                     <button
                       className="menu-item"
                       onClick={(e) => {
+                        logout();
                         e.stopPropagation();
                         setOpen(false);
                          setTimeout(() => {

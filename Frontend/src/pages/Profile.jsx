@@ -1,12 +1,13 @@
 // src/pages/Profile.jsx
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../components/layouts/Navbar";
 import TagSelector from "../components/common/TagSelector";
 import PlaceCard from "../components/common/PlaceCard";
 import "../styles/Profile.css";
+import { AuthContext } from "../context/AuthContext";
 
-// IMPORT SERVICES
+// SERVICES
 import userAPI from "../services/userAPI";
 import preferenceAPI from "../services/preferenceAPI";
 import favoriteAPI from "../services/favoriteAPI";
@@ -16,14 +17,14 @@ export default function Profile() {
 
   const [activeMenu, setActiveMenu] = useState("Profile");
 
-  // --- USER DATA ---
+  // USER DATA
   const [userData, setUserData] = useState({
     username: "",
     email: "",
     passwordMasked: "********",
   });
 
-  // --- PASSWORD ---
+  // PASSWORD STATE
   const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [passwordForm, setPasswordForm] = useState({
     currentPassword: "",
@@ -34,7 +35,12 @@ export default function Profile() {
   const [passwordSuccess, setPasswordSuccess] = useState("");
   const [passwordLoading, setPasswordLoading] = useState(false);
 
-  // --- VIBES (HOBBIES) ---
+  // toast nhỏ báo success
+  const [showToast, setShowToast] = useState(false);
+
+  const { logout } = useContext(AuthContext);
+
+  // HOBBIES
   const [allHobbies, setAllHobbies] = useState([]);
   const [userHobbies, setUserHobbies] = useState([]);
   const [editingHobbies, setEditingHobbies] = useState([]);
@@ -43,12 +49,12 @@ export default function Profile() {
   const [hobbySaving, setHobbySaving] = useState(false);
   const [hobbyLoading, setHobbyLoading] = useState(true);
 
-  // --- FAVORITES ---
+  // FAVORITES
   const [favorites, setFavorites] = useState([]);
   const [favLoading, setFavLoading] = useState(false);
   const [fadingIds, setFadingIds] = useState([]);
 
-  // 1. Load Profile & Hobbies
+  // LOAD PROFILE + HOBBIES
   useEffect(() => {
     const loadInit = async () => {
       try {
@@ -77,7 +83,7 @@ export default function Profile() {
     loadInit();
   }, []);
 
-  // 2. Load Favorites khi vào tab Favorites
+  // LOAD FAVORITES WHEN TAB ACTIVE
   useEffect(() => {
     if (activeMenu !== "Favorites") return;
 
@@ -85,14 +91,12 @@ export default function Profile() {
       setFavLoading(true);
       try {
         const res = await favoriteAPI.getMyFavorites();
-        //console.log("🔥 Raw API Response (Favorites):", res);
-
 
         let validData = [];
         if (Array.isArray(res)) validData = res;
         else if (Array.isArray(res?.data)) validData = res.data;
         else if (Array.isArray(res?.favorites)) validData = res.favorites;
-        //console.log("✅ Valid Data found:", validData);
+
         const normalized = validData.map((p) => ({
           ...p,
           id: p.id,
@@ -106,14 +110,12 @@ export default function Profile() {
               : p.rating != null
               ? Number(p.rating)
               : null,
-          openingHours: p.open || p.opening_hours || "N/A",  // ✅
+          openingHours: p.open || p.opening_hours || "N/A",
         }));
-              
 
-        //console.log("[Profile] first favorite:", normalized[0]);
         setFavorites(normalized);
-      } catch (error) {
-        console.error("Failed to load favorites", error);
+      } catch (err) {
+        console.error("Failed to load favorites:", err);
       } finally {
         setFavLoading(false);
       }
@@ -122,21 +124,19 @@ export default function Profile() {
     loadFavorites();
   }, [activeMenu]);
 
-  // --- LOGOUT ---
+  // LOGOUT
   const handleLogout = () => {
-    localStorage.removeItem("token");
+    logout();    
     navigate("/login");
   };
 
-  // --- CHANGE PASSWORD LOGIC ---
+  // HANDLE PASSWORD FORM CHANGE
   const handlePasswordFieldChange = (e) => {
     const { name, value } = e.target;
-    setPasswordForm((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+    setPasswordForm((prev) => ({ ...prev, [name]: value }));
   };
 
+  // DO CHANGE PASSWORD
   const handleChangePassword = async (e) => {
     e.preventDefault();
     setPasswordError("");
@@ -150,6 +150,7 @@ export default function Profile() {
       setPasswordError("Please fill in all fields.");
       return;
     }
+
     if (passwordForm.newPassword !== passwordForm.confirmPassword) {
       setPasswordError("New password and confirmation do not match.");
       return;
@@ -157,25 +158,49 @@ export default function Profile() {
 
     try {
       setPasswordLoading(true);
+
       await userAPI.changePassword({
-        current_password: passwordForm.currentPassword,
+        old_password: passwordForm.currentPassword,
         new_password: passwordForm.newPassword,
       });
+
       setPasswordSuccess("Password changed successfully 🎉");
+      setShowToast(true);
+
       setPasswordForm({
         currentPassword: "",
         newPassword: "",
         confirmPassword: "",
       });
-      setIsChangingPassword(false);
-      alert("Password changed successfully!");
+
+      // Ẩn toast + thoát mode edit sau 2s
+      setTimeout(() => {
+        setShowToast(false);
+        setPasswordSuccess("");
+        setIsChangingPassword(false);
+      }, 2000);
     } catch (err) {
       console.error("Change password error:", err);
-      const msg =
-        err?.response?.data?.detail ||
-        err?.message ||
-        "Failed to change password.";
-      setPasswordError(msg);
+
+      // handle lỗi 422 từ FastAPI (string_too_short, v.v.)
+      if (err?.response?.status === 422 && Array.isArray(err.response.data?.detail)) {
+        const first = err.response.data.detail[0];
+        const field = first?.loc?.[first.loc.length - 1];
+
+        if (first.type === "string_too_short" && field === "new_password") {
+          setPasswordError("New password must be at least 8 characters long.");
+        } else if (first.type === "string_too_short" && field === "old_password") {
+          setPasswordError("Current password must be at least 8 characters long.");
+        } else {
+          setPasswordError(first.msg || "Invalid password data.");
+        }
+      } else {
+        const msg =
+          typeof err?.response?.data?.detail === "string"
+            ? err.response.data.detail
+            : err?.message || "Failed to change password.";
+        setPasswordError(msg);
+      }
     } finally {
       setPasswordLoading(false);
     }
@@ -192,32 +217,36 @@ export default function Profile() {
     setPasswordSuccess("");
   };
 
-  // --- VIBES LOGIC ---
+  // SAVE HOBBIES — FIXED FORMAT
   const saveHobbies = async () => {
     try {
       setHobbySaving(true);
       setHobbyError("");
-      await preferenceAPI.updateMyHobbies(editingHobbies);
+
+      const hobbyTags = (editingHobbies || [])
+        .map((h) => (typeof h === "string" ? h : h?.value))
+        .filter(Boolean);
+
+      await preferenceAPI.updateMyHobbies(hobbyTags);
+
       setUserHobbies(editingHobbies);
       setIsEditingVibes(false);
       alert("Your vibes have been updated!");
     } catch (err) {
-      setHobbyError(
-        typeof err === "string" ? err : err?.message || "Failed to save hobbies"
-      );
+      setHobbyError(err?.message || "Failed to save hobbies");
     } finally {
       setHobbySaving(false);
     }
   };
 
-  // --- FAVORITES LOGIC ---
+  // TOGGLE FAVORITE
   const handleToggleFavorite = (id, newStatus) => {
     if (!newStatus) {
       setFadingIds((prev) => [...prev, id]);
       setTimeout(() => {
         setFavorites((prev) => prev.filter((f) => f.id !== id));
         setFadingIds((prev) => prev.filter((fid) => fid !== id));
-      }, 600);
+      }, 100);
     } else {
       setFavorites((prev) =>
         prev.map((f) => (f.id === id ? { ...f, fav: true } : f))
@@ -225,26 +254,37 @@ export default function Profile() {
     }
   };
 
+  // helper highlight input theo error message
+  const isOldPasswordError =
+    passwordError.toLowerCase().includes("old password") ||
+    passwordError.toLowerCase().includes("current password");
+  const isNewPasswordError =
+    passwordError.toLowerCase().includes("new password") &&
+    !passwordError.toLowerCase().includes("confirm");
+  const isConfirmError =
+    passwordError === "New password and confirmation do not match.";
+
   return (
     <>
       <Navbar />
       <div className="profile-page">
-        {/* Sidebar */}
+        {/* SIDEBAR */}
         <div className="sidebar">
-          <div className="avatar-section">
-            <div className="avatar-circle"></div>
-            <h3 className="username">
-              Hello, {userData.username || "Guest"}
-            </h3>
+        <div className="avatar-section">
+          <div className="avatar-circle">
+            <img
+              src="/default-avatar.jpeg"
+              alt="User avatar"
+              className="avatar-img"
+            />
           </div>
-
+          <h3 className="username">Hello, {userData.username}</h3>
+        </div>
           <ul className="menu">
             {["Profile", "Vibes", "Favorites"].map((item) => (
               <li
                 key={item}
-                className={`menu-item ${
-                  activeMenu === item ? "active" : ""
-                }`}
+                className={`menu-item ${activeMenu === item ? "active" : ""}`}
                 onClick={() => setActiveMenu(item)}
               >
                 {item}
@@ -257,7 +297,7 @@ export default function Profile() {
           </button>
         </div>
 
-        {/* Main content */}
+        {/* MAIN CONTENT */}
         <div className="profile-form-section">
           {/* PROFILE TAB */}
           {activeMenu === "Profile" && (
@@ -291,7 +331,9 @@ export default function Profile() {
                     value={passwordForm.currentPassword}
                     onChange={handlePasswordFieldChange}
                     placeholder="Enter current password"
+                    className={isOldPasswordError ? "error" : ""}
                   />
+
                   <label>New password:</label>
                   <input
                     type="password"
@@ -299,7 +341,9 @@ export default function Profile() {
                     value={passwordForm.newPassword}
                     onChange={handlePasswordFieldChange}
                     placeholder="Enter new password"
+                    className={isNewPasswordError ? "error" : ""}
                   />
+
                   <label>Confirm new password:</label>
                   <input
                     type="password"
@@ -307,14 +351,10 @@ export default function Profile() {
                     value={passwordForm.confirmPassword}
                     onChange={handlePasswordFieldChange}
                     placeholder="Re-enter new password"
+                    className={isConfirmError ? "error" : ""}
                   />
 
-                  {passwordError && (
-                    <p className="form-error">{passwordError}</p>
-                  )}
-                  {passwordSuccess && (
-                    <p className="form-success">{passwordSuccess}</p>
-                  )}
+                  {passwordError && <p className="form-error">{passwordError}</p>}
 
                   <div className="button-group">
                     <button
@@ -349,7 +389,7 @@ export default function Profile() {
               </p>
 
               {hobbyLoading && <p>Loading vibes...</p>}
-              {hobbyError && <p className="text-red-500 text-sm mb-2">{hobbyError}</p>}
+              {hobbyError && <p className="form-error">{hobbyError}</p>}
 
               {!hobbyLoading && (
                 <>
@@ -365,7 +405,6 @@ export default function Profile() {
                   {!isEditingVibes ? (
                     <button
                       className="edit-btn"
-                      style={{ marginTop: "20px" }}
                       onClick={() => {
                         setEditingHobbies(userHobbies);
                         setIsEditingVibes(true);
@@ -412,9 +451,7 @@ export default function Profile() {
                   {favorites.map((place) => (
                     <div
                       key={place.id}
-                      className={
-                        fadingIds.includes(place.id) ? "fade-out" : ""
-                      }
+                      className={fadingIds.includes(place.id) ? "fade-out" : ""}
                     >
                       <PlaceCard
                         place={place}
@@ -437,6 +474,14 @@ export default function Profile() {
           )}
         </div>
       </div>
+
+      {showToast && (
+        <div className="profile-toast profile-toast-visible">
+          <span className="profile-toast-icon">🎉</span>
+          <span>Password changed successfully!</span>
+        </div>
+      )}
+
     </>
   );
 }
