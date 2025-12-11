@@ -1,19 +1,15 @@
 // src/pages/Results.jsx
 import React, { useEffect, useState, useCallback, useRef } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import Navbar from "../components/layouts/Navbar";
 import "../styles/Results.css";
 
-// Import Services
 import suggestionAPI from "../services/suggestionAPI";
 import preferenceAPI from "../services/preferenceAPI";
 import favoriteAPI from "../services/favoriteAPI";
 
-// Import Components
 import LoadingScreen from "./LoadingScreen";
 import EmptyState from "./EmptyState";
-
-// Import Hooks & Utils
 import useWeather from "../hooks/useWeather";
 import toErrorMessage from "../utils/toErrorMessage";
 import PlaceCard from "../components/common/PlaceCard"; 
@@ -25,186 +21,190 @@ const STORAGE_KEY = "last_search_results";
 
 export default function Results() {
    const location = useLocation();
+   const navigate = useNavigate();
 
-   // --- 1. XỬ LÝ TỌA ĐỘ VÀ FLAGS ---
+   // --- CONFIG ---
    const locationDataRef = useRef({ 
       lat: location.state?.lat ?? DEFAULT_LATITUDE, 
       lng: location.state?.lng ?? DEFAULT_LONGITUDE,
       hasPicked: location.state?.lat != null && location.state?.lng != null,
       showLoading: !!location.state?.showLoading
    });
-   
-   //Set final pick
+
    const finalLat = locationDataRef.current.lat;
    const finalLng = locationDataRef.current.lng;
    const hasPickedLocation = locationDataRef.current.hasPicked;
 
-   // --- HÀM HELPER ĐỌC CACHE ĐỒNG BỘ ---
-   const getCachedDataSync = () => {
+   // --- HELPER ĐỌC CACHE RAW ---
+   // Hàm này chỉ lấy dữ liệu thô từ cache để hiển thị giao diện tạm thời (Skeleton/UI cũ)
+   // trong lúc chờ gọi API Favorite để đối chiếu.
+   const getRawCache = () => {
        try {
            const cached = sessionStorage.getItem(STORAGE_KEY);
-           if (!cached) return [];
+           if (!cached) return null;
            const parsed = JSON.parse(cached);
            if (parsed.lat === finalLat && parsed.lng === finalLng && Array.isArray(parsed.items)) {
                return parsed.items;
            }
-           return [];
-       } catch (e) {
-           return [];
-       }
+           return null;
+       } catch (e) { return null; }
    };
 
-   // --- STATE KHỞI TẠO --- (để tránh false fallbacl)
-   const [items, setItems] = useState(() => getCachedDataSync());
-   
+   // --- STATE ---
+   const [items, setItems] = useState(() => getRawCache() || []);
    const [loading, setLoading] = useState(() => {
-       const cachedItems = getCachedDataSync();
-       if (cachedItems.length > 0) return false; 
-       return locationDataRef.current.showLoading && hasPickedLocation;
+       // Nếu có cache, không hiện loading screen toàn màn hình
+       return items.length === 0 && locationDataRef.current.showLoading && hasPickedLocation;
    });
-   
    const [error, setError] = useState("");
 
-   // 2. Weather Hook (Cập nhật thời tiết hiện tại)
-   const { weatherData, fetchWeather } = useWeather();
+   // --- XỬ LÝ BACK ---
+   const handleGoBack = (e) => {
+       if (e && e.preventDefault) e.preventDefault();
+       sessionStorage.removeItem(STORAGE_KEY);
+       navigate("/location-picker");
+   };
 
+   // --- WEATHER ---
+   const { weatherData, fetchWeather } = useWeather();
    useEffect(() => {
       fetchWeather(finalLat, finalLng);
    }, [finalLat, finalLng, fetchWeather]);
 
-   // 3. Logic Load Suggestions
-   const loadRecommendations = useCallback(async () => {
+
+   // --- MAIN LOGIC: ONE FLOW TO RULE THEM ALL ---
+   const initData = useCallback(async () => {
       if (!hasPickedLocation) {
          setLoading(false);
          return;
       }
 
-      if (items.length > 0) {
-          console.log("⚡ [Results] Used cached data, skipping API.");
-          setLoading(false);
-          return;
-      }
-
       try {
-         setLoading(true);
          setError("");
+         
+         // Nếu chưa có items nào hiển thị, bật loading
+         if (items.length === 0) setLoading(true);
 
-         // --- BƯỚC 1: Chuẩn bị tham số cơ bản ---
-         const storedDuration = localStorage.getItem("durationTag");
-         const parsedDuration = storedDuration ? JSON.parse(storedDuration) : null;
-         const duration_tag = parsedDuration?.tag_id;
+         // BƯỚC 1: LUÔN LUÔN Gọi Favorites API trước (hoặc song song)
+         // Để đảm bảo ta có danh sách tim mới nhất
+         const favPromise = favoriteAPI.getMyFavorites().catch(() => []);
+         
+         let placesData = [];
+         
+         // Kiểm tra cache xem có dùng được không
+         const cachedItems = getRawCache();
 
-         const storedActs = localStorage.getItem("activities");
-         const parsedActs = storedActs ? JSON.parse(storedActs) : [];
-         const activities = Array.isArray(parsedActs) ? parsedActs : [];
+         if (cachedItems) {
+             console.log("⚡ [Results] Found cache. Waiting for fresh Favorites to sync...");
+             // TRƯỜNG HỢP 1: CÓ CACHE
+             // Ta lấy list địa điểm từ cache, nhưng chưa dùng ngay field 'fav' của nó
+             placesData = cachedItems;
+         } else {
+             console.log("🚀 [Results] No cache. Fetching Recommendations from API...");
+             // TRƯỜNG HỢP 2: KHÔNG CÓ CACHE -> GỌI API REC
+             
+             // Lấy params
+             const storedDuration = localStorage.getItem("durationTag");
+             const parsedDuration = storedDuration ? JSON.parse(storedDuration) : null;
+             const duration_tag = parsedDuration?.tag_id;
+             const storedActs = localStorage.getItem("activities");
+             const activities = storedActs ? JSON.parse(storedActs) : [];
 
-         if (!duration_tag) {
-            setItems([]);
-            setError("Missing duration selection.");
-            return;
+             if (!duration_tag) {
+                setItems([]);
+                setError("Missing duration selection.");
+                setLoading(false);
+                return;
+             }
+
+             // Gọi Hobby & Recs
+             // Lưu ý: Ta gọi song song Hobby & Favorites ở trên (nếu muốn tối ưu hơn), 
+             // nhưng để code gọn theo luồng bạn yêu cầu, ta xử lý ở đây.
+             const userHobbies = await preferenceAPI.getMyHobbies().catch(() => []);
+             
+             console.log("lat: ", finalLat, ",lon: ", finalLng, ",dur:", duration_tag, ",activity: ", activities, ",hobby: ", userHobbies)
+             const rawPlaces = await suggestionAPI.getRecommendations({ 
+                 latitude: finalLat, 
+                 longitude: finalLng, 
+                 duration_tag, 
+                 activity: activities, 
+                 hobby: userHobbies 
+             });
+
+             // Chuẩn hóa data từ API Recs
+             let list = [];
+             if (Array.isArray(rawPlaces)) list = rawPlaces;
+             else if (Array.isArray(rawPlaces?.recommendations)) list = rawPlaces.recommendations;
+             else if (Array.isArray(rawPlaces?.data)) list = rawPlaces.data;
+             
+             // Map sơ bộ (chưa có fav chính xác)
+             placesData = list.map(p => ({
+                id: p.id,
+                title: p.name,
+                image: p.image || p.image_url || "",
+                description: p.summarization || p.description || "Chưa có mô tả chi tiết.",
+                overview: p.overview || "",
+                address: p.address || "",
+                tags: Array.isArray(p.tags) ? p.tags : [],
+                rating: typeof p.rating === "number" ? p.rating : p.rating != null ? Number(p.rating) : 0,
+                openingHours: p.open || p.opening_hours || "N/A",
+                lat: p.latitude || p.lat,
+                lon: p.longitude || p.lon,
+                // Fav tạm thời để false, lát nữa loop sẽ update
+                fav: false 
+             })).slice(0, 4);
          }
 
-         const latitude = finalLat;
-         const longitude = finalLng;
-
-         // --- BƯỚC 2: GỌI API ---
-         console.log("🚀 [Results] Fetching Hobbies & Favorites first...");
-
-         // 2.1: Lấy Hobbies và Favorites song song trước
-         // Vì Recs cần Hobby, nhưng Favs thì độc lập, nên ta gọi gom 2 cái này
-         const [userHobbies, myFavoritesRaw] = await Promise.all([
-             preferenceAPI.getMyHobbies().catch((err) => {
-                 console.warn("⚠️ Failed to load hobbies:", err);
-                 return [];
-             }),
-             favoriteAPI.getMyFavorites().catch(() => [])
-         ]);
-
-         console.log("🎨 [Results] User Hobbies:", userHobbies);
-         console.log("🚀 [Results] Requesting Recommendations...");
-
-         // 2.2: Gọi API Recommendations với hobby vừa lấy được
-         const rawPlaces = await suggestionAPI.getRecommendations({ 
-             latitude, 
-             longitude, 
-             duration_tag, 
-             activity: activities,
-             hobby: userHobbies 
-         });
-
-         // --- BƯỚC 3: Xử lý danh sách Favorites để đối chiếu ---
+         // BƯỚC 2: ĐỢI FAV API & ĐỐI CHIẾU
+         const myFavoritesRaw = await favPromise;
+         
          let validFavs = [];
          if (Array.isArray(myFavoritesRaw)) validFavs = myFavoritesRaw;
          else if (Array.isArray(myFavoritesRaw?.data)) validFavs = myFavoritesRaw.data;
          else if (Array.isArray(myFavoritesRaw?.favorites)) validFavs = myFavoritesRaw.favorites;
-
+         
          const favSet = new Set(validFavs.map(f => f.id));
 
-         // --- BƯỚC 4: Xử lý danh sách Recommendations ---
-         let placesArray = [];
-         if (Array.isArray(rawPlaces)) placesArray = rawPlaces;
-         else if (Array.isArray(rawPlaces?.recommendations)) placesArray = rawPlaces.recommendations;
-         else if (Array.isArray(rawPlaces?.data)) placesArray = rawPlaces.data;
+         // BƯỚC 3: VÒNG LẶP GẮN TAG FAV (Merge)
+         // Dù là Cache hay API Recs, đều phải chạy qua bước này
+         const finalItems = placesData.map(item => ({
+             ...item,
+             fav: favSet.has(item.id) // Ghi đè trạng thái fav chuẩn từ server
+         }));
 
-         if (placesArray.length === 0) {
-            setItems([]);
-            sessionStorage.removeItem(STORAGE_KEY); 
-            return;
+         if (finalItems.length === 0 && !cachedItems) {
+             setItems([]);
+             sessionStorage.removeItem(STORAGE_KEY);
+         } else {
+             // Set State hiển thị
+             setItems(finalItems);
+             
+             // Lưu Cache (Cập nhật lại cache với trạng thái Fav mới nhất)
+             const dataToCache = { lat: finalLat, lng: finalLng, items: finalItems };
+             sessionStorage.setItem(STORAGE_KEY, JSON.stringify(dataToCache));
          }
-
-         // Mapping dữ liệu & GÁN FAV TỪ DANH SÁCH ĐỐI CHIẾU
-         const mapped = placesArray.map((p) => ({
-            id: p.id,
-            title: p.name,
-            image: p.image || p.image_url || "",
-            description: p.summarization || p.description || "Chưa có mô tả chi tiết.",
-            overview: p.overview || "",
-            address: p.address || "",
-            tags: Array.isArray(p.tags) ? p.tags : [],
-            rating: typeof p.rating === "number" ? p.rating : p.rating != null ? Number(p.rating) : 0,
-            openingHours: p.open || p.opening_hours || "N/A",
-            
-            // Check ID có trong favSet không
-            fav: favSet.has(p.id), 
-            
-            lat: p.latitude || p.lat,
-            lon: p.longitude || p.lon,
-         })).slice(0, 4);
-
-         setItems(mapped);
-
-         // --- BƯỚC 5: Lưu Cache ---
-         const dataToCache = {
-             lat: finalLat,
-             lng: finalLng,
-             items: mapped //lưu dữ liệu tránh call api
-         };
-         sessionStorage.setItem(STORAGE_KEY, JSON.stringify(dataToCache));
 
       } catch (err) {
-         console.error("❌ [Results] Error loading data:", err);
-         if (err.response && err.response.status === 404) {
-               setItems([]);
-         } else {
-               setItems([]);
-               setError(toErrorMessage(err, "Failed to load recommendations"));
-         }
+         console.error("❌ Error loading data:", err);
+         if (err.response && err.response.status === 404) setItems([]);
+         else setError(toErrorMessage(err, "Failed to load data"));
       } finally {
          setLoading(false);
       }
-   }, [hasPickedLocation, finalLat, finalLng, items.length]); 
+   }, [hasPickedLocation, finalLat, finalLng, items.length]); // items.length để check cache lần đầu
 
-
-   // Effect kích hoạt load
+   // Effect chạy 1 lần duy nhất logic trên
    useEffect(() => {
-      if (hasPickedLocation && items.length === 0) {
-          const delay = locationDataRef.current.showLoading ? 800 : 0;
-          const timer = setTimeout(loadRecommendations, delay);
-          return () => clearTimeout(timer);
-      }
-   }, [hasPickedLocation, loadRecommendations, items.length]); 
-   
-   // Hàm toggleFav
+       // Dùng timeout nhỏ để tạo hiệu ứng mượt mà nếu cần, hoặc chạy ngay
+       const delay = (locationDataRef.current.showLoading && items.length === 0) ? 800 : 0;
+       const timer = setTimeout(() => {
+           initData();
+       }, delay);
+       return () => clearTimeout(timer);
+       // eslint-disable-next-line react-hooks/exhaustive-deps
+   }, []); // Chỉ chạy mount, logic check cache nằm trong initData
+
+
    const toggleFav = (id, newStatus) => {
       setItems((prev) => {
          const updatedItems = prev.map((it) => (it.id === id ? { ...it, fav: newStatus } : it));
@@ -221,7 +221,7 @@ export default function Results() {
       });
    };
 
-   // UI Rendering logic (giữ nguyên)
+   // --- RENDER ---
    if (loading) {
       return (
          <>
@@ -250,12 +250,7 @@ export default function Results() {
       return (
          <>
             <Navbar />
-            <EmptyState
-               title={title}
-               subtitle={subtitle}
-               ctaText={ctaText}
-               ctaTo={ctaTo}
-            />
+            <EmptyState title={title} subtitle={subtitle} ctaText={ctaText} ctaTo={ctaTo} />
          </>
       );
    }
@@ -263,13 +258,12 @@ export default function Results() {
    return (
       <>
          <Navbar />
-         <BackButton to="/location-picker"/>
+         <div onClick={handleGoBack} style={{ display: 'inline-block' }}>
+            <BackButton to="#" /> 
+         </div>
          <main className="results-wrap">
             <div className="results-inner">
-               <h1 className="results-title">
-                  Here’s What Matches Your Vibe!
-               </h1>
-
+               <h1 className="results-title">Here’s What Matches Your Vibe!</h1>
                {weatherData && (
                   <div className="weather-info" style={{ 
                         marginBottom: '20px', 

@@ -65,6 +65,8 @@ export default function Preferences() {
       // Lưu local (giữ nguyên dạng object để UI dùng lại)
       localStorage.setItem("hobbies", JSON.stringify(selectedHobbies || []));
 
+      sessionStorage.removeItem("last_search_results");
+
       navigate("/activities");
     } catch (err) {
       setError(
