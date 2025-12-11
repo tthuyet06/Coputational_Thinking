@@ -47,7 +47,7 @@ user_repo = UserRepository()
 place_repo = PlaceRepository()
 tag_repo = TagRepositoryImpl()
 fav_repo = FavoriteRepository()
-
+tag_repo = TagRepositoryImpl()
 @dataclass
 class JSON_DATA:
     place: DomainPlace
