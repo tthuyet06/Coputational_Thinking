@@ -56,11 +56,7 @@ export default function LocationPicker() {
     return () => clearTimeout(timer);
   }, []);
 
-<<<<<<< HEAD
-  // --- HÀM SEARCH (Giữ nguyên logic) ---
-=======
   // 🔹 3. Search địa chỉ
->>>>>>> main
   const handleSearch = async (e) => {
     e.preventDefault();
     const query = searchText.trim().toLowerCase();
