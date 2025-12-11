@@ -80,8 +80,10 @@ export const AuthProvider = ({ children }) => {
 
   const logout = () => {
     localStorage.removeItem("token");
+    console.log("Token after logout =", localStorage.getItem("token")); // phải là null
+    // sessionStorage.clear();
     setUser(null);
-  };
+  };  
 
   return (
     <AuthContext.Provider

@@ -275,7 +275,7 @@ def change_user_password(
         )
 
     # 3. Cập nhật mật khẩu mới
-    user.hashed_password = get_password_hash(new_password)
+    user.password_hash = get_password_hash(new_password)
 
     # 4. Lưu xuống DB
     db.add(user)
