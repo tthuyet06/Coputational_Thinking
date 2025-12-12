@@ -183,6 +183,7 @@ def _recommend_core(db: Session, user: DomainUser, criteria: RecommendationCrite
     i = 1
     for p in top_places:
         print(f"Top {i}: Name: {p.name}, Place ID: {p.id}" )
+        i+=1
         print(f"Rating: {p.rating}")
         print(f"Address: {p.address}")
         print(f"Overview: {p.overview}")
