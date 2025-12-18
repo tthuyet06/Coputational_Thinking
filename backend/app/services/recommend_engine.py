@@ -95,100 +95,100 @@ def _recommend_core(db: Session, user: DomainUser, criteria: RecommendationCrite
     print(f"- current time: {get_current_datetime()}")
     print(f"- current weather tag: {get_main_weather(criteria.location.latitude, criteria.location.longitude)}")
 
-    print(f"\nRecommendation:\n")
+    print("\n[START RECOMMENDATION]:")
 
     all_places: List[DomainPlace] = place_repo.get_all_as_domain(db)
     places = [p for p in all_places if p.lat is not None and p.lon is not None]
-    print(f"[Recommend] Found {len(places)} places with valid coordinates." )
+    # print(f"[Recommend] Found {len(places)} places with valid coordinates." )
 
     if not places:
         return RecommendationResult(places=[])
 
-    print(f"[Recommend] Starting recommendation with {len(places)} places.")
+    # print(f"[Recommend] Starting recommendation with {len(places)} places.")
 
     # 1. Loại cứng theo Activity
     places = _filter_by_activity(places, criteria.activities)
-    print(f"[Recommend] After activity filter: {len(places)} places." )
+    # print(f"[Recommend] After activity filter: {len(places)} places." )
     if not places:
         return RecommendationResult(places=[])
 
     # 2. Loại cứng theo Hobby
     places = _filter_by_hobby(places, criteria.extra_tags)
-    print(f"[Recommend] After hobby filter: {len(places)} places." )
+    # print(f"[Recommend] After hobby filter: {len(places)} places." )
     if not places:
         return RecommendationResult(places=[])
 
     # 3. Lọc theo thời tiết
     places = _filter_by_weather(criteria, places)
-    print(f"[Recommend] After weather filter: {len(places)} places." )
+    # print(f"[Recommend] After weather filter: {len(places)} places." )
     if not places:
         return RecommendationResult(places=[])
 
     # 4. Lọc theo thời gian và địa điểm trùng activity đang đứng
     if not criteria.activities:
-        print(f"[Recommend] User not choose 'Activity'. Checking time of day and current location filters." )
+        # print(f"[Recommend] User not choose 'Activity'. Checking time of day and current location filters." )
 
         places = _filter_by_time_of_day(places)
-        print(f"[Recommend] After time of day filter: {len(places)} places." )
+        # print(f"[Recommend] After time of day filter: {len(places)} places." )
         if not places:
             return RecommendationResult(places=[])
 
         places = _filter_out_current_location(db, criteria, places)
-        print(f"[Recommend] After current location filter: {len(places)} places." )
+        # print(f"[Recommend] After current location filter: {len(places)} places." )
         if not places:
             return RecommendationResult(places=[])
 
-    print(f"[Recommend] Proceeding with {len(places)} places after filters." )
+    # print(f"[Recommend] Proceeding with {len(places)} places after filters." )
 
     # 5. Loại cứng theo thời gian hoạt động
     places = _filter_by_opening_time(db, places)
-    print(f"[Recommend] After opening time filter: {len(places)} places." )
+    # print(f"[Recommend] After opening time filter: {len(places)} places." )
     if not places:
         return RecommendationResult(places=[])
 
     # 6. Loại cứng theo khoảng cách tối đa tùy vào duration_tag
     places = _filter_by_gps(places, criteria.location, criteria.duration_tag)
-    print(f"[Recommend] After GPS filter: {len(places)} places." )
+    # print(f"[Recommend] After GPS filter: {len(places)} places." )
     if not places:
         return RecommendationResult(places=[])
 
     # 7. Tính điểm từng địa điểm
-    print(f"[Recommend] Scoring {len(places)} places.")
+    # print(f"[Recommend] Scoring {len(places)} places.")
     scored: list[tuple[float, DomainPlace]] = []
 
-    print(f"[Recommend] Calculating scores for places." )
+    # print(f"[Recommend] Calculating scores for places." )
     for place in places:
         total_score = _score_place(place, criteria, db, user)
         scored.append((total_score, place))
-    print(f"[Recommend] Scoring completed." )
+    # print(f"[Recommend] Scoring completed." )
 
     # Sắp xếp giảm dần theo điểm
     scored.sort(key=lambda x: x[0], reverse=True)
-    print(f"[Recommend] Places sorted by score." )
+    # print(f"[Recommend] Places sorted by score." )
 
     # Chỉ lấy danh sách place (bỏ điểm)
     top_places = [place for _, place in scored[:2]]
-    print(f"[Recommend] Top {len(top_places)} places selected." )
 
     # Cập nhật history của user
     for p in top_places:
         user.update_history(p.id)
-    print(f"[Recommend] User history updated." )
+    # print(f"[Recommend] User history updated." )
 
     # Lưu lịch sử vào db
     user_repo.save(db, user)
-    print(f"[Recommend] User data saved to database." )
+    # print(f"[Recommend] User data saved to database." )
 
-    print(f"[Recommend] Recommend 2 places:\n")
+    print(f"[Recommend] RECOMMEND {len(top_places)} PLACES:\n")
     i = 1
     for p in top_places:
         print(f"Top {i}: Name: {p.name}, Place ID: {p.id}" )
-        print(f"Rating: {p.rating}")
+        i+=1
+        # print(f"Rating: {p.rating}")
         print(f"Address: {p.address}")
-        print(f"Overview: {p.overview}")
-        print(f"Summarization: {p.summarization}")
+        # print(f"Overview: {p.overview}")
+        # print(f"Summarization: {p.summarization}")
         print(f"Tags: {p.tags}")
-        print(f"Opening hours: {p.open}")
+        # print(f"Opening hours: {p.open}")
         print("\n")
 
     return RecommendationResult(places=top_places)
@@ -287,7 +287,6 @@ UNSAFE_BY_TIME_TAG = {
 
     # Tối (#night): Cấm các Không gian/Vibe quá mộc mạc/vắng vẻ, không phù hợp đi chơi đêm.
     "#night": {
-        "#cafe",           # Cafe đêm ảnh hưởng sức khỏe
         "#outdoor",        # Có thể không an toàn/tiện lợi (Trừ #rooftop)
         "#natural",        # Vắng vẻ, không phù hợp đi chơi tối
         "#free_spirited",  # Có thể dẫn đến nơi vắng vẻ/không an toàn
